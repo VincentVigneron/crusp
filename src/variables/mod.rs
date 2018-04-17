@@ -9,7 +9,9 @@ pub mod handlers;
 //NoChange(usize),
 //}
 
-pub trait Variable: Clone {}
+pub trait Variable: Clone {
+    fn is_fixed(&self) -> bool;
+}
 
 pub trait VariableView: Clone {
     fn get_id(&self) -> ProcessUniqueId;
@@ -36,7 +38,11 @@ impl<Var: Variable> Array<Var> {
         unsafe { self.variables.get_unchecked(idx) }
     }
 }
-impl<Var: Variable> Variable for Array<Var> {}
+impl<Var: Variable> Variable for Array<Var> {
+    fn is_fixed(&self) -> bool {
+        unimplemented!()
+    }
+}
 
 #[macro_use]
 pub mod macros;

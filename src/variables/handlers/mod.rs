@@ -23,6 +23,7 @@ where
     View: VariableView,
 {
     fn get_mut(&mut self, &View) -> &mut Var;
+    fn get(&self, &View) -> &Var;
 }
 
 pub fn get_mut_from_handler<'a, Handler, Var, View>(
@@ -35,6 +36,14 @@ where
     View: VariableView,
 {
     vars.get_mut(&view)
+}
+pub fn get_from_handler<'a, Handler, Var, View>(vars: &'a Handler, view: &View) -> &'a Var
+where
+    Handler: SpecificVariablesHandler<Var, View>,
+    Var: Variable,
+    View: VariableView,
+{
+    vars.get(&view)
 }
 
 #[macro_use]

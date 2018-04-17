@@ -1,7 +1,7 @@
 use super::Propagator;
 use variables::int_var::IntVar;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ArithmeticComparatorPropagator {}
 impl Propagator for ArithmeticComparatorPropagator {}
 impl ArithmeticComparatorPropagator {

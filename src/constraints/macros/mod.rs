@@ -47,14 +47,15 @@ macro_rules! constraint_build {
 
 
         #[allow(non_camel_case_types)]
+        #[derive(Clone)]
         pub struct Constraint<$($var: VariableView),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
         }
 
         #[allow(non_camel_case_types)]
-        impl<$($var: VariableView),+,
-        H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
+        impl<$($var: 'static + Clone + VariableView),+,
+        H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
             for Constraint<$($var),+> {
                 fn propagate(&mut self, variables_handler: &mut H) {
@@ -64,6 +65,14 @@ macro_rules! constraint_build {
 
                 fn try_propagate(&mut self, _variables: Arc<RefCell<H>>) -> ConstraintState {
                     unimplemented!()
+                }
+
+                fn box_clone(&self) -> Box<constraints::Constraint<H>> {
+                    let ref_self: &Constraint<$($var),+> = &self;
+                    let cloned: Constraint<$($var),+> =
+                        <Constraint<$($var),+> as Clone>::clone(ref_self);
+
+                    Box::new(cloned) as Box<constraints::Constraint<H>>
                 }
             }
 

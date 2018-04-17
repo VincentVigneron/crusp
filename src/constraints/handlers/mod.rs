@@ -1,11 +1,12 @@
 use super::Constraint;
 use variables::handlers::VariablesHandler;
 
-pub trait ConstraintsHandler<H: VariablesHandler> {
+pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
     fn propagate_all(&mut self, &mut H);
     fn add(&mut self, Box<Constraint<H>>);
 }
 
+#[derive(Clone)]
 pub struct SequentialConstraintsHandler<H: VariablesHandler> {
     constraints: Vec<Box<Constraint<H>>>,
 }

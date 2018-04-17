@@ -167,12 +167,23 @@ macro_rules! variables_handler_build {
                     let idx = view.get_idx();
                     unsafe { self.$type.variables.get_unchecked_mut(idx) }
                 }
+                fn get(&self, view: &VarView) -> &$type {
+                    let idx = view.get_idx();
+                    unsafe { self.$type.variables.get_unchecked(idx) }
+                }
             }
 
             impl SpecificVariablesHandler<Array<$type>, ArrayView> for Handler {
                 fn get_mut(&mut self, view: &ArrayView) -> &mut Array<$type> {
                     if let ArrayViewType::Array(x) = *view.get_view() {
                         unsafe { self.$type.variables_array.get_unchecked_mut(x) }
+                    } else {
+                        panic!()
+                    }
+                }
+                fn get(&self, view: &ArrayView) -> & Array<$type> {
+                    if let ArrayViewType::Array(x) = *view.get_view() {
+                        unsafe { self.$type.variables_array.get_unchecked(x) }
                     } else {
                         panic!()
                     }
@@ -188,6 +199,18 @@ macro_rules! variables_handler_build {
                                 .get_unchecked_mut(x)
                                 .variables
                                 .get_unchecked_mut(y)
+                        }
+                    } else {
+                        panic!()
+                    }
+                }
+                fn get(&self, view: &ArrayView) -> &$type {
+                    if let ArrayViewType::Variable(x, y) = *view.get_view() {
+                        unsafe {
+                            self.$type.variables_array
+                                .get_unchecked(x)
+                                .variables
+                                .get_unchecked(y)
                         }
                     } else {
                         panic!()

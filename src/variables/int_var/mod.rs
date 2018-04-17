@@ -14,9 +14,16 @@ pub struct IntVar {
     domain: Vec<(i32, i32)>,
 }
 
-impl Variable for IntVar {}
+impl Variable for IntVar {
+    fn is_fixed(&self) -> bool {
+        return self.min == self.max;
+    }
+}
 
 impl IntVar {
+    pub fn is_fixed(&self) -> bool {
+        return self.min == self.max;
+    }
     pub fn new(min: i32, max: i32) -> Option<IntVar> {
         let domain = vec![(min, max)];
 
@@ -158,6 +165,45 @@ impl IntVar {
         }
         None
     }
+
+    pub fn domain_iter(&self) -> IntVarDomainIterator {
+        IntVarDomainIterator::new(self.domain.clone().into_iter())
+    }
+}
+
+use std::vec;
+pub struct IntVarDomainIterator {
+    domain: vec::IntoIter<(i32, i32)>, //Vec<(i32, i32)>::Iterator,
+    element: Option<(i32, i32)>,
+}
+
+impl IntVarDomainIterator {
+    fn new(domain: vec::IntoIter<(i32, i32)>) -> IntVarDomainIterator {
+        let mut domain = domain;
+        let element = domain.next();
+        IntVarDomainIterator {
+            domain: domain,
+            element: element,
+        }
+    }
+}
+
+impl Iterator for IntVarDomainIterator {
+    type Item = i32;
+    fn next(&mut self) -> Option<i32> {
+        let val = match self.element {
+            Some((min, max)) if min == max => {
+                self.element = self.domain.next();
+                min
+            }
+            Some((min, max)) => {
+                self.element = Some((min + 1, max));
+                min
+            }
+            _ => return None,
+        };
+        Some(val)
+    }
 }
 
 #[cfg(test)]
@@ -236,6 +282,35 @@ mod tests {
     #[test]
     fn test_equal() {
         unimplemented!()
+    }
+
+    #[test]
+    fn test_domain_iterator() {
+        let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
+            .into_iter()
+            .map(|&(min, max)| IntVar::new(min, max))
+            .map(Option::unwrap)
+            .collect::<Vec<_>>();
+        let domains = vec![
+            vec![0, 1],
+            vec![
+                -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                20, 21, 22,
+            ],
+            vec![3, 4, 5],
+            vec![5, 6, 7, 8, 9],
+            vec![2],
+        ];
+        for (domain, expected) in vars.into_iter().zip(domains.into_iter()) {
+            let tmp_domain = domain.clone();
+            let tmp_expected = expected.clone();
+            assert!(
+                domain.domain_iter().eq(expected.into_iter()),
+                "expected: {:?}for{:?}",
+                tmp_expected,
+                tmp_domain
+            )
+        }
     }
 
 }

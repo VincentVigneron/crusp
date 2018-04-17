@@ -8,7 +8,7 @@ constraint_build!(
     fn propagate(x: Array<IntVar>);
     );
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IncreasingPropagator {}
 impl Propagator for IncreasingPropagator {}
 impl IncreasingPropagator {
