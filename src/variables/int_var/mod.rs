@@ -252,18 +252,24 @@ impl IntVar {
     }
 
     pub fn set_value(&mut self, val: i32) -> Result<VariableState, VariableError> {
-        let in_domain = self.domain
-            .iter()
-            .skip_while(|&&(min, _)| val >= min)
-            .take_while(|&&(_, max)| val <= max)
-            .any(|&(min, max)| (val >= min) && (val <= max));
-        if in_domain {
-            self.min = val;
-            self.max = val;
-            self.domain = vec![(val, val)];
-            Ok(VariableState::BoundChange)
-        } else {
-            Err(VariableError::DomainWipeout)
+        match self.value() {
+            None => {
+                let in_domain = self.domain
+                    .iter()
+                    .skip_while(|&&(_, max)| val > max)
+                    .take_while(|&&(_, max)| val <= max)
+                    .any(|&(min, max)| (val >= min) && (val <= max));
+                if in_domain {
+                    unsafe {
+                        self.unsafe_set_value(val);
+                    }
+                    Ok(VariableState::BoundChange)
+                } else {
+                    Err(VariableError::DomainWipeout)
+                }
+            }
+            Some(value) if value == val => Ok(VariableState::NoChange),
+            _ => Err(VariableError::DomainWipeout),
         }
     }
 
@@ -385,6 +391,7 @@ mod tests {
             vec![1, 2, 3, 5, 6, 9],
             vec![1, 3, 4, 5, 6, 7, 8, 9],
             vec![1, 5, 7, 9],
+            vec![1],
         ];
         let expected_domains = vec![
             vec![(1, 9)],
@@ -392,6 +399,7 @@ mod tests {
             vec![(1, 3), (5, 6), (9, 9)],
             vec![(1, 1), (3, 9)],
             vec![(1, 1), (5, 5), (7, 7), (9, 9)],
+            vec![(1, 1)],
         ];
         let names = vec![
             "consectuive sorted values",
@@ -399,6 +407,7 @@ mod tests {
             "last isolated",
             "first isolated",
             "only isolated values",
+            "singleton domain",
         ];
         let tests = domains
             .into_iter()
@@ -530,6 +539,112 @@ mod tests {
     #[test]
     fn test_equal() {
         unimplemented!()
+    }
+
+    #[test]
+    fn test_set_value() {
+        let domains = vec![
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 2, 3, 5, 7, 8, 9],
+            vec![1, 2, 3, 5, 6, 9],
+            vec![1, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 5, 7, 9],
+            vec![1],
+        ];
+        let expected = vec![
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::NoChange),
+        ];
+        let names = vec![
+            "consectuive sorted values",
+            "middle isolated value",
+            "last isolated",
+            "first isolated",
+            "only isolated values",
+            "singleton domain",
+        ];
+        let tests = domains
+            .into_iter()
+            .zip(expected.into_iter())
+            .zip(names.into_iter())
+            .map(|((domain, expected), name)| (domain, expected, name));
+        for (domain, expected, name) in tests {
+            let domain_clone = domain.clone();
+            let var = IntVar::new_from_iterator(domain.into_iter()).unwrap();
+            for value in domain_clone.into_iter() {
+                let mut var = var.clone();
+                let res = var.set_value(value);
+                assert!(
+                    res == expected,
+                    "Expected {:?} for {:?} with value {:?} found {:?}.",
+                    expected,
+                    name,
+                    value,
+                    res
+                );
+                let expected_var =
+                    IntVar::new_from_iterator(vec![value].into_iter()).unwrap();
+                assert!(
+                    var == expected_var,
+                    "Expected {:?} for {:?} with value {:?} found {:?}.",
+                    expected_var,
+                    name,
+                    value,
+                    var
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_set_value_error() {
+        let domains = vec![
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 2, 3, 5, 7, 8, 9],
+            vec![1, 2, 3, 5, 6, 9],
+            vec![1, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 5, 7, 9],
+            vec![1],
+        ];
+        let values = vec![
+            vec![0, 10],
+            vec![0, 4, 6, 10],
+            vec![0, 4, 7, 8, 10],
+            vec![0, 2, 10],
+            vec![0, 2, 3, 4, 6, 8, 10],
+            vec![0, 2],
+        ];
+        let names = vec![
+            "consectuive sorted values",
+            "middle isolated value",
+            "last isolated",
+            "first isolated",
+            "only isolated values",
+            "signleton domain",
+        ];
+        let tests = domains
+            .into_iter()
+            .zip(values.into_iter())
+            .zip(names.into_iter())
+            .map(|((domain, values), name)| (domain, values, name));
+        for (domain, values, name) in tests {
+            let var = IntVar::new_from_iterator(domain.into_iter()).unwrap();
+            for value in values.into_iter() {
+                let mut var = var.clone();
+                let res = var.set_value(value);
+                assert!(
+                    res == Err(VariableError::DomainWipeout),
+                    "Expected Error for {:?} with value {:?} found {:?}.",
+                    name,
+                    value,
+                    res
+                )
+            }
+        }
     }
 
     #[test]
