@@ -196,7 +196,9 @@ where
                 let view = self.view.clone();
                 Some(Box::new(move |vars| {
                     let var: &mut IntVar = get_mut_from_handler(vars, &view);
-                    var.unsafe_set_value(value);
+                    unsafe {
+                        var.unsafe_set_value(value);
+                    }
                 }))
             }
             _ => None,

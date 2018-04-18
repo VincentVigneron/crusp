@@ -23,6 +23,7 @@ impl IntVar {
     pub fn is_fixed(&self) -> bool {
         return self.min == self.max;
     }
+
     pub fn new(min: i32, max: i32) -> Option<IntVar> {
         let domain = vec![(min, max)];
 
@@ -35,6 +36,39 @@ impl IntVar {
                 domain: domain,
             })
         }
+    }
+
+    // TODO specific iterator
+    pub fn new_from_iterator<Values: Iterator<Item = i32>>(
+        values: Values,
+    ) -> Option<IntVar> {
+        let mut values: Vec<_> = values.collect();
+        if values.is_empty() {
+            return None;
+        }
+        values.sort();
+        let values = values;
+        let min = *values.first().unwrap();
+        let max = *values.last().unwrap();
+        let mut lower_bound = min;
+        let mut prev = lower_bound;
+        let mut domain = Vec::new();
+        for value in values.into_iter() {
+            if value <= prev + 1 {
+                prev = value;
+            } else {
+                domain.push((lower_bound, prev));
+                lower_bound = value;
+                prev = lower_bound;
+            }
+        }
+        domain.push((lower_bound, prev));
+
+        Some(IntVar {
+            min: min,
+            max: max,
+            domain: domain,
+        })
     }
 
     pub fn min(&self) -> i32 {
@@ -211,7 +245,7 @@ impl IntVar {
         Ok((state_self, state_value))
     }
 
-    pub fn unsafe_set_value(&mut self, val: i32) -> () {
+    pub unsafe fn unsafe_set_value(&mut self, val: i32) -> () {
         self.min = val;
         self.max = val;
         self.domain = vec![(val, val)];
@@ -318,6 +352,7 @@ impl Iterator for IntVarDomainIterator {
 mod tests {
     use super::*;
 
+    // TODO test maxvalue
     #[test]
     fn test_new() {
         let vars = vec![(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)];
@@ -337,9 +372,61 @@ mod tests {
             let var = IntVar::new(min, max);
             match var {
                 None => {}
-                _ => assert!(false, "Expected error for: \"{:?}\"", var),
+                _ => assert!(false, "Expected none for: \"{:?}\"", var),
             }
         }
+    }
+
+    #[test]
+    fn test_new_from_iterator() {
+        let domains = vec![
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 2, 3, 5, 7, 8, 9],
+            vec![1, 2, 3, 5, 6, 9],
+            vec![1, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 5, 7, 9],
+        ];
+        let expected_domains = vec![
+            vec![(1, 9)],
+            vec![(1, 3), (5, 5), (7, 9)],
+            vec![(1, 3), (5, 6), (9, 9)],
+            vec![(1, 1), (3, 9)],
+            vec![(1, 1), (5, 5), (7, 7), (9, 9)],
+        ];
+        let names = vec![
+            "consectuive sorted values",
+            "middle isolated value",
+            "last isolated",
+            "first isolated",
+            "only isolated values",
+        ];
+        let tests = domains
+            .into_iter()
+            .zip(expected_domains.into_iter())
+            .zip(names.into_iter())
+            .map(|((domain, expected_domain), name)| (domain, expected_domain, name));
+        for (domain, expected_domain, name) in tests {
+            let var = IntVar::new_from_iterator(domain.into_iter());
+            match var {
+                Some(var) => assert!(
+                    *var.domain() == expected_domain,
+                    "Expected {:?} domain for {:?} found {:?}",
+                    expected_domain,
+                    name,
+                    var.domain()
+                ),
+                _ => assert!(false, "Expected some variable for: \"{:?}\"", name),
+            }
+        }
+    }
+
+    #[test]
+    fn test_new_from_iterator_error() {
+        let domain: Vec<i32> = Vec::new();
+        assert!(
+            IntVar::new_from_iterator(domain.into_iter()).is_none(),
+            "Expected for building from an empty iterator"
+        )
     }
 
     #[test]
