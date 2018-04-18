@@ -383,8 +383,10 @@ mod tests {
         }
     }
 
+    // TODO refactoring
     #[test]
     fn test_new_from_iterator() {
+        use rand::{thread_rng, Rng};
         let domains = vec![
             vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
             vec![1, 2, 3, 5, 7, 8, 9],
@@ -410,9 +412,10 @@ mod tests {
             "singleton domain",
         ];
         let tests = domains
+            .clone()
             .into_iter()
-            .zip(expected_domains.into_iter())
-            .zip(names.into_iter())
+            .zip(expected_domains.clone().into_iter())
+            .zip(names.clone().into_iter())
             .map(|((domain, expected_domain), name)| (domain, expected_domain, name));
         for (domain, expected_domain, name) in tests {
             let var = IntVar::new_from_iterator(domain.into_iter());
@@ -425,6 +428,30 @@ mod tests {
                     var.domain()
                 ),
                 _ => assert!(false, "Expected some variable for: \"{:?}\"", name),
+            }
+        }
+        let mut rng = thread_rng();
+
+        for _ in 0..100 {
+            let tests = domains
+                .clone()
+                .into_iter()
+                .zip(expected_domains.clone().into_iter())
+                .zip(names.clone().into_iter())
+                .map(|((domain, expected_domain), name)| (domain, expected_domain, name));
+            for (mut domain, expected_domain, name) in tests {
+                rng.shuffle(&mut domain);
+                let var = IntVar::new_from_iterator(domain.into_iter());
+                match var {
+                    Some(var) => assert!(
+                        *var.domain() == expected_domain,
+                        "Expected {:?} domain for {:?} found {:?}",
+                        expected_domain,
+                        name,
+                        var.domain()
+                    ),
+                    _ => assert!(false, "Expected some variable for: \"{:?}\"", name),
+                }
             }
         }
     }

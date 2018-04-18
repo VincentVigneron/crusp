@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate snowflake;
 
 // The order of modules matter !!!! (macros)
