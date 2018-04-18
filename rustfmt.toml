@@ -1,0 +1,4 @@
+indent_style = "Block"
+reorder_imports = true
+struct_field_align_threshold= 0
+max_width = 90
