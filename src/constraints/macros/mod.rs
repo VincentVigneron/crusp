@@ -7,7 +7,7 @@ macro_rules! constraint_build {
         $(#[$outer:meta])*
         struct Propagator = $propagator: ty;
         fn $fnnew: ident($( $param: ident: $tparam: ty),*);
-        fn $fnpropagate: ident($( $var: ident: $tvar: ty),+);
+        fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty;
     ) => {
         use $crate::variables::{VariableView};
         use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
@@ -51,6 +51,7 @@ macro_rules! constraint_build {
         pub struct Constraint<$($var: VariableView),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
+            //state: $state,
         }
 
         #[allow(non_camel_case_types)]
@@ -100,6 +101,7 @@ macro_rules! constraint_build {
                     variables: StructViews {
                         $($var: $var.clone()),+
                     },
+                    //state: Default
                 }
             }
         }

@@ -1,6 +1,13 @@
 #[macro_use]
 extern crate solver_cp;
 
+// SPECIFIC ID
+// #[derive(Eq)]
+// struct SpecificId {
+//  puid: ProcessUniqueId,
+//  id: Some(usize),
+// }
+
 //use solver_cp::branchers::handlers::*;
 use solver_cp::branchers::handlers::*;
 use solver_cp::constraints::handlers::*;

@@ -5,7 +5,7 @@ use variables::int_var::IntVar;
 constraint_build!(
     struct Propagator = IncreasingPropagator;
     fn new();
-    fn propagate(x: Array<IntVar>);
+    fn propagate(x: Array<IntVar>) -> ();
     );
 
 #[derive(Debug, Clone)]

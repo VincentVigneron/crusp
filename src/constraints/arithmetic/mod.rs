@@ -24,7 +24,7 @@ pub mod less_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn less_than(x: IntVar, y: IntVar);
+        fn less_than(x: IntVar, y: IntVar) -> ();
         );
 
 }
@@ -35,6 +35,6 @@ pub mod greater_or_equal_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn greater_or_equal_than(x: IntVar, y: IntVar);
+        fn greater_or_equal_than(x: IntVar, y: IntVar) -> ();
         );
 }
