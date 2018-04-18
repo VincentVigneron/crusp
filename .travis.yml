@@ -4,6 +4,10 @@ os:
     - linux
 dist: trusty
 
+branches:
+    only:
+        - master
+
 services:
     - docker
 
