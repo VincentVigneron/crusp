@@ -344,12 +344,12 @@ mod tests {
 
     #[test]
     fn test_update_strict_binf() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_update_weak_binf() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     // edge case when bsup = (min=bsup,max=bsup) => remove last ellement
@@ -412,37 +412,37 @@ mod tests {
 
     #[test]
     fn test_update_weak_bsup() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_unsafe_remove_value() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_less_than() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_less_or_equal_than() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_greater_than() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_greater_or_equal_than() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
     fn test_equal() {
-        //unimplemented!()
+        unimplemented!()
     }
 
     #[test]
