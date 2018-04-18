@@ -10,7 +10,7 @@ services:
 rust:
     - stable
     - nightly
-    - 1.16.0
+    - 1.25.0
 
 script:
     - cargo build --verbose
