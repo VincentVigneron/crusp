@@ -34,6 +34,7 @@ pub enum ArrayViewType {
     Array(usize),
 }
 
+// TODO two views of the same index of the array must have the same type
 #[derive(Clone, Debug)]
 pub struct ArrayView {
     id: ProcessUniqueId,

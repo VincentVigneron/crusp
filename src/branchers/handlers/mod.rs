@@ -20,7 +20,7 @@ pub trait Brancher<Handler: VariablesHandler> {
     fn box_clone(&self) -> Box<Brancher<Handler>>;
     fn branch(&mut self, variables: &Handler) -> Option<Handler>;
     fn branch_fn(
-        &mut self,
+        &self,
         variables: &Handler,
     ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>>;
 }
@@ -28,7 +28,7 @@ pub trait Brancher<Handler: VariablesHandler> {
 pub trait BranchersHandler<Handler: VariablesHandler>: Clone {
     fn branch(&mut self, variables: &Handler) -> Option<(Self, Handler)>;
     fn branch_fn(
-        &mut self,
+        &self,
         variables: &Handler,
     ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>>;
 }
@@ -66,11 +66,11 @@ impl<Handler: VariablesHandler> BranchersHandler<Handler>
         unimplemented!()
     }
     fn branch_fn(
-        &mut self,
+        &self,
         variables: &Handler,
     ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>> {
         self.branchers
-            .iter_mut()
+            .iter()
             .map(|brancher| brancher.branch_fn(&variables))
             .find(|branch| branch.is_some())
             .map(|branch| branch.expect("specific branch"))
@@ -132,7 +132,7 @@ where
     }
 
     fn branch_fn(
-        &mut self,
+        &self,
         variables: &Handler,
     ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>> {
         let idx = self.views
@@ -142,7 +142,7 @@ where
             Some(idx) => {
                 let view = self.views[idx].clone();
                 let values = get_from_handler(variables, &view).domain_iter();
-                self.views.drain(0..(idx + 1));
+                //self.views.drain(0..(idx + 1));
                 Some(Box::new(FirstVariableBrancherIterator::new(view, values)))
                 //Some(Box::new(move |vars| {
                 //let var = get_mut_from_handler(vars, &view);

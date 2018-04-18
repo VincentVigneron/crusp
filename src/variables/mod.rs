@@ -3,11 +3,16 @@ use snowflake::ProcessUniqueId;
 pub mod int_var;
 pub mod handlers;
 
-//enum VariableState {
-//BoundChange(usize),
-//DomainChange(usize),
-//NoChange(usize),
-//}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VariableState {
+    BoundChange,
+    ValuesChange,
+    NoChange,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VariableError {
+    DomainWipeout,
+}
 
 pub trait Variable: Clone {
     fn is_fixed(&self) -> bool;

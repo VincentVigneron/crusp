@@ -1,14 +1,13 @@
-use super::Variable;
-use snowflake::ProcessUniqueId;
+use super::{Variable, VariableError, VariableState};
 
 // TODO min & max update
 
 // binf -> lowerbound
 // bsup -> upperbound
+// prefix with unsafe for n checking already invalid var
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntVar {
-    id: ProcessUniqueId,
     min: i32,
     max: i32,
     domain: Vec<(i32, i32)>,
@@ -30,9 +29,7 @@ impl IntVar {
         if min > max {
             None
         } else {
-            let id = ProcessUniqueId::new();
             Some(IntVar {
-                id: id,
                 min: min,
                 max: max,
                 domain: domain,
@@ -52,10 +49,6 @@ impl IntVar {
         &self.domain
     }
 
-    pub fn get_id(&self) -> ProcessUniqueId {
-        self.id
-    }
-
     pub fn value(&self) -> Option<i32> {
         if self.domain.is_empty() {
             None
@@ -66,29 +59,74 @@ impl IntVar {
         }
     }
 
-    fn unsafe_update_bsup(&mut self, rev_index: Option<usize>, new_bsup: i32) -> () {
+    // macros ?
+    fn update_bsup(
+        &mut self,
+        rev_index: Option<usize>,
+        new_bsup: i32,
+    ) -> Result<VariableState, VariableError> {
         use std::cmp::min;
         match rev_index {
             Some(rev_index) => {
                 let index = (self.domain.len() - 1) - rev_index;
                 self.domain[index].1 = min(new_bsup, self.domain[index].1);
-                self.domain.truncate(index + 1);
+                if self.domain[index].1 < self.domain[index].0 {
+                    self.domain.truncate(index);
+                    if self.domain.is_empty() {
+                        return Err(VariableError::DomainWipeout);
+                    }
+                } else {
+                    self.domain.truncate(index + 1);
+                }
+                self.max = self.domain[self.domain.len() - 1].1;
+                Ok(VariableState::BoundChange)
             }
-            None => {}
+            None => Ok(VariableState::NoChange),
         }
     }
 
-    pub fn unsafe_update_strict_bsup(&mut self, bsup: i32) -> () {
-        let rev_index = self.domain.iter().rev().position(|&(min, _)| min > bsup);
-        self.unsafe_update_bsup(rev_index, bsup - 1)
+    pub fn update_strict_bsup(
+        &mut self,
+        bsup: i32,
+    ) -> Result<VariableState, VariableError> {
+        if bsup <= self.min() {
+            self.domain.clear();
+            self.min = i32::max_value();
+            self.max = i32::min_value();
+            return Err(VariableError::DomainWipeout);
+        }
+        let rev_index = self.domain
+            .iter()
+            .rev()
+            .take_while(|&&(_, max)| bsup <= max)
+            .position(|&(min, _)| min <= bsup);
+        self.update_bsup(rev_index, bsup - 1)
     }
 
-    pub fn unsafe_update_weak_bsup(&mut self, bsup: i32) -> () {
-        let rev_index = self.domain.iter().rev().position(|&(min, _)| min >= bsup);
-        self.unsafe_update_bsup(rev_index, bsup - 1)
+    pub fn update_weak_bsup(
+        &mut self,
+        bsup: i32,
+    ) -> Result<VariableState, VariableError> {
+        if bsup < self.min() {
+            self.domain.clear();
+            self.min = i32::max_value();
+            self.max = i32::min_value();
+            return Err(VariableError::DomainWipeout);
+        }
+        //let rev_index = self.domain.iter().rev().position(|&(min, _)| min >= bsup);
+        let rev_index = self.domain
+            .iter()
+            .rev()
+            .take_while(|&&(_, max)| bsup <= max)
+            .position(|&(min, _)| min <= bsup);
+        self.update_bsup(rev_index, bsup)
     }
 
-    fn unsafe_update_binf(&mut self, index: Option<usize>, new_binf: i32) -> () {
+    fn update_binf(
+        &mut self,
+        index: Option<usize>,
+        new_binf: i32,
+    ) -> Result<VariableState, VariableError> {
         use std::cmp::max;
         match index {
             Some(index) => {
@@ -97,19 +135,80 @@ impl IntVar {
                     let new_domain = self.domain.drain(0..index).collect();
                     self.domain = new_domain;
                 }
+                self.min = self.domain[0].0;
+                Ok(VariableState::BoundChange)
             }
-            None => {}
+            None => Ok(VariableState::NoChange),
         }
     }
 
-    pub fn unsafe_update_strict_binf(&mut self, binf: i32) -> () {
+    pub fn update_strict_binf(
+        &mut self,
+        binf: i32,
+    ) -> Result<VariableState, VariableError> {
+        if binf >= self.max() {
+            self.domain.clear();
+            self.min = i32::max_value();
+            self.max = i32::min_value();
+            return Err(VariableError::DomainWipeout);
+        }
         let index = self.domain.iter().rev().position(|&(min, _)| min > binf);
-        self.unsafe_update_binf(index, binf + 1)
+        self.update_binf(index, binf + 1)
     }
 
-    pub fn unsafe_update_weak_binf(&mut self, binf: i32) -> () {
+    pub fn update_weak_binf(
+        &mut self,
+        binf: i32,
+    ) -> Result<VariableState, VariableError> {
+        if binf > self.max() {
+            self.domain.clear();
+            self.min = i32::max_value();
+            self.max = i32::min_value();
+            return Err(VariableError::DomainWipeout);
+        }
         let index = self.domain.iter().rev().position(|&(min, _)| min >= binf);
-        self.unsafe_update_binf(index, binf + 1)
+        self.update_binf(index, binf + 1)
+    }
+
+    // TODO macros ?
+    pub fn less_than(
+        &mut self,
+        value: &mut IntVar,
+    ) -> Result<(VariableState, VariableState), VariableError> {
+        let state_self = self.update_strict_bsup(value.max)?;
+        let state_value = value.update_strict_binf(self.min)?;
+
+        Ok((state_self, state_value))
+    }
+
+    pub fn less_or_equal_than(
+        &mut self,
+        value: &mut IntVar,
+    ) -> Result<(VariableState, VariableState), VariableError> {
+        let state_self = self.update_weak_bsup(value.max)?;
+        let state_value = value.update_weak_binf(self.min)?;
+
+        Ok((state_self, state_value))
+    }
+
+    pub fn greater_than(
+        &mut self,
+        value: &mut IntVar,
+    ) -> Result<(VariableState, VariableState), VariableError> {
+        let state_self = self.update_strict_binf(value.min)?;
+        let state_value = value.update_strict_bsup(self.max)?;
+
+        Ok((state_self, state_value))
+    }
+
+    pub fn greater_or_equal_than(
+        &mut self,
+        value: &mut IntVar,
+    ) -> Result<(VariableState, VariableState), VariableError> {
+        let state_self = self.update_weak_binf(value.min)?;
+        let state_value = value.update_weak_bsup(self.max)?;
+
+        Ok((state_self, state_value))
     }
 
     pub fn unsafe_set_value(&mut self, val: i32) -> () {
@@ -118,7 +217,33 @@ impl IntVar {
         self.domain = vec![(val, val)];
     }
 
-    fn unsafe_remove_value(&mut self, value: i32) -> () {
+    pub fn set_value(&mut self, val: i32) -> Result<VariableState, VariableError> {
+        let in_domain = self.domain
+            .iter()
+            .skip_while(|&&(min, _)| val >= min)
+            .take_while(|&&(_, max)| val <= max)
+            .any(|&(min, max)| (val >= min) && (val <= max));
+        if in_domain {
+            self.min = val;
+            self.max = val;
+            self.domain = vec![(val, val)];
+            Ok(VariableState::BoundChange)
+        } else {
+            Err(VariableError::DomainWipeout)
+        }
+    }
+
+    pub fn equal(
+        &mut self,
+        value: &mut IntVar,
+    ) -> Result<(VariableState, VariableState), VariableError> {
+        unimplemented!()
+    }
+
+    fn unsafe_remove_value(
+        &mut self,
+        value: i32,
+    ) -> Result<VariableState, VariableError> {
         let index = self.domain
             .iter()
             .rev()
@@ -139,31 +264,14 @@ impl IntVar {
             }
             None => {}
         }
+        unimplemented!()
     }
 
-    pub fn less_than(&mut self, value: &mut IntVar) -> Option<i32> {
-        //use std::cmp::{max,min};
-
-        if self.min > value.max {
-            return None;
-        }
-        if self.min >= value.min {
-            value.unsafe_update_strict_binf(self.min);
-            value.min = value.domain[0].0;
-        }
-        if self.max >= value.max {
-            self.unsafe_update_strict_bsup(value.max);
-            self.max = self.domain[self.domain.len() - 1].1;
-        }
-
-        None
-    }
-
-    pub fn remove_value(&mut self, value: i32) -> Option<i32> {
+    pub fn remove_value(&mut self, value: i32) -> Result<VariableState, VariableError> {
         if self.min <= value && value <= self.max {
-            self.unsafe_remove_value(value);
+            return self.unsafe_remove_value(value);
         }
-        None
+        Err(VariableError::DomainWipeout)
     }
 
     pub fn domain_iter(&self) -> IntVarDomainIterator {
@@ -235,22 +343,75 @@ mod tests {
     }
 
     #[test]
-    fn test_unsafe_update_strict_binf() {
+    fn test_update_strict_binf() {
         unimplemented!()
     }
 
     #[test]
-    fn test_unsafe_update_weak_binf() {
+    fn test_update_weak_binf() {
         unimplemented!()
     }
 
+    // edge case when bsup = (min=bsup,max=bsup) => remove last ellement
     #[test]
-    fn test_unsafe_update_strict_bsup() {
-        unimplemented!()
+    fn test_update_valid_strict_bsup() {
+        let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
+            .into_iter()
+            .map(|&(min, max)| IntVar::new(min, max))
+            .map(Option::unwrap)
+            .collect::<Vec<_>>();
+        let bsups = vec![1, 10, 4, 10, 3];
+        let expected = [(0, 0), (-1, 9), (3, 3), (5, 9), (2, 2)]
+            .into_iter()
+            .map(|&(min, max)| IntVar::new(min, max))
+            .map(Option::unwrap)
+            .collect::<Vec<_>>();
+        let results = vec![
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundChange),
+            Ok(VariableState::NoChange),
+            Ok(VariableState::NoChange),
+        ];
+        let iter = vars.into_iter()
+            .zip(bsups.into_iter())
+            .zip(expected.into_iter())
+            .zip(results.into_iter())
+            .map(|(((var, bsup), exp), res)| (var, bsup, exp, res));
+        for (mut var, bsup, exp_var, exp_res) in iter {
+            let res = var.update_strict_bsup(bsup);
+            assert!(res == exp_res, "Unexpected result.");
+            assert!(var == exp_var, "Unexpected domain.");
+        }
     }
 
     #[test]
-    fn test_unsafe_update_weak_bsup() {
+    fn test_update_invalid_strict_bsup() {
+        let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
+            .into_iter()
+            .map(|&(min, max)| IntVar::new(min, max))
+            .map(Option::unwrap)
+            .collect::<Vec<_>>();
+        let bsups = vec![0, -5, 3, 4, 2];
+        let results = vec![
+            Err(VariableError::DomainWipeout),
+            Err(VariableError::DomainWipeout),
+            Err(VariableError::DomainWipeout),
+            Err(VariableError::DomainWipeout),
+            Err(VariableError::DomainWipeout),
+        ];
+        let iter = vars.into_iter()
+            .zip(bsups.into_iter())
+            .zip(results.into_iter())
+            .map(|((var, bsup), res)| (var, bsup, res));
+        for (mut var, bsup, exp_res) in iter {
+            let res = var.update_strict_bsup(bsup);
+            assert!(res == exp_res, "Unexpected result.");
+        }
+    }
+
+    #[test]
+    fn test_update_weak_bsup() {
         unimplemented!()
     }
 
