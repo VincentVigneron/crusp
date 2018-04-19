@@ -273,7 +273,7 @@ impl IntVar {
         }
     }
 
-    pub fn equal(
+    pub fn equals(
         &mut self,
         value: &mut IntVar,
     ) -> Result<(VariableState, VariableState), VariableError> {
@@ -564,8 +564,97 @@ mod tests {
     }
 
     #[test]
-    fn test_equal() {
-        unimplemented!()
+    fn test_equals() {
+        // comparaison between themselves
+        let mut domains = vec![
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 2, 3, 5, 7, 8, 9],
+            vec![1, 2, 3, 5, 6, 9],
+            vec![1, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 5, 7, 9],
+            vec![1],
+            vec![8, 9],
+            vec![0, 11],
+        ];
+        for domain in domains.iter_mut() {
+            domain.sort();
+        }
+        let domains = domains;
+        for domain1 in domains.iter() {
+            for domain2 in domains.iter() {
+                let mut var1 =
+                    IntVar::new_from_iterator(domain1.clone().into_iter()).unwrap();
+                let mut var2 =
+                    IntVar::new_from_iterator(domain2.clone().into_iter()).unwrap();
+                let res = var1.equals(&mut var2);
+                let dom_eq = domain1
+                    .iter()
+                    .filter(|&&val| domain2.contains(&val))
+                    .map(|val| *val)
+                    .collect::<Vec<_>>();
+                if dom_eq.is_empty() {
+                    let exp_res = Err(VariableError::DomainWipeout);
+                    assert!(
+                        res == exp_res,
+                        "Expected {:?} for {:?}.equals({:?}) found {:?}",
+                        exp_res,
+                        var1,
+                        var2,
+                        res
+                    );
+                } else {
+                    let var_res =
+                        IntVar::new_from_iterator(dom_eq.clone().into_iter()).unwrap();
+                    assert!(
+                        var1 == var_res,
+                        "Expected {:?} equals to {:?}",
+                        var1,
+                        var_res
+                    );
+                    assert!(
+                        var2 == var_res,
+                        "Expected {:?} equals to {:?}",
+                        var2,
+                        var_res
+                    );
+                    let dom_eq_len = dom_eq.len();
+                    let ok1 = if domain1.iter().map(|val| *val).eq(var1.domain_iter()) {
+                        VariableState::NoChange
+                    } else {
+                        let bound_change = domain1
+                            .windows(dom_eq_len)
+                            .any(|values: &[i32]| values.iter().eq(dom_eq.iter()));
+                        if bound_change {
+                            VariableState::BoundChange
+                        } else {
+                            VariableState::ValuesChange
+                        }
+                    };
+                    let dom_eq_len = dom_eq.len();
+                    let ok2 = if domain2.iter().map(|val| *val).eq(var2.domain_iter()) {
+                        VariableState::NoChange
+                    } else {
+                        let bound_change = domain2
+                            .windows(dom_eq_len)
+                            .any(|values: &[i32]| values.iter().eq(dom_eq.iter()));
+                        if bound_change {
+                            VariableState::BoundChange
+                        } else {
+                            VariableState::ValuesChange
+                        }
+                    };
+                    let exp_res = Ok((ok1, ok2));
+                    assert!(
+                        res == exp_res,
+                        "Expected {:?} for {:?}.equals({:?}) found {:?}",
+                        exp_res,
+                        var1,
+                        var2,
+                        res
+                    );
+                }
+            }
+        }
     }
 
     #[test]
