@@ -4,6 +4,8 @@ use super::{Variable, VariableError, VariableState};
 // TODO min & max check for every domain update !!
 // TODO remove duplicated code
 // TODO update size
+// TODO binf take_while
+// TODO stop iteration as soon as possible
 
 // binf -> lowerbound
 // bsup -> upperbound
@@ -366,6 +368,18 @@ impl IntVar {
         Ok((ok_self, ok_value))
     }
 
+    pub fn in_values<Values: Iterator<Item = i32>>(
+        values: Values,
+    ) -> Result<VariableState, VariableError> {
+        unimplemented!()
+    }
+
+    pub fn in_sorted_values<Values: Iterator<Item = i32>>(
+        values: Values,
+    ) -> Result<VariableState, VariableError> {
+        unimplemented!()
+    }
+
     fn unsafe_remove_value(
         &mut self,
         value: i32,
@@ -552,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn test_equals() {
+    fn test_size() {
         // comparaison between themselves
         let mut domains = vec![
             vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -813,7 +827,7 @@ mod tests {
                         var2,
                         var_res
                     );
-                    let ok1 = if domain1.iter().map(|val| *val).eq(vars1.domain_iter()) {
+                    let ok1 = if domain1.iter().map(|val| *val).eq(var1.domain_iter()) {
                         VariableState::NoChange
                     } else if domain1.first() != dom_eq.first() {
                         VariableState::BoundChange
@@ -822,7 +836,7 @@ mod tests {
                     } else {
                         VariableState::ValuesChange
                     };
-                    let ok2 = if domain2.iter().map(|val| *val).eq(vars2.domain_iter()) {
+                    let ok2 = if domain2.iter().map(|val| *val).eq(var2.domain_iter()) {
                         VariableState::NoChange
                     } else if domain2.first() != dom_eq.first() {
                         VariableState::BoundChange
@@ -949,6 +963,16 @@ mod tests {
                 )
             }
         }
+    }
+
+    #[test]
+    fn test_in_values() {
+        unimplemented!()
+    }
+
+    #[test]
+    fn test_in_sorted_values() {
+        unimplemented!()
     }
 
     #[test]
