@@ -5,6 +5,15 @@ use super::{Variable, VariableError, VariableState};
 // binf -> lowerbound
 // bsup -> upperbound
 // prefix with unsafe for n checking already invalid var
+//
+macro_rules! unwrap_or_break {
+    ($val: expr) => {
+        if $val.is_none() {
+            break;
+        }
+        $val.unwrap()
+    };
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntVar {
@@ -36,6 +45,11 @@ impl IntVar {
                 domain: domain,
             })
         }
+    }
+
+    // size of the domain
+    pub fn size() -> usize {
+        unimplemented!()
     }
 
     // TODO specific iterator
@@ -119,14 +133,18 @@ impl IntVar {
         }
     }
 
+    fn invalidate(&mut self) {
+        self.domain.clear();
+        self.min = i32::max_value();
+        self.max = i32::min_value();
+    }
+
     pub fn update_strict_bsup(
         &mut self,
         bsup: i32,
     ) -> Result<VariableState, VariableError> {
         if bsup <= self.min() {
-            self.domain.clear();
-            self.min = i32::max_value();
-            self.max = i32::min_value();
+            self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
         let rev_index = self.domain
@@ -142,9 +160,7 @@ impl IntVar {
         bsup: i32,
     ) -> Result<VariableState, VariableError> {
         if bsup < self.min() {
-            self.domain.clear();
-            self.min = i32::max_value();
-            self.max = i32::min_value();
+            self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
         //let rev_index = self.domain.iter().rev().position(|&(min, _)| min >= bsup);
@@ -181,9 +197,7 @@ impl IntVar {
         binf: i32,
     ) -> Result<VariableState, VariableError> {
         if binf >= self.max() {
-            self.domain.clear();
-            self.min = i32::max_value();
-            self.max = i32::min_value();
+            self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
         let index = self.domain.iter().rev().position(|&(min, _)| min > binf);
@@ -195,9 +209,7 @@ impl IntVar {
         binf: i32,
     ) -> Result<VariableState, VariableError> {
         if binf > self.max() {
-            self.domain.clear();
-            self.min = i32::max_value();
-            self.max = i32::min_value();
+            self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
         let index = self.domain.iter().rev().position(|&(min, _)| min >= binf);
@@ -273,11 +285,62 @@ impl IntVar {
         }
     }
 
+    // Better handling of equality !!!
     pub fn equals(
         &mut self,
         value: &mut IntVar,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        unimplemented!()
+        if self.domain.is_empty() || value.domain.is_empty() {
+            return Err(VariableError::DomainWipeout);;
+        }
+        let (size_self, min_self, max_self) = (self.size(), self.min(), self.max());
+        let (size_value, min_vale, max_value) = (value.size(), value.min(), value.max());
+
+        // temporary get ownership of internal domain
+        let mut lhs = IntVarDomainIterator::new(self.domain.clone().into_iter());
+        let mut rhs = IntVarDomainIterator::new(value.domain.clone().into_iter());
+        let mut lhs_val = lhs.next().unwrap(); // can't fail
+        let mut rhs_val = rhs.next().unwrap();
+        let mut dom_eq = Vec::new();
+        loop {
+            if lhs_val == rhs_val {
+                dom_eq.push(lhs_val);
+                lhs_val = unwrap_or_break!(lhs.next());
+                rhs_val = unwrap_or_break!(rhs.next());
+            } else if lhs_val < rhs_val {
+                lhs_val = unwrap_or_break!(lhs.next());
+            } else {
+                rhs_val = unwrap_or_break!(rhs.next());
+            }
+        }
+
+        if dom_eq.is_empty() {
+            self.invalidate();
+            value.invalidate();
+            return Err(DomainWipeout);
+        }
+        let ok_self = if size_self == dom_eq.len() {
+            VariableState::NoChange
+        } else if min_self != *dom_eq.first().unwrap() {
+            VariableState::BoundChange
+        } else if max_self != *dom_eq.last().unwrap() {
+            VariableState::BoundChange
+        } else {
+            VariableState::ValuesChange
+        };
+        let ok_value = if size_value == dom_eq.len() {
+            VariableState::NoChange
+        } else if min_value != *dom_eq.first().unwrap() {
+            VariableState::BoundChange
+        } else if max_value != *dom_eq.last().unwrap() {
+            VariableState::BoundChange
+        } else {
+            VariableState::ValuesChange
+        };
+        self.domain = dom_eq.clone();
+        value.domain = dom_eq;
+
+        Ok((ok_self, ok_value))
     }
 
     fn unsafe_remove_value(
@@ -564,88 +627,88 @@ mod tests {
     }
 
     /*{
-        // comparaison between themselves
-        let mut domains = vec![
-            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
-            vec![1, 2, 3, 5, 7, 8, 9],
-            vec![1, 2, 3, 5, 6, 9],
-            vec![1, 3, 4, 5, 6, 7, 8, 9],
-            vec![1, 5, 7, 9],
-            vec![1],
-            vec![8, 9],
-            vec![0, 11],
-        ];
-        for domain in domains.iter_mut() {
-            domain.sort();
-        }
-        let domains = domains;
-        for domain1 in domains.iter() {
-            for domain2 in domains.iter() {
-                let mut vars = [
-                    IntVar::new_from_iterator(domain1.clone().into_iter()).unwrap(),
-                    IntVar::new_from_iterator(domain2.clone().into_iter()).unwrap(),
-                ];
-                let res = vars[0].equals(&mut vars[1]);
-                let dom_eq = domain1
-                    .iter()
-                    .filter(|&&val| domain2.contains(&val))
-                    .map(|val| *val)
-                    .collect::<Vec<_>>();
-                if dom_eq.is_empty() {
-                    let exp_res = Err(VariableError::DomainWipeout);
-                    assert!(
-                        res == exp_res,
-                        "Expected {:?} for {:?}.equals({:?}) found {:?}",
-                        exp_res,
-                        vars[0],
-                        vars[1],
-                        res
-                    );
-                } else {
-                    let var_res =
-                        IntVar::new_from_iterator(dom_eq.clone().into_iter()).unwrap();
-                    for i in 0..2 {
-                        assert!(
-                            vars[i] == var_res,
-                            "Expected {:?} equals to {:?}",
-                            vars[i],
-                            var_res
-                        );
-                    }
-                    let ok1 = if domain1.iter().map(|val| *val).eq(vars[0].domain_iter())
-                    {
-                        VariableState::NoChange
-                    } else if domain1.first() != dom_eq.first() {
-                        VariableState::BoundChange
-                    } else if domain1.last() != dom_eq.last() {
-                        VariableState::BoundChange
-                    } else {
-                        VariableState::ValuesChange
-                    };
-                    let ok2 = if domain2.iter().map(|val| *val).eq(vars[1].domain_iter())
-                    {
-                        VariableState::NoChange
-                    } else if domain2.first() != dom_eq.first() {
-                        VariableState::BoundChange
-                    } else if domain2.last() != dom_eq.last() {
-                        VariableState::BoundChange
-                    } else {
-                        VariableState::ValuesChange
-                    };
-                    let exp_res = Ok((ok1, ok2));
-                    assert!(
-                        res == exp_res,
-                        "Expected {:?} for {:?}.equals({:?}) found {:?}",
-                        exp_res,
-                        vars[0],
-                        vars[1],
-                        res
-                    );
-                }
-            }
-        }
+    // comparaison between themselves
+    let mut domains = vec![
+    vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+    vec![1, 2, 3, 5, 7, 8, 9],
+    vec![1, 2, 3, 5, 6, 9],
+    vec![1, 3, 4, 5, 6, 7, 8, 9],
+    vec![1, 5, 7, 9],
+    vec![1],
+    vec![8, 9],
+    vec![0, 11],
+    ];
+    for domain in domains.iter_mut() {
+    domain.sort();
     }
-     * */
+    let domains = domains;
+    for domain1 in domains.iter() {
+    for domain2 in domains.iter() {
+    let mut vars = [
+    IntVar::new_from_iterator(domain1.clone().into_iter()).unwrap(),
+    IntVar::new_from_iterator(domain2.clone().into_iter()).unwrap(),
+    ];
+    let res = vars[0].equals(&mut vars[1]);
+    let dom_eq = domain1
+    .iter()
+    .filter(|&&val| domain2.contains(&val))
+    .map(|val| *val)
+    .collect::<Vec<_>>();
+    if dom_eq.is_empty() {
+    let exp_res = Err(VariableError::DomainWipeout);
+    assert!(
+    res == exp_res,
+    "Expected {:?} for {:?}.equals({:?}) found {:?}",
+    exp_res,
+    vars[0],
+    vars[1],
+    res
+    );
+    } else {
+    let var_res =
+    IntVar::new_from_iterator(dom_eq.clone().into_iter()).unwrap();
+    for i in 0..2 {
+    assert!(
+    vars[i] == var_res,
+    "Expected {:?} equals to {:?}",
+    vars[i],
+    var_res
+    );
+    }
+    let ok1 = if domain1.iter().map(|val| *val).eq(vars[0].domain_iter())
+    {
+    VariableState::NoChange
+    } else if domain1.first() != dom_eq.first() {
+    VariableState::BoundChange
+    } else if domain1.last() != dom_eq.last() {
+    VariableState::BoundChange
+    } else {
+    VariableState::ValuesChange
+    };
+    let ok2 = if domain2.iter().map(|val| *val).eq(vars[1].domain_iter())
+    {
+    VariableState::NoChange
+    } else if domain2.first() != dom_eq.first() {
+    VariableState::BoundChange
+    } else if domain2.last() != dom_eq.last() {
+    VariableState::BoundChange
+    } else {
+    VariableState::ValuesChange
+    };
+    let exp_res = Ok((ok1, ok2));
+    assert!(
+    res == exp_res,
+    "Expected {:?} for {:?}.equals({:?}) found {:?}",
+    exp_res,
+    vars[0],
+    vars[1],
+    res
+        );
+}
+}
+}
+}
+* */
 
     #[test]
     fn test_equals() {
