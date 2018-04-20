@@ -529,6 +529,32 @@ mod tests {
     }
 
     #[test]
+    fn test_equals() {
+        // comparaison between themselves
+        let mut domains = vec![
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 2, 3, 5, 7, 8, 9],
+            vec![1, 2, 3, 5, 6, 9],
+            vec![1, 3, 4, 5, 6, 7, 8, 9],
+            vec![1, 5, 7, 9],
+            vec![1],
+            vec![8, 9],
+            vec![0, 11],
+        ];
+        for domain in domains.into_iter() {
+            let exp_size = domain.len();
+            let var = IntVar::new_from_iterator(domain.into_iter()).unwrap();
+            assert!(
+                var.size() == exp_size,
+                "Expected size {:?} for {:?} found {:?}.",
+                exp_size,
+                var,
+                var.size()
+            );
+        }
+    }
+
+    #[test]
     fn test_update_strict_binf() {
         unimplemented!()
     }
