@@ -369,12 +369,14 @@ impl IntVar {
     }
 
     pub fn in_values<Values: Iterator<Item = i32>>(
+        &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError> {
         unimplemented!()
     }
 
     pub fn in_sorted_values<Values: Iterator<Item = i32>>(
+        &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError> {
         unimplemented!()
