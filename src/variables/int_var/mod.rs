@@ -1,6 +1,9 @@
 use super::{Variable, VariableError, VariableState};
 
 // TODO min & max update
+// TODO min & max check for every domain update !!
+// TODO remove duplicated code
+// TODO update size
 
 // binf -> lowerbound
 // bsup -> upperbound
@@ -8,15 +11,19 @@ use super::{Variable, VariableError, VariableState};
 //
 macro_rules! unwrap_or_break {
     ($val: expr) => {
-        if $val.is_none() {
-            break;
+        {
+            let opt = $val;
+            if opt.is_none() {
+                break;
+            }
+            opt.unwrap()
         }
-        $val.unwrap()
     };
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntVar {
+    size: usize,
     min: i32,
     max: i32,
     domain: Vec<(i32, i32)>,
@@ -33,6 +40,17 @@ impl IntVar {
         return self.min == self.max;
     }
 
+    fn nb_values(min: i32, max: i32) -> usize {
+        if min >= 0 && max >= 0 {
+            (max as usize) - (min as usize) + 1
+        } else if min < 0 && max < 0 {
+            (-min as usize) - (-max as usize) + 1
+        } else {
+            (max as usize) + (-min as usize) + 1
+        }
+    }
+
+    // TODO better handling
     pub fn new(min: i32, max: i32) -> Option<IntVar> {
         let domain = vec![(min, max)];
 
@@ -40,6 +58,7 @@ impl IntVar {
             None
         } else {
             Some(IntVar {
+                size: IntVar::nb_values(min, max),
                 min: min,
                 max: max,
                 domain: domain,
@@ -48,8 +67,8 @@ impl IntVar {
     }
 
     // size of the domain
-    pub fn size() -> usize {
-        unimplemented!()
+    pub fn size(&self) -> usize {
+        self.size
     }
 
     // TODO specific iterator
@@ -60,6 +79,7 @@ impl IntVar {
         if values.is_empty() {
             return None;
         }
+        let size = values.len();
         values.sort();
         let values = values;
         let min = *values.first().unwrap();
@@ -79,6 +99,7 @@ impl IntVar {
         domain.push((lower_bound, prev));
 
         Some(IntVar {
+            size: size,
             min: min,
             max: max,
             domain: domain,
@@ -286,6 +307,8 @@ impl IntVar {
     }
 
     // Better handling of equality !!!
+    // Duplicated Code
+    // Optimization
     pub fn equals(
         &mut self,
         value: &mut IntVar,
@@ -294,7 +317,7 @@ impl IntVar {
             return Err(VariableError::DomainWipeout);;
         }
         let (size_self, min_self, max_self) = (self.size(), self.min(), self.max());
-        let (size_value, min_vale, max_value) = (value.size(), value.min(), value.max());
+        let (size_value, min_value, max_value) = (value.size(), value.min(), value.max());
 
         // temporary get ownership of internal domain
         let mut lhs = IntVarDomainIterator::new(self.domain.clone().into_iter());
@@ -317,7 +340,7 @@ impl IntVar {
         if dom_eq.is_empty() {
             self.invalidate();
             value.invalidate();
-            return Err(DomainWipeout);
+            return Err(VariableError::DomainWipeout);
         }
         let ok_self = if size_self == dom_eq.len() {
             VariableState::NoChange
@@ -337,8 +360,8 @@ impl IntVar {
         } else {
             VariableState::ValuesChange
         };
-        self.domain = dom_eq.clone();
-        value.domain = dom_eq;
+        *self = IntVar::new_from_iterator(dom_eq.iter().map(|val| *val)).unwrap();
+        *value = IntVar::new_from_iterator(dom_eq.into_iter()).unwrap();
 
         Ok((ok_self, ok_value))
     }
