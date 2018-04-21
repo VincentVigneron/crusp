@@ -2,12 +2,13 @@ use super::{Variable, VariableError, VariableState};
 
 pub trait IntVar: Variable {
     fn size(&self) -> usize;
-    fn min(&self) -> usize;
-    fn max(&self) -> usize;
+    fn min(&self) -> i32;
+    fn max(&self) -> i32;
     fn value(&self) -> Option<i32>;
 }
 
 pub trait BoundsIntVar: IntVar {
+    fn new_from_range(min: i32, max: i32) -> Option<Self>;
     fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError>;
     fn weak_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError>;
     fn strict_lowerbound(&mut self, lb: i32) -> Result<VariableState, VariableError>;
@@ -68,6 +69,7 @@ pub trait BoundsIntVar: IntVar {
 }
 
 pub trait ValuesIntVar: BoundsIntVar {
+    fn new_from_value<Values: Iterator<Item = i32>>(values: Values) -> Option<Self>;
     fn set_value(&mut self, value: i32) -> Result<VariableState, VariableError>;
     fn equal(
         &mut self,
