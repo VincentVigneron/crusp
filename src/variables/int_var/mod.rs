@@ -1,5 +1,12 @@
 use super::{Variable, VariableError, VariableState};
 
+// BoundedVar (min, max)
+// SizedVar (size)
+// OrderedVar (Actual BoundsIntVar)
+// EqualityVar (Actual BoundsIntVar)
+// DisequalityVar (Actual BoundsIntVar)
+// remove && in ??
+
 pub trait IntVar: Variable {
     fn size(&self) -> usize;
     fn min(&self) -> i32;
@@ -82,14 +89,23 @@ pub trait ValuesIntVar: BoundsIntVar {
     fn in_values<Values: Iterator<Item = i32>>(
         &mut self,
         values: Values,
-    ) -> Result<VariableState, VariableError>;
+    ) -> Result<VariableState, VariableError> {
+        let values: Vec<_> = values.collect();
+        self.in_sorted_values(values.into_iter())
+    }
     fn in_sorted_values<Values: Iterator<Item = i32>>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError>;
     fn remove_value(&mut self, value: i32) -> Result<VariableState, VariableError>;
-    fn iter(&self) -> Iterator<Item = &i32>;
-    fn into_iter(&self) -> Iterator<Item = &i32>;
+    fn remove_if<Predicate>(
+        &mut self,
+        pred: Predicate,
+    ) -> Result<VariableState, VariableError>
+    where
+        Predicate: FnMut(&i32) -> bool;
+    fn iter(&self) -> Box<Iterator<Item = &i32>>;
+    fn into_iter(Self) -> Box<Iterator<Item = i32>>;
     //fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError> {
     //BoundsIntVar::strict_upperbound(self, ub)
     //}
