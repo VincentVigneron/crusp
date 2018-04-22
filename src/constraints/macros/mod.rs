@@ -1,13 +1,16 @@
 // TODO return (nuplet views, constraint)
 // TODO many new
 // TODO derive clone
+
+//fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty;
+
 #[macro_export]
 macro_rules! constraint_build {
     (
         $(#[$outer:meta])*
         struct Propagator = $propagator: ty;
         fn $fnnew: ident($( $param: ident: $tparam: ty),*);
-        fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty;
+        fn $fnpropagate: ident<$($var_type: ident: $var_bound: ident),+>($( $var: ident: $tvar: ident),+) -> $state: ty;
     ) => {
         use $crate::variables::{VariableView};
         use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
@@ -17,7 +20,7 @@ macro_rules! constraint_build {
         use std::sync::Arc;
 
 
-        struct StructVars<'a> {
+        struct StructVars<'a, $($var_type: $var_bound + 'static),+> {
             $($var: &'a mut $tvar),+
         }
 
@@ -30,10 +33,10 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         impl<$($var: VariableView),+> StructViews<$($var),+> {
             #[allow(non_camel_case_types)]
-            pub fn retrieve_variables<'a, H>(
+            pub fn retrieve_variables<'a, $($var_type: $var_bound),+, H>(
                 &self,
                 variables_handler: &'a mut H,
-                ) -> StructVars<'a>
+                ) -> StructVars<'a, $($var_type),+>
                 where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+ {
                         unsafe {
                             StructVars {

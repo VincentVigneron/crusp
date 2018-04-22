@@ -76,7 +76,7 @@ pub trait BoundsIntVar: IntVar {
 }
 
 pub trait ValuesIntVar: BoundsIntVar {
-    fn new_from_value<Values: Iterator<Item = i32>>(values: Values) -> Option<Self>;
+    fn new_from_values<Values: Iterator<Item = i32>>(values: Values) -> Option<Self>;
     fn set_value(&mut self, value: i32) -> Result<VariableState, VariableError>;
     fn equal(
         &mut self,
@@ -91,7 +91,8 @@ pub trait ValuesIntVar: BoundsIntVar {
         values: Values,
     ) -> Result<VariableState, VariableError> {
         let values: Vec<_> = values.collect();
-        self.in_sorted_values(values.into_iter())
+        //self.in_sorted_values(values.into_iter())
+        self.in_sorted_values(values.iter())
     }
     fn in_sorted_values<Values: Iterator<Item = i32>>(
         &mut self,
@@ -111,7 +112,7 @@ pub trait ValuesIntVar: BoundsIntVar {
     where
         Predicate: FnMut(&i32) -> bool;
     fn iter(&self) -> Box<Iterator<Item = &i32>>;
-    fn into_iter(Self) -> Box<Iterator<Item = i32>>;
+    //fn into_iter(Self) -> Box<Iterator<Item = i32>>;
     //fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError> {
     //BoundsIntVar::strict_upperbound(self, ub)
     //}
@@ -632,3 +633,6 @@ mod tests {
 
 }
 */
+
+pub mod bounds_int_var;
+pub mod values_int_var;

@@ -1,11 +1,11 @@
 use constraints::Propagator;
 use variables::Array;
-use variables::int_var::IntVar;
+use variables::int_var::BoundsIntVar;
 
 constraint_build!(
     struct Propagator = IncreasingPropagator;
     fn new();
-    fn propagate(x: Array<IntVar>) -> ();
+    fn propagate<VarType: BoundsIntVar>(x: Array<VarType>) -> ();
     );
 
 #[derive(Debug, Clone)]
@@ -16,19 +16,19 @@ impl IncreasingPropagator {
         IncreasingPropagator {}
     }
 
-    pub fn propagate(&self, array: &mut Array<IntVar>) {
+    pub fn propagate<VarType: BoundsIntVar>(&self, array: &mut Array<VarType>) {
         let len = array.variables.len();
         for i in 0..(len - 1) {
             unsafe {
-                let lhs: &mut IntVar = array_get_mut!(array[i]);
-                let rhs: &mut IntVar = array_get_mut!(array[i + 1]);
+                let lhs: &mut VarType = array_get_mut!(array[i]);
+                let rhs: &mut VarType = array_get_mut!(array[i + 1]);
                 let _ = lhs.less_than(rhs);
             }
         }
         for i in 0..(len - 1) {
             unsafe {
-                let lhs: &mut IntVar = array_get_mut!(array[len - 2 - i]);
-                let rhs: &mut IntVar = array_get_mut!(array[len - 1 - i]);
+                let lhs: &mut VarType = array_get_mut!(array[len - 2 - i]);
+                let rhs: &mut VarType = array_get_mut!(array[len - 1 - i]);
                 let _ = lhs.less_than(rhs);
             }
         }
