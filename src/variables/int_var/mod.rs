@@ -104,6 +104,12 @@ pub trait ValuesIntVar: BoundsIntVar {
     ) -> Result<VariableState, VariableError>
     where
         Predicate: FnMut(&i32) -> bool;
+    fn retains_if<Predicate>(
+        &mut self,
+        pred: Predicate,
+    ) -> Result<VariableState, VariableError>
+    where
+        Predicate: FnMut(&i32) -> bool;
     fn iter(&self) -> Box<Iterator<Item = &i32>>;
     fn into_iter(Self) -> Box<Iterator<Item = i32>>;
     //fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError> {
