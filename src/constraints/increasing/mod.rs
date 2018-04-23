@@ -6,7 +6,7 @@ constraint_build!(
     struct Propagator = IncreasingPropagator;
     fn new();
     fn propagate(x: Array<VarType>) -> ()
-        where VarType: BoundsIntVar;
+        where VarType: BoundsIntVar<Type=i32>;
     );
 
 #[derive(Debug, Clone)]
@@ -17,7 +17,10 @@ impl IncreasingPropagator {
         IncreasingPropagator {}
     }
 
-    pub fn propagate<VarType: BoundsIntVar>(&self, array: &mut Array<VarType>) {
+    pub fn propagate<VarType: BoundsIntVar<Type = i32>>(
+        &self,
+        array: &mut Array<VarType>,
+    ) {
         let len = array.variables.len();
         for i in 0..(len - 1) {
             unsafe {

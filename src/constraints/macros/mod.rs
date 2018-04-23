@@ -2,18 +2,10 @@
 // TODO many new
 // TODO derive clone
 
-//fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty;
-
-//macro_rules! as_expr { ($e:expr) => {$e} }
-//macro_rules! as_item { ($i:item) => {$i} }
-//macro_rules! as_pat  { ($p:pat) =>  {$p} }
-//macro_rules! as_stmt { ($s:stmt) => {$s} }
-//macro_rules! as_ident { ($i:ident) => {$i} }
-
 #[macro_export]
 macro_rules! constraint_build {
     (
-        @Vars struct<$($var_type: ident : $var_bound: ty),+> {
+        @Vars struct<$($var_type: ident : $var_bound: path),+> {
             $( $var: ident: $tvar: ty),+
         }
     ) => {
@@ -22,40 +14,11 @@ macro_rules! constraint_build {
         }
     };
     (
-        @Retrieve
-        struct<$($var_type: ident),+> {
-            $( $var: ident: $tvar: ident),+
-        }
-        where $($var_type_bound: ident : $var_bound: ty),+;
-    ) => {
-        #[allow(non_camel_case_types)]
-        #[allow(non_snake_case)]
-        impl<$($var: VariableView),+> StructViews<$($var),+> {
-            #[allow(non_camel_case_types)]
-            #[allow(non_snake_case)]
-            pub fn retrieve_variables<'a, $($var_type_bound: 'a + Variable),+, H>(
-                &self,
-                variables_handler: &'a mut H,
-                ) -> StructVars<'a, $($var_type),+>
-                where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
-                      $($var_type: 'a+ Variable),+
-                {
-                        unsafe {
-                            StructVars {
-                                $(
-                                    $var: get_mut_from_handler(&mut *(variables_handler as *mut _), &self.$var)
-                                 ),+
-                            }
-                        }
-                }
-        }
-    };
-    (
         $(#[$outer:meta])*
         struct Propagator = $propagator: ty;
         fn $fnnew: ident($( $param: ident: $tparam: ty),*);
         fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty
-        where  $($var_type_bound: ident: $var_bound: ident),+;
+        where  $($var_type_bound: ident: $var_bound: path),+;
     ) => {
         //use variables::int_var::BoundsIntVar;
         use std::marker::PhantomData;
@@ -68,11 +31,6 @@ macro_rules! constraint_build {
 
 
 
-        //struct StructVars<'a, $($var_type: 'a + $var_bound),+> {
-        //struct StructVars<'a, $($var_type: 'a + Variable),+> {
-        //struct StructVars<'a, $($var_type: 'a + Variable),+> {
-            //$($var: &'a mut $tvar),+
-        //}
         constraint_build!(@Vars
             struct<$($var_type_bound : $var_bound),+> {
                 $($var: $tvar),+
@@ -83,12 +41,7 @@ macro_rules! constraint_build {
         struct StructViews<$($var: VariableView),+> {
             $($var: $var),+
         }
-        //constraint_build!(@Retrieve
-            //struct<$($var_type),+> {
-                //$($var: $tvar),+
-            //}
-            //where $($var_type_bound: $var_bound),+;
-        //);
+
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
         impl<$($var: VariableView),+> StructViews<$($var),+> {
@@ -193,15 +146,33 @@ macro_rules! constraint_build {
 macro_rules! constraints {
     () => {};
     (handler = $handler: ident;) => {};
-    //(handler = $handler: ident; constraint increasing($x:ident); $($tail:tt)*) => {
-        //{
-            //$handler.add(Box::new($crate::constraints::increasing::new(&$x)));
-            //constraints!(handler = $handler; $($tail)*);
-        //}
-    //};
+    (handler = $handler: ident; constraint increasing($x:ident); $($tail:tt)*) => {
+        {
+            $handler.add(Box::new($crate::constraints::increasing::new(&$x)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
     (handler = $handler: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new($crate::constraints::arithmetic::less_than::new(&$x, &$y)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
+    (handler = $handler: ident; constraint $x:ident <= $y: ident; $($tail:tt)*) => {
+        {
+            $handler.add(Box::new($crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
+    (handler = $handler: ident; constraint $x:ident > $y: ident; $($tail:tt)*) => {
+        {
+            $handler.add(Box::new($crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
+    (handler = $handler: ident; constraint $x:ident >= $y: ident; $($tail:tt)*) => {
+        {
+            $handler.add(Box::new($crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };

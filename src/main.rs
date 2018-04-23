@@ -37,16 +37,21 @@ fn main() {
         b = var int(2 .. 6);
         c = var int(1 .. 9);
         d = var int(2 .. 11);
-        //e = array[10] of var int(1 .. 9);
+        e = array[10] of var int(1 .. 9);
         );
     constraints!(
         handler = constraints_handler;
         constraint a < b;
         constraint c < d;
-        //constraint increasing(e);
+        constraint b > a;
+        constraint b >= a;
+        constraint a <= b;
+        constraint increasing(e);
         );
     // INIT
     let mut variables_handler = variables_handler.finalize();
+    println!("#############");
+    println!("{:?}", variables_handler);
     constraints_handler.propagate_all(&mut variables_handler);
     println!("=============");
     println!("{:?}", variables_handler);

@@ -8,18 +8,27 @@ use super::{Variable, VariableError, VariableState};
 // remove && in ??
 
 pub trait IntVar: Variable {
+    type Type;
     fn size(&self) -> usize;
-    fn min(&self) -> i32;
-    fn max(&self) -> i32;
-    fn value(&self) -> Option<i32>;
+    fn min(&self) -> Self::Type;
+    fn max(&self) -> Self::Type;
+    fn value(&self) -> Option<Self::Type>;
 }
 
 pub trait BoundsIntVar: IntVar {
-    fn new_from_range(min: i32, max: i32) -> Option<Self>;
-    fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError>;
-    fn weak_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError>;
-    fn strict_lowerbound(&mut self, lb: i32) -> Result<VariableState, VariableError>;
-    fn weak_lowerbound(&mut self, lb: i32) -> Result<VariableState, VariableError>;
+    fn new_from_range(min: Self::Type, max: Self::Type) -> Option<Self>;
+    fn strict_upperbound(
+        &mut self,
+        ub: Self::Type,
+    ) -> Result<VariableState, VariableError>;
+    fn weak_upperbound(&mut self, ub: Self::Type)
+        -> Result<VariableState, VariableError>;
+    fn strict_lowerbound(
+        &mut self,
+        lb: Self::Type,
+    ) -> Result<VariableState, VariableError>;
+    fn weak_lowerbound(&mut self, lb: Self::Type)
+        -> Result<VariableState, VariableError>;
 
     fn less_than(
         &mut self,
@@ -70,14 +79,16 @@ pub trait BoundsIntVar: IntVar {
     //fn max(&self) -> usize {
     //IntVar::max(self)
     //}
-    //fn value(&self) -> Option<i32> {
+    //fn value(&self) -> Option<Self::Type> {
     //IntVar::value(self)
     //}
 }
 
 pub trait ValuesIntVar: BoundsIntVar {
-    fn new_from_values<Values: Iterator<Item = i32>>(values: Values) -> Option<Self>;
-    fn set_value(&mut self, value: i32) -> Result<VariableState, VariableError>;
+    fn new_from_values<Values: Iterator<Item = Self::Type>>(
+        values: Values,
+    ) -> Option<Self>;
+    fn set_value(&mut self, value: Self::Type) -> Result<VariableState, VariableError>;
     fn equal(
         &mut self,
         value: &mut Self,
@@ -86,7 +97,7 @@ pub trait ValuesIntVar: BoundsIntVar {
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError>;
-    fn in_values<Values: Iterator<Item = i32>>(
+    fn in_values<Values: Iterator<Item = Self::Type>>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError> {
@@ -95,35 +106,36 @@ pub trait ValuesIntVar: BoundsIntVar {
         //self.in_sorted_values(values.iter())
         unimplemented!()
     }
-    fn in_sorted_values<Values: Iterator<Item = i32>>(
+    fn in_sorted_values<Values: Iterator<Item = Self::Type>>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError>;
-    fn remove_value(&mut self, value: i32) -> Result<VariableState, VariableError>;
+    fn remove_value(&mut self, value: Self::Type)
+        -> Result<VariableState, VariableError>;
     fn remove_if<Predicate>(
         &mut self,
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: FnMut(&i32) -> bool;
+        Predicate: FnMut(&Self::Type) -> bool;
     fn retains_if<Predicate>(
         &mut self,
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: FnMut(&i32) -> bool;
-    fn iter(&self) -> Box<Iterator<Item = &i32>>;
-    //fn into_iter(Self) -> Box<Iterator<Item = i32>>;
-    //fn strict_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError> {
+        Predicate: FnMut(&Self::Type) -> bool;
+    fn iter(&self) -> Box<Iterator<Item = &Self::Type>>;
+    //fn into_iter(Self) -> Box<Iterator<Item = Self::Type>>;
+    //fn strict_upperbound(&mut self, ub: Self::Type) -> Result<VariableState, VariableError> {
     //BoundsIntVar::strict_upperbound(self, ub)
     //}
-    //fn weak_upperbound(&mut self, ub: i32) -> Result<VariableState, VariableError> {
+    //fn weak_upperbound(&mut self, ub: Self::Type) -> Result<VariableState, VariableError> {
     //BoundsIntVar::weak_upperbound(self, ub)
     //}
-    //fn strict_lowerbound(&mut self, lb: i32) -> Result<VariableState, VariableError> {
+    //fn strict_lowerbound(&mut self, lb: Self::Type) -> Result<VariableState, VariableError> {
     //BoundsIntVar::strict_lowerbound(self, lb)
     //}
-    //fn weak_lowerbound(&mut self, lb: i32) -> Result<VariableState, VariableError> {
+    //fn weak_lowerbound(&mut self, lb: Self::Type) -> Result<VariableState, VariableError> {
     //BoundsIntVar::weak_lowerbound(self, lb)
     //}
     //fn less_than(
@@ -159,7 +171,7 @@ pub trait ValuesIntVar: BoundsIntVar {
     //fn max(&self) -> usize {
     //BoundsIntVar::max(self)
     //}
-    //fn value(&self) -> Option<i32> {
+    //fn value(&self) -> Option<Self::Type> {
     //BoundsIntVar::value(self)
     //}
 }
@@ -269,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_new_from_iterator_error() {
-        let domain: Vec<i32> = Vec::new();
+        let domain: Vec<Self::Type> = Vec::new();
         assert!(
             IntVar::new_from_iterator(domain.into_iter()).is_none(),
             "Expected for building from an empty iterator"
