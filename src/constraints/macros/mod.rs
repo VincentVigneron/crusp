@@ -4,40 +4,40 @@
 
 //fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty;
 
+//macro_rules! as_expr { ($e:expr) => {$e} }
+//macro_rules! as_item { ($i:item) => {$i} }
+//macro_rules! as_pat  { ($p:pat) =>  {$p} }
+//macro_rules! as_stmt { ($s:stmt) => {$s} }
+//macro_rules! as_ident { ($i:ident) => {$i} }
+
 #[macro_export]
 macro_rules! constraint_build {
     (
-        $(#[$outer:meta])*
-        struct Propagator = $propagator: ty;
-        fn $fnnew: ident($( $param: ident: $tparam: ty),*);
-        fn $fnpropagate: ident<$($var_type: ident: $var_bound: ident),+>($( $var: ident: $tvar: ident),+) -> $state: ty;
+        @Vars struct<$($var_type: ident : $var_bound: ty),+> {
+            $( $var: ident: $tvar: path),+
+        }
     ) => {
-        use $crate::variables::{VariableView};
-        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
-        use $crate::constraints::{ConstraintState};
-        use $crate::constraints;
-        use std::cell::RefCell;
-        use std::sync::Arc;
-
-
-        struct StructVars<'a, $($var_type: $var_bound + 'static),+> {
+        struct StructVars<'a, $($var_type: 'a + Variable),+> {
             $($var: &'a mut $tvar),+
         }
-
-        #[derive(Clone)]
-        #[allow(non_camel_case_types)]
-        struct StructViews<$($var: VariableView),+> {
-            $($var: $var),+
+    };
+    (
+        @Retrieve
+        struct<$($var_type: ident),+> {
+            $( $var: ident: $tvar: ident),+
         }
-
+        where $($var_type_bound: ident : $var_bound: ty),+;
+    ) => {
         #[allow(non_camel_case_types)]
         impl<$($var: VariableView),+> StructViews<$($var),+> {
             #[allow(non_camel_case_types)]
-            pub fn retrieve_variables<'a, $($var_type: $var_bound),+, H>(
+            pub fn retrieve_variables<'a, $($var_type_bound: 'a + Variable),+, H>(
                 &self,
                 variables_handler: &'a mut H,
                 ) -> StructVars<'a, $($var_type),+>
-                where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+ {
+                where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
+                      $($var_type: 'a+ Variable),+
+                {
                         unsafe {
                             StructVars {
                                 $(
@@ -47,6 +47,63 @@ macro_rules! constraint_build {
                         }
                 }
         }
+    };
+    (
+        $(#[$outer:meta])*
+        struct Propagator = $propagator: ty;
+        fn $fnnew: ident($( $param: ident: $tparam: ty),*);
+        fn $fnpropagate: ident<$($var_type: ident),+>($( $var: ident: $tvar: ident),+) -> $state: ty
+        where  $($var_type_bound: ident: $var_bound: ty),+;
+    ) => {
+        use $crate::variables::{VariableView,Variable};
+        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
+        use $crate::constraints::{ConstraintState};
+        use $crate::constraints;
+        use std::cell::RefCell;
+        use std::sync::Arc;
+
+
+
+        //struct StructVars<'a, $($var_type: 'a + $var_bound),+> {
+        //struct StructVars<'a, $($var_type: 'a + Variable),+> {
+        //struct StructVars<'a, $($var_type: 'a + Variable),+> {
+            //$($var: &'a mut $tvar),+
+        //}
+        constraint_build!(@Vars
+            struct<$($var_type_bound : $var_bound),+> {
+                $($var: $tvar),+
+            });
+
+        #[derive(Clone)]
+        #[allow(non_camel_case_types)]
+        struct StructViews<$($var: VariableView),+> {
+            $($var: $var),+
+        }
+        //constraint_build!(@Retrieve
+            //struct<$($var_type),+> {
+                //$($var: $tvar),+
+            //}
+            //where $($var_type_bound: $var_bound),+;
+        //);
+        #[allow(non_camel_case_types)]
+        impl<$($var: VariableView),+> StructViews<$($var),+> {
+            #[allow(non_camel_case_types)]
+            pub fn retrieve_variables<'a, $($var_type_bound: 'a + Variable),+, H>(
+                &self,
+                variables_handler: &'a mut H,
+                ) -> StructVars<'a, $($var_type),+>
+                where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
+                {
+                        unsafe {
+                            StructVars {
+                                $(
+                                    $var: get_mut_from_handler(&mut *(variables_handler as *mut _), &self.$var)
+                                 ),+
+                            }
+                        }
+                }
+        }
+
 
 
         #[allow(non_camel_case_types)]
@@ -59,12 +116,14 @@ macro_rules! constraint_build {
 
         #[allow(non_camel_case_types)]
         impl<$($var: 'static + Clone + VariableView),+,
+        $($var_type: Variable),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
-            for Constraint<$($var),+> {
+            for Constraint<$($var),+>
+            {
                 fn propagate(&mut self, variables_handler: &mut H) {
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate($(variables.$var),+);
+                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
                 }
 
                 fn try_propagate(&mut self, _variables: Arc<RefCell<H>>) -> ConstraintState {
@@ -121,12 +180,12 @@ macro_rules! constraint_build {
 macro_rules! constraints {
     () => {};
     (handler = $handler: ident;) => {};
-    (handler = $handler: ident; constraint increasing($x:ident); $($tail:tt)*) => {
-        {
-            $handler.add(Box::new($crate::constraints::increasing::new(&$x)));
-            constraints!(handler = $handler; $($tail)*);
-        }
-    };
+    //(handler = $handler: ident; constraint increasing($x:ident); $($tail:tt)*) => {
+        //{
+            //$handler.add(Box::new($crate::constraints::increasing::new(&$x)));
+            //constraints!(handler = $handler; $($tail)*);
+        //}
+    //};
     (handler = $handler: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new($crate::constraints::arithmetic::less_than::new(&$x, &$y)));

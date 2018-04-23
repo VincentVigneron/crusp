@@ -16,6 +16,7 @@ use solver_cp::variables::*;
 use solver_cp::variables::Array;
 use solver_cp::variables::handlers::*;
 use solver_cp::variables::int_var::IntVar;
+use solver_cp::variables::int_var::values_int_var::*;
 
 // TODO expect
 
@@ -44,26 +45,32 @@ fn main() {
         constraint c < d;
         //constraint increasing(e);
         );
-    let brancher_ab = FirstVariableBrancher::new(vec![a, b]);
-    let brancher_c = FirstVariableBrancher::new(vec![c]);
-    let mut brancher = MultipleBrancherHandler::new();
-    brancher.add_brancher(Box::new(brancher_ab));
-    brancher.add_brancher(Box::new(brancher_c));
-    //let brancher = brancher;
-
+    // INIT
     let mut variables_handler = variables_handler.finalize();
+    constraints_handler.propagate_all(&mut variables_handler);
+    println!("=============");
+    println!("{:?}", variables_handler);
+    //let brancher_ab = FirstVariableBrancher::new(vec![a, b]);
+    //let brancher_c = FirstVariableBrancher::new(vec![c]);
+    //let mut brancher = MultipleBrancherHandler::new();
+    //brancher.add_brancher(Box::new(brancher_ab));
+    //brancher.add_brancher(Box::new(brancher_c));
+    ////let brancher = brancher;
 
-    let mut branches = brancher.branch_fn(&variables_handler).expect("branches");
+    //let mut variables_handler = variables_handler.finalize();
 
-    for branch in branches {
-        let mut vars = variables_handler.clone();
-        branch(&mut vars);
-        println!("{:?}", vars);
-    }
+    //let mut branches = brancher.branch_fn(&variables_handler).expect("branches");
+
+    //for branch in branches {
+    //let mut vars = variables_handler.clone();
+    //branch(&mut vars);
+    //println!("{:?}", vars);
+    //}
 
     std::process::exit(0);
 
     // INIT
+    /*
     constraints_handler.propagate_all(&mut variables_handler);
     println!("=============");
     println!("{:?}", variables_handler);
@@ -99,6 +106,11 @@ fn main() {
         //_ => println!("Error!"),
         //}
     }
+    // INIT
+    constraints_handler.propagate_all(&mut variables_handler);
+    println!("=============");
+    println!("{:?}", variables_handler);
+    */
     /*
        println!("=============");
        println!("{:?}", variables_handler);

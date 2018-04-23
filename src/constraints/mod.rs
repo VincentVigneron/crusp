@@ -10,7 +10,7 @@ pub enum ConstraintState {
 pub trait Constraint<H: VariablesHandler> {
     fn box_clone(&self) -> Box<Constraint<H>>;
     fn propagate(&mut self, &mut H);
-    fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
+    //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
 }
 
 impl<H: VariablesHandler> Clone for Box<Constraint<H>> {

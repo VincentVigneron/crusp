@@ -92,7 +92,8 @@ pub trait ValuesIntVar: BoundsIntVar {
     ) -> Result<VariableState, VariableError> {
         let values: Vec<_> = values.collect();
         //self.in_sorted_values(values.into_iter())
-        self.in_sorted_values(values.iter())
+        //self.in_sorted_values(values.iter())
+        unimplemented!()
     }
     fn in_sorted_values<Values: Iterator<Item = i32>>(
         &mut self,

@@ -16,6 +16,7 @@ pub trait SelectVariable<Handler: VariablesHandler, State: SelectorState> {
 }
 */
 
+/*
 pub trait Brancher<Handler: VariablesHandler> {
     fn box_clone(&self) -> Box<Brancher<Handler>>;
     fn branch(&mut self, variables: &Handler) -> Option<Handler>;
@@ -214,3 +215,4 @@ where
         //})
     }
 }
+*/

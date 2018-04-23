@@ -2,12 +2,16 @@ use constraints::Propagator;
 use variables::Array;
 use variables::int_var::BoundsIntVar;
 
+/*
 constraint_build!(
     struct Propagator = IncreasingPropagator;
     fn new();
-    fn propagate<VarType: BoundsIntVar>(x: Array<VarType>) -> ();
+    fn propagate<VarType>(x: Array<VarType>) -> ()
+        where VarType: BoundsIntVar;
     );
+*/
 
+/*
 #[derive(Debug, Clone)]
 pub struct IncreasingPropagator {}
 impl Propagator for IncreasingPropagator {}
@@ -34,3 +38,4 @@ impl IncreasingPropagator {
         }
     }
 }
+*/
