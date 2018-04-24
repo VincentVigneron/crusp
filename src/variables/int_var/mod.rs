@@ -118,13 +118,13 @@ pub trait ValuesIntVar: BoundsIntVar {
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: FnMut(&Self::Type) -> bool;
+        Predicate: Fn(&Self::Type) -> bool;
     fn retains_if<Predicate>(
         &mut self,
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: FnMut(&Self::Type) -> bool;
+        Predicate: Fn(&Self::Type) -> bool;
 }
 
 // More macros for generating test assert especially)
@@ -219,19 +219,6 @@ macro_rules! test_int_var{
                     "only isolated values",
                     "singleton domain",
                 ];
-                let tests = domains
-                    .clone()
-                    .into_iter()
-                    .zip(expected_domains.clone().into_iter())
-                    .zip(names.clone().into_iter())
-                    .map(|((domain, expected_domain), name)| (domain, expected_domain, name));
-                for (domain, expected_domain, name) in tests {
-                    let var = <$var>::new_from_values(domain.into_iter());
-                    match var {
-                        Some(var) => assert_domain_eq!(var, expected_domain, name),
-                        _ => assert!(false, "Expected some variable for: \"{:?}\"", name),
-                    }
-                }
                 let mut rng = thread_rng();
 
                 for _ in 0..100 {
