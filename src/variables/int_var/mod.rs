@@ -166,6 +166,118 @@ macro_rules! assert_result_binary_constraint {
     }
 }
 
+macro_rules! expr {
+    ($e: expr) => {
+        $e
+    }
+}
+
+macro_rules! bound_test {
+    ($testname: ident, $var: ty, $fnbound: ident, $op: tt, $min: expr => $max: expr) => {
+        #[test]
+        fn $testname() {
+            let domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                //vec![1],
+            ];
+            let bounds: Vec<_> = ($min..($max+1)).collect();
+            let names = vec![
+                "consectuive sorted values",
+                "middle isolated value",
+                "last isolated",
+                "first isolated",
+                "only isolated values",
+                "singleton domain",
+            ];
+            let tests = domains
+                .into_iter()
+                .zip(names.into_iter());
+            for (domain, name) in tests {
+                for bound in bounds.iter().map(|val| *val) {
+                    let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                    let var_clone = var.clone();
+                    let exp_domain: Vec<_> = domain.iter()
+                        .map(|val| *val)
+                        .filter(|&val| expr!(val $op bound))
+                        .collect();
+                    let res = var.$fnbound(bound);
+                    let exp_res = if domain == exp_domain {
+                        Ok(VariableState::NoChange)
+                    } else {
+                        Ok(VariableState::BoundChange)
+                    };
+                    assert_eq!(
+                        res, exp_res,
+                        "Resultata expected {:?} for {:?}.{}({}) found {:?}",
+                        exp_res,
+                        var_clone, stringify!($fnbound),
+                        bound, res);
+                    assert_eq!(
+                        *exp_domain.first().unwrap(), var.min(),
+                        "Min expected {:?} for {:?}.{}({}) found {:?}",
+                        *exp_domain.first().unwrap(),
+                        var_clone, stringify!($fnbound),
+                        bound, var.min());
+                    assert_eq!(
+                        *exp_domain.last().unwrap(), var.max(),
+                        "Max expected {:?} for {:?}.{}({}) found {:?}",
+                        *exp_domain.last().unwrap(),
+                        var_clone, stringify!($fnbound),
+                        bound, var.max());
+                    assert_domain_eq!(var, exp_domain, name);
+                }
+            }
+        }
+
+    }
+}
+
+macro_rules! bound_test_error {
+    ($testname: ident, $var: ty, $fnbound: ident, $op: tt, $min: expr => $max: expr) => {
+        #[test]
+        fn $testname() {
+            let domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                //vec![1],
+            ];
+            let bounds: Vec<_> = ($min..($max+1)).collect();
+            let names = vec![
+                "consectuive sorted values",
+                "middle isolated value",
+                "last isolated",
+                "first isolated",
+                "only isolated values",
+                "singleton domain",
+            ];
+            let exp_res = Err(VariableError::DomainWipeout);
+            let tests = domains
+                .into_iter()
+                .zip(names.into_iter());
+            for (domain, name) in tests {
+                for bound in bounds.iter().map(|val| *val) {
+                    let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                    let var_clone = var.clone();
+                    let res = var.$fnbound(bound);
+                    assert_eq!(
+                        res, exp_res,
+                        "Result expected {:?} for {:?}.{}({}) found {:?}",
+                        exp_res,
+                        var_clone, stringify!($fnbound),
+                        bound, res);
+                }
+            }
+        }
+    }
+}
+
 #[allow(unused_macros)]
 macro_rules! test_int_var{
     ($var: ty) => {
@@ -273,74 +385,26 @@ macro_rules! test_int_var{
                 }
         }
 
-        #[test]
-        fn test_strict_lowerbound() {
-            unimplemented!()
-        }
 
+        //let domains = vec![
+            //vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            //vec![1, 2, 3, 5, 7, 8, 9],
+            //vec![1, 2, 3, 5, 6, 9],
+            //vec![1, 3, 4, 5, 6, 7, 8, 9],
+            //vec![1, 5, 7, 9],
+            ////vec![1],
+        //];
+        bound_test!(test_weak_upperbound, $var, weak_upperbound, <=, 1 => 10);
+        bound_test_error!(test_weak_upperbound_error, $var, weak_upperbound, <=, -1 => 0);
 
-        // edge case when bsup = (min=bsup,max=bsup) => remove last ellement
-        #[test]
-        fn test_update_valid_strict_bsup() {
-            let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
-                .into_iter()
-                .map(|&(min, max)| <$var>::new(min, max))
-                .map(Option::unwrap)
-                .collect::<Vec<_>>();
-            let bsups = vec![1, 10, 4, 10, 3];
-            let expected = [(0, 0), (-1, 9), (3, 3), (5, 9), (2, 2)]
-                .into_iter()
-                .map(|&(min, max)| <$var>::new(min, max))
-                .map(Option::unwrap)
-                .collect::<Vec<_>>();
-            let results = vec![
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::NoChange),
-                Ok(VariableState::NoChange),
-            ];
-            let iter = vars.into_iter()
-                .zip(bsups.into_iter())
-                .zip(expected.into_iter())
-                .zip(results.into_iter())
-                .map(|(((var, bsup), exp), res)| (var, bsup, exp, res));
-            for (mut var, bsup, exp_var, exp_res) in iter {
-                let res = var.strict_upperbound(bsup);
-                assert!(res == exp_res, "Unexpected result.");
-                assert!(var == exp_var, "Unexpected domain.");
-            }
-        }
+        bound_test!(test_strict_upperbound, $var, strict_upperbound, <, 2 => 10);
+        bound_test_error!(test_strict_upperbound_error, $var, strict_upperbound, <, -1 => 1);
 
-        #[test]
-        fn test_update_invalid_strict_bsup() {
-            let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
-                .into_iter()
-                .map(|&(min, max)| <$var>::new(min, max))
-                .map(Option::unwrap)
-                .collect::<Vec<_>>();
-            let bsups = vec![0, -5, 3, 4, 2];
-            let results = vec![
-                Err(VariableError::DomainWipeout),
-                Err(VariableError::DomainWipeout),
-                Err(VariableError::DomainWipeout),
-                Err(VariableError::DomainWipeout),
-                Err(VariableError::DomainWipeout),
-            ];
-            let iter = vars.into_iter()
-                .zip(bsups.into_iter())
-                .zip(results.into_iter())
-                .map(|((var, bsup), res)| (var, bsup, res));
-            for (mut var, bsup, exp_res) in iter {
-                let res = var.strict_upperbound(bsup);
-                assert!(res == exp_res, "Unexpected result.");
-            }
-        }
+        bound_test!(test_weak_lowerbound, $var, weak_lowerbound, >=, 0 => 9);
+        bound_test_error!(test_weak_lowerbound_error, $var, weak_lowerbound, >=, 10 => 11);
 
-        #[test]
-        fn test_strict_upperbound() {
-            unimplemented!()
-        }
+        bound_test!(test_strict_lowerbound, $var, strict_lowerbound, >, 0 => 8);
+        bound_test_error!(test_strict_lowerbound_error, $var, strict_lowerbound, >, 9 => 11);
 
         #[test]
         fn test_unsafe_remove_value() {

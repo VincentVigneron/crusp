@@ -129,7 +129,7 @@ impl BoundsIntVar for SetIntVar {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val > lb).unwrap();
-            self.domain.truncate(index);
+            self.domain.drain(0..index);
             Ok(VariableState::BoundChange)
         }
     }
@@ -138,13 +138,13 @@ impl BoundsIntVar for SetIntVar {
         &mut self,
         lb: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.min() <= lb {
+        if self.min() >= lb {
             Ok(VariableState::NoChange)
-        } else if self.max() > lb {
+        } else if self.max() < lb {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val >= lb).unwrap();
-            self.domain.truncate(index);
+            self.domain.drain(0..index);
             Ok(VariableState::BoundChange)
         }
     }
