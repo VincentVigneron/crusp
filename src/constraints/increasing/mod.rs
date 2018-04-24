@@ -5,7 +5,7 @@ use variables::int_var::BoundsIntVar;
 constraint_build!(
     struct Propagator = IncreasingPropagator;
     fn new();
-    fn propagate(x: Array<VarType>) -> ()
+    fn propagate(x: Array<VarType>)
         where VarType: BoundsIntVar<Type=i32>;
     );
 

@@ -50,7 +50,7 @@ pub mod less_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn less_than(x: VarType, y: VarType) -> ()
+        fn less_than(x: VarType, y: VarType)
         where VarType: BoundsIntVar<Type=i32> | IntVar<Type=i32>;
         );
 
@@ -62,7 +62,7 @@ pub mod less_or_equal_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn less_or_equal_than(x: VarType, y: VarType) -> ()
+        fn less_or_equal_than(x: VarType, y: VarType)
         where VarType: BoundsIntVar<Type=i32>;
         );
 
@@ -74,7 +74,7 @@ pub mod greater_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn greater_than(x: VarType, y: VarType) -> ()
+        fn greater_than(x: VarType, y: VarType)
         where VarType: BoundsIntVar<Type=i32>;
         );
 
@@ -86,7 +86,7 @@ pub mod greater_or_equal_than {
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
-        fn greater_or_equal_than(x: VarType, y: VarType) -> ()
+        fn greater_or_equal_than(x: VarType, y: VarType)
         where VarType: BoundsIntVar<Type=i32>;
         );
 }
