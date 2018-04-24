@@ -1,8 +1,8 @@
-use std::marker::PhantomData;
-use variables::VariableView;
-use variables::handlers::{get_from_handler, get_mut_from_handler,
-                          SpecificVariablesHandler, VariablesHandler};
-use variables::int_var::*;
+//use std::marker::PhantomData;
+//use variables::VariableView;
+//use variables::handlers::{get_from_handler, get_mut_from_handler,
+//SpecificVariablesHandler, VariablesHandler};
+//use variables::int_var::*;
 
 /*
 pub trait SelectorState {}

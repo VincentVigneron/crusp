@@ -15,7 +15,7 @@ pub trait IntVar: Variable {
     fn value(&self) -> Option<Self::Type>;
 }
 
-pub trait BoundsIntVar: IntVar {
+pub trait BoundsIntVar: IntVar + Variable {
     fn new_from_range(min: Self::Type, max: Self::Type) -> Option<Self>;
     fn strict_upperbound(
         &mut self,

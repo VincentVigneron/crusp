@@ -45,12 +45,13 @@ impl ArithmeticComparatorPropagator {
 
 pub mod less_than {
     use variables::int_var::BoundsIntVar;
+    use variables::int_var::IntVar;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn less_than(x: VarType, y: VarType) -> ()
-        where VarType: BoundsIntVar<Type=i32>;
+        where VarType: BoundsIntVar<Type=i32> | IntVar<Type=i32>;
         );
 
 }

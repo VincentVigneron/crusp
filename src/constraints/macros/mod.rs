@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! constraint_build {
     (
-        @Vars struct<$($var_type: ident : $var_bound: path),+> {
+        @Vars struct<$($var_type: ident),+> {
             $( $var: ident: $tvar: ty),+
         }
     ) => {
@@ -14,43 +14,30 @@ macro_rules! constraint_build {
         }
     };
     (
-        $(#[$outer:meta])*
-        struct Propagator = $propagator: ty;
-        fn $fnnew: ident($( $param: ident: $tparam: ty),*);
-        fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty
-        where  $($var_type_bound: ident: $var_bound: path),+;
+        @Views struct {
+            $( $var: ident),+
+        }
     ) => {
-        //use variables::int_var::BoundsIntVar;
-        use std::marker::PhantomData;
-        use $crate::variables::{VariableView,Variable};
-        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
-        //use $crate::constraints::{ConstraintState};
-        use $crate::constraints;
-        //use std::cell::RefCell;
-        //use std::sync::Arc;
-
-
-
-        constraint_build!(@Vars
-            struct<$($var_type_bound : $var_bound),+> {
-                $($var: $tvar),+
-            });
-
         #[derive(Clone)]
         #[allow(non_camel_case_types)]
         struct StructViews<$($var: VariableView),+> {
             $($var: $var),+
         }
-
+    };
+    (
+        @Retrieve struct<$($var_type: ident),+> {
+            $( $var: ident: $tvar: ty),+
+        }
+    ) => {
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
         impl<$($var: VariableView),+> StructViews<$($var),+> {
         #[allow(non_snake_case)]
             #[allow(non_camel_case_types)]
-            pub fn retrieve_variables<'a, $($var_type_bound: 'a + Variable),+, H>(
+            pub fn retrieve_variables<'a, $($var_type: 'a + Variable),+, H>(
                 &self,
                 variables_handler: &'a mut H,
-                ) -> StructVars<'a, $($var_type_bound),+>
+                ) -> StructVars<'a, $($var_type),+>
                 where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
                 {
                         unsafe {
@@ -62,52 +49,64 @@ macro_rules! constraint_build {
                         }
                 }
         }
-
-
-
+    };
+    (
+        @Constraint struct<$($var_type: ident: $($var_bound: path)|+),+> {
+            propagator: $propagator: ty,
+            $( $var: ident),+
+        }
+    ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: VariableView),+,$($var_type_bound: $var_bound),+> {
+        pub struct Constraint<$($var: VariableView),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
-            $($var_type_bound: PhantomData<$var_type_bound>),+
-            //state: $state,
+            $($var_type: PhantomData<$var_type>),+
         }
-
+    };
+    (
+        @Propagate struct<$($var_type: ident: $($var_bound: path)|+),+> {
+            $( $var: ident: $tvar: ty),+
+        }
+        propagate: $fnpropagate: ident;
+    ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         impl<$($var: 'static + Clone + VariableView),+,
-        $($var_type_bound: 'static + $var_bound),+,
+        $($var_type: 'static + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
-            for Constraint<$($var),+,$($var_type_bound),+>
+            for Constraint<$($var),+,$($var_type),+>
             {
                 fn propagate(&mut self, variables_handler: &mut H) {
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type_bound),+>($(variables.$var),+);
+                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
                 }
 
-                //fn try_propagate(&mut self, _variables: Arc<RefCell<H>>) -> ConstraintState {
-                    //unimplemented!()
-                //}
-
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
-                    let ref_self: &Constraint<$($var),+, $($var_type_bound),+> = &self;
-                    let cloned: Constraint<$($var),+, $($var_type_bound),+> =
-                        <Constraint<$($var),+,$($var_type_bound),+> as Clone>::clone(ref_self);
+                    let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
+                    let cloned: Constraint<$($var),+, $($var_type),+> =
+                        <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
 
                     Box::new(cloned) as Box<constraints::Constraint<H>>
                 }
             }
-
+    };
+    (
+        @ConstraintImpl struct<$($var_type: ident: $($var_bound: path)|+),+> {
+            propagator: $propagator: ty,
+            $( $var: ident),+
+        }
+        new: $fnnew: ident($( $param: ident: $tparam: ty),*);
+    ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: VariableView),+, $($var_type_bound: $var_bound),+> Constraint<$($var),+, $($var_type_bound),+> {
+        impl<$($var: VariableView),+, $($var_type: $($var_bound+)+),+> Constraint<$($var),+, $($var_type),+> {
 
             #[allow(non_camel_case_types)]
             #[allow(non_snake_case)]
-            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+, $($var_type_bound),+> {
+            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+, $($var_type),+> {
                 let mut ids = vec![$($var.get_id()),+];
                 ids.sort();
                 let ids = ids;
@@ -127,18 +126,73 @@ macro_rules! constraint_build {
                     variables: StructViews {
                         $($var: $var.clone()),+,
                     },
-                    $($var_type_bound: PhantomData),+
-                    //state: Default
+                    $($var_type: PhantomData),+
                 }
             }
         }
-
+    };
+    (
+        @New struct<$($var_type: ident: $($var_bound: path)|+),+> {
+            $( $var: ident),+
+        }
+        new: $fnnew: ident($( $param: ident: $tparam: ty),*);
+    ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        pub fn $fnnew<$($var: VariableView),+,$($var_type_bound: $var_bound),+>(
-            $($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+,$($var_type_bound),+> {
+        pub fn $fnnew<$($var: VariableView),+,$($var_type: $($var_bound+)+),+>(
+            $($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+,$($var_type),+> {
             Constraint::$fnnew($($var),+,$($param),*)
         }
+    };
+    (
+        $(#[$outer:meta])*
+        struct Propagator = $propagator: ty;
+        fn $fnnew: ident($( $param: ident: $tparam: ty),*);
+        fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> $state: ty
+        where  $($var_type: ident: $($var_bound: path)|+),+;
+    ) => {
+        use std::marker::PhantomData;
+        use $crate::variables::{VariableView,Variable};
+        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
+        //use $crate::constraints::{ConstraintState};
+        use $crate::constraints;
+
+        constraint_build!(
+            @Vars struct<$($var_type),+> {
+                $($var: $tvar),+
+            });
+        constraint_build!(
+            @Views struct {
+                $($var),+
+            });
+        constraint_build!(
+            @Retrieve struct<$($var_type),+> {
+                $($var: $tvar),+
+            });
+        constraint_build!(
+            @Constraint struct<$($var_type: $($var_bound)|+),+> {
+                propagator: $propagator,
+                $($var),+
+            });
+        constraint_build!(
+            @Propagate struct<$($var_type: $($var_bound)|+),+> {
+                $($var: $tvar),+
+            }
+            propagate: $fnpropagate;
+            );
+        constraint_build!(
+            @ConstraintImpl struct<$($var_type: $($var_bound)|+),+> {
+                propagator: $propagator,
+                $($var),+
+            }
+            new: $fnnew($($param: $tparam),*);
+            );
+        constraint_build!(
+            @New struct<$($var_type: $($var_bound)|+),+> {
+                $($var),+
+            }
+            new: $fnnew($($param: $tparam),*);
+            );
     };
 }
 
