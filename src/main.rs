@@ -9,13 +9,13 @@ extern crate solver_cp;
 // }
 
 //use solver_cp::branchers::handlers::*;
-use solver_cp::branchers::handlers::*;
+//use solver_cp::branchers::handlers::*;
 use solver_cp::constraints::handlers::*;
-use solver_cp::spaces::*;
-use solver_cp::variables::*;
+//use solver_cp::spaces::*;
+//use solver_cp::variables::*;
 use solver_cp::variables::Array;
 use solver_cp::variables::handlers::*;
-use solver_cp::variables::int_var::IntVar;
+//use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;
 
 // TODO expect
