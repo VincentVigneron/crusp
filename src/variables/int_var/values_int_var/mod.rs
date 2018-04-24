@@ -166,7 +166,7 @@ impl ValuesIntVar for SetIntVar {
     }
 
     fn set_value(&mut self, value: Self::Type) -> Result<VariableState, VariableError> {
-        if self.min() > value && self.max() < value {
+        if self.min() > value || self.max() < value {
             self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
@@ -180,7 +180,10 @@ impl ValuesIntVar for SetIntVar {
                         self.domain = vec![value];
                         Ok(VariableState::BoundChange)
                     }
-                    _ => Ok(VariableState::NoChange),
+                    _ => {
+                        self.invalidate();
+                        Err(VariableError::DomainWipeout)
+                    }
                 }
             }
         }
@@ -207,7 +210,7 @@ impl ValuesIntVar for SetIntVar {
                     VariableState::NoChange
                 } else if var.min() != *domain.first().unwrap() {
                     VariableState::BoundChange
-                } else if var.min() != *domain.first().unwrap() {
+                } else if var.max() != *domain.last().unwrap() {
                     VariableState::BoundChange
                 } else {
                     VariableState::ValuesChange
