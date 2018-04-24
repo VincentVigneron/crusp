@@ -6,6 +6,9 @@ use super::{Variable, VariableError, VariableState};
 // EqualityVar (Actual BoundsIntVar)
 // DisequalityVar (Actual BoundsIntVar)
 // remove && in ??
+//
+// Bounds => min max new_from_range
+// Iterable => iter new_from_values
 
 pub trait IntVar: Variable + Eq {
     type Type;
