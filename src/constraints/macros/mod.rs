@@ -8,6 +8,7 @@
 macro_rules! constraint_build {
     (@Imports) => {
         use std::marker::PhantomData;
+        #[allow(unused_imports)]
         use $crate::variables::{VariableView,Variable,VariableState};
         use $crate::variables::handlers::{
             VariablesHandler,
