@@ -4,6 +4,7 @@ use snowflake::ProcessUniqueId;
 pub mod int_var;
 pub mod handlers;
 
+// TODO adding a subsume state to VariableState
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableState {
     BoundChange,
