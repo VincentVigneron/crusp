@@ -18,6 +18,8 @@ pub enum VariableError {
 
 pub trait Variable: Clone {
     fn is_fixed(&self) -> bool;
+    fn getState(&self) -> &VariableState;
+    fn retrieveState(&mut self) -> VariableState;
 }
 
 pub trait VariableView: Clone {
@@ -47,6 +49,12 @@ impl<Var: Variable> Array<Var> {
 }
 impl<Var: Variable> Variable for Array<Var> {
     fn is_fixed(&self) -> bool {
+        unimplemented!()
+    }
+    fn getState(&self) -> &VariableState {
+        unimplemented!()
+    }
+    fn retrieveState(&mut self) -> VariableState {
         unimplemented!()
     }
 }

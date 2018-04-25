@@ -1,4 +1,3 @@
-use constraints::Propagator;
 use variables::Array;
 use variables::int_var::ValuesIntVar;
 

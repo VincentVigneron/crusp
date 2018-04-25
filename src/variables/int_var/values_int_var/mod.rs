@@ -4,6 +4,7 @@ use variables::int_var::{BoundsIntVar, IntVar, ValuesIntVar};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SetIntVar {
     domain: Vec<i32>,
+    state: VariableState,
 }
 
 // TODO Add checking to avoid unecessary computation
@@ -14,6 +15,7 @@ impl SetIntVar {
         } else {
             Some(SetIntVar {
                 domain: (min..(max + 1)).collect(),
+                state: VariableState::NoChange,
             })
         }
     }
@@ -34,11 +36,25 @@ impl SetIntVar {
         } else if self.size() == prev_size {
             Ok(VariableState::NoChange)
         } else if self.min() != prev_min {
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         } else if self.max() != prev_max {
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         } else {
+            self.update_state(VariableState::ValuesChange);
             Ok(VariableState::ValuesChange)
+        }
+    }
+
+    fn update_state(&mut self, state: VariableState) {
+        self.state = match self.state {
+            VariableState::NoChange => state,
+            VariableState::BoundChange => VariableState::BoundChange,
+            VariableState::ValuesChange => match state {
+                VariableState::BoundChange => VariableState::BoundChange,
+                _ => VariableState::ValuesChange,
+            },
         }
     }
 }
@@ -46,6 +62,17 @@ impl SetIntVar {
 impl Variable for SetIntVar {
     fn is_fixed(&self) -> bool {
         self.domain.len() == 1
+    }
+
+    fn getState(&self) -> &VariableState {
+        &self.state
+    }
+
+    fn retrieveState(&mut self) -> VariableState {
+        use std::mem;
+        let mut state = VariableState::NoChange;
+        mem::swap(&mut self.state, &mut state);
+        state
     }
 }
 
@@ -85,6 +112,7 @@ impl BoundsIntVar for SetIntVar {
         } else {
             Some(SetIntVar {
                 domain: (min..(max + 1)).collect(),
+                state: VariableState::NoChange,
             })
         }
     }
@@ -100,6 +128,7 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
             self.domain.truncate(index + 1);
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         }
     }
@@ -115,6 +144,7 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
             self.domain.truncate(index + 1);
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         }
     }
@@ -130,6 +160,7 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().position(|&val| val > lb).unwrap();
             self.domain.drain(0..index);
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         }
     }
@@ -145,6 +176,7 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().position(|&val| val >= lb).unwrap();
             self.domain.drain(0..index);
+            self.update_state(VariableState::BoundChange);
             Ok(VariableState::BoundChange)
         }
     }
@@ -161,7 +193,10 @@ impl ValuesIntVar for SetIntVar {
         if domain.is_empty() {
             None
         } else {
-            Some(SetIntVar { domain: domain })
+            Some(SetIntVar {
+                domain: domain,
+                state: VariableState::NoChange,
+            })
         }
     }
 
@@ -178,6 +213,7 @@ impl ValuesIntVar for SetIntVar {
                 match found_value {
                     Ok(_) => {
                         self.domain = vec![value];
+                        self.update_state(VariableState::BoundChange);
                         Ok(VariableState::BoundChange)
                     }
                     _ => {
@@ -209,10 +245,13 @@ impl ValuesIntVar for SetIntVar {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
+                    var.update_state(VariableState::BoundChange);
                     VariableState::BoundChange
                 } else if var.max() != unwrap_last!(domain) {
+                    var.update_state(VariableState::BoundChange);
                     VariableState::BoundChange
                 } else {
+                    var.update_state(VariableState::ValuesChange);
                     VariableState::ValuesChange
                 }
             };
@@ -243,10 +282,13 @@ impl ValuesIntVar for SetIntVar {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
+                    var.update_state(VariableState::BoundChange);
                     VariableState::BoundChange
                 } else if var.max() != unwrap_last!(domain) {
+                    var.update_state(VariableState::BoundChange);
                     VariableState::BoundChange
                 } else {
+                    var.update_state(VariableState::ValuesChange);
                     VariableState::ValuesChange
                 }
             };
@@ -272,10 +314,13 @@ impl ValuesIntVar for SetIntVar {
                 if self.size() == 0 {
                     Err(VariableError::DomainWipeout)
                 } else if self.min() != min {
+                    self.update_state(VariableState::BoundChange);
                     Ok(VariableState::BoundChange)
                 } else if self.max() != max {
+                    self.update_state(VariableState::BoundChange);
                     Ok(VariableState::BoundChange)
                 } else {
+                    self.update_state(VariableState::ValuesChange);
                     Ok(VariableState::ValuesChange)
                 }
             }
