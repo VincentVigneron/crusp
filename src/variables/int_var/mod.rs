@@ -141,6 +141,42 @@ macro_rules! assert_domain_eq{
 }
 
 #[allow(unused_macros)]
+macro_rules! check_domain_and_invariants{
+    ($var: ident, $fn: ident, $param: ident, $exp_res: ident, $exp_domain: ident, $name: ident) => {
+        let var_clone = $var.clone();
+        let res = $var.$fn($param);
+        assert_eq!(
+            res, $exp_res,
+            "Result expected {:?} for {:?}.{}({}) found {:?}",
+            $exp_res,
+            var_clone, stringify!($fn),
+            $param, res);
+        if $exp_res.is_err() {
+            continue;
+        }
+        assert_eq!(
+            unwrap_first!($exp_domain), $var.min(),
+            "Min expected {:?} for {:?}.{}({}) found {:?}",
+            unwrap_first!($exp_domain),
+            var_clone, stringify!($fn),
+            $param, $var.min());
+        assert_eq!(
+            unwrap_last!($exp_domain), $var.max(),
+            "Max expected {:?} for {:?}.{}({}) found {:?}",
+            unwrap_last!($exp_domain),
+            var_clone, stringify!($fn),
+            $param, $var.max());
+        assert_eq!(
+            $exp_domain.len(), $var.size(),
+            "Size expected {:?} for {:?}.{}({}) found {:?}",
+            $exp_domain.len(),
+            var_clone, stringify!($fn),
+            $param, $var.size());
+        assert_domain_eq!($var, $exp_domain, $name);
+    }
+}
+
+#[allow(unused_macros)]
 macro_rules! assert_var_eq{
     ($x: ident, $y: ident) => {
         assert!(
@@ -166,12 +202,14 @@ macro_rules! assert_result_binary_constraint {
     }
 }
 
+#[allow(unused_macros)]
 macro_rules! expr {
     ($e: expr) => {
         $e
     }
 }
 
+#[allow(unused_macros)]
 macro_rules! bound_test {
     ($testname: ident, $var: ty, $fnbound: ident, $op: tt, $min: expr => $max: expr) => {
         #[test]
@@ -184,58 +222,45 @@ macro_rules! bound_test {
                 vec![1, 5, 7, 9],
                 //vec![1],
             ];
-            let bounds: Vec<_> = ($min..($max+1)).collect();
-            let names = vec![
-                "consectuive sorted values",
-                "middle isolated value",
-                "last isolated",
-                "first isolated",
-                "only isolated values",
-                "singleton domain",
-            ];
-            let tests = domains
-                .into_iter()
-                .zip(names.into_iter());
-            for (domain, name) in tests {
-                for bound in bounds.iter().map(|val| *val) {
-                    let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
-                    let var_clone = var.clone();
-                    let exp_domain: Vec<_> = domain.iter()
-                        .map(|val| *val)
-                        .filter(|&val| expr!(val $op bound))
-                        .collect();
-                    let res = var.$fnbound(bound);
-                    let exp_res = if domain == exp_domain {
-                        Ok(VariableState::NoChange)
-                    } else {
-                        Ok(VariableState::BoundChange)
-                    };
-                    assert_eq!(
-                        res, exp_res,
-                        "Resultata expected {:?} for {:?}.{}({}) found {:?}",
-                        exp_res,
-                        var_clone, stringify!($fnbound),
-                        bound, res);
-                    assert_eq!(
-                        *exp_domain.first().unwrap(), var.min(),
-                        "Min expected {:?} for {:?}.{}({}) found {:?}",
-                        *exp_domain.first().unwrap(),
-                        var_clone, stringify!($fnbound),
-                        bound, var.min());
-                    assert_eq!(
-                        *exp_domain.last().unwrap(), var.max(),
-                        "Max expected {:?} for {:?}.{}({}) found {:?}",
-                        *exp_domain.last().unwrap(),
-                        var_clone, stringify!($fnbound),
-                        bound, var.max());
-                    assert_domain_eq!(var, exp_domain, name);
+                let bounds: Vec<_> = ($min..($max+1)).collect();
+                let names = vec![
+                    "consectuive sorted values",
+                    "middle isolated value",
+                    "last isolated",
+                    "first isolated",
+                    "only isolated values",
+                    "singleton domain",
+                ];
+                let tests = domains
+                    .into_iter()
+                    .zip(names.into_iter());
+                for (domain, name) in tests {
+                    for bound in bounds.iter().map(|val| *val) {
+                        let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                        let exp_domain: Vec<_> = domain.iter()
+                            .map(|val| *val)
+                            .filter(|&val| expr!(val $op bound))
+                            .collect();
+                        let exp_res = if domain == exp_domain {
+                            Ok(VariableState::NoChange)
+                        } else {
+                            Ok(VariableState::BoundChange)
+                        };
+                        check_domain_and_invariants!(
+                            var,
+                            $fnbound,
+                            bound,
+                            exp_res,
+                            exp_domain,
+                            name);
+                    }
                 }
-            }
         }
 
     }
 }
 
+#[allow(unused_macros)]
 macro_rules! bound_test_error {
     ($testname: ident, $var: ty, $fnbound: ident, $op: tt, $min: expr => $max: expr) => {
         #[test]
@@ -248,32 +273,32 @@ macro_rules! bound_test_error {
                 vec![1, 5, 7, 9],
                 //vec![1],
             ];
-            let bounds: Vec<_> = ($min..($max+1)).collect();
-            let names = vec![
-                "consectuive sorted values",
-                "middle isolated value",
-                "last isolated",
-                "first isolated",
-                "only isolated values",
-                "singleton domain",
-            ];
-            let exp_res = Err(VariableError::DomainWipeout);
-            let tests = domains
-                .into_iter()
-                .zip(names.into_iter());
-            for (domain, name) in tests {
-                for bound in bounds.iter().map(|val| *val) {
-                    let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
-                    let var_clone = var.clone();
-                    let res = var.$fnbound(bound);
-                    assert_eq!(
-                        res, exp_res,
-                        "Result expected {:?} for {:?}.{}({}) found {:?}",
-                        exp_res,
-                        var_clone, stringify!($fnbound),
-                        bound, res);
+                let bounds: Vec<_> = ($min..($max+1)).collect();
+                let names = vec![
+                    "consectuive sorted values",
+                    "middle isolated value",
+                    "last isolated",
+                    "first isolated",
+                    "only isolated values",
+                    "singleton domain",
+                ];
+                let exp_res = Err(VariableError::DomainWipeout);
+                let tests = domains
+                    .into_iter()
+                    .zip(names.into_iter());
+                for (domain, name) in tests {
+                    for bound in bounds.iter().map(|val| *val) {
+                        let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                        let var_clone = var.clone();
+                        let res = var.$fnbound(bound);
+                        assert_eq!(
+                            res, exp_res,
+                            "Result expected {:?} for {:?}.{}({}) found {:?}",
+                            exp_res,
+                            var_clone, stringify!($fnbound),
+                            bound, res);
+                    }
                 }
-            }
         }
     }
 }
@@ -387,12 +412,12 @@ macro_rules! test_int_var{
 
 
         //let domains = vec![
-            //vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
-            //vec![1, 2, 3, 5, 7, 8, 9],
-            //vec![1, 2, 3, 5, 6, 9],
-            //vec![1, 3, 4, 5, 6, 7, 8, 9],
-            //vec![1, 5, 7, 9],
-            ////vec![1],
+        //vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+        //vec![1, 2, 3, 5, 7, 8, 9],
+        //vec![1, 2, 3, 5, 6, 9],
+        //vec![1, 3, 4, 5, 6, 7, 8, 9],
+        //vec![1, 5, 7, 9],
+        ////vec![1],
         //];
         bound_test!(test_weak_upperbound, $var, weak_upperbound, <=, 1 => 10);
         bound_test_error!(test_weak_upperbound_error, $var, weak_upperbound, <=, -1 => 0);
@@ -407,13 +432,96 @@ macro_rules! test_int_var{
         bound_test_error!(test_strict_lowerbound_error, $var, strict_lowerbound, >, 9 => 11);
 
         #[test]
-        fn test_unsafe_remove_value() {
-            unimplemented!()
+        fn test_remove_value() {
+            let domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                vec![1],
+            ];
+                let (min, max) = (0,11);
+                let expected_domains = domains.clone();
+                let names = vec![
+                    "consectuive sorted values",
+                    "middle isolated value",
+                    "last isolated",
+                    "first isolated",
+                    "only isolated values",
+                    "singleton domain",
+                ];
+                for (domain, name) in domains.into_iter().zip(names.into_iter()) {
+                    for value in min..max {
+                        let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                        let exp_domain: Vec<_> = domain.iter().map(|val| *val).filter(|&val| val != value).collect();
+                        let exp_res = if exp_domain.is_empty() {
+                            Err(VariableError::DomainWipeout)
+                        } else if exp_domain == domain {
+                            Ok(VariableState::NoChange)
+                        } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
+                            Ok(VariableState::BoundChange)
+                        } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
+                            Ok(VariableState::BoundChange)
+                        } else {
+                            Ok(VariableState::ValuesChange)
+                        };
+                        check_domain_and_invariants!(
+                            var,
+                            remove_value,
+                            value,
+                            exp_res,
+                            exp_domain,
+                            name);
+                    }
+                }
         }
 
         #[test]
         fn test_less_than() {
-            unimplemented!()
+            unreachable!()
+            let domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                vec![1],
+            ];
+            let (min, max) = (0,11);
+            let expected_domains = domains.clone();
+            let names = vec![
+                "consectuive sorted values",
+                "middle isolated value",
+                "last isolated",
+                "first isolated",
+                "only isolated values",
+                "singleton domain",
+            ];
+            for (domain, name) in domains.into_iter().zip(names.into_iter()) {
+                for value in min..max {
+                    let mut var = <$var>::new_from_values(domain.clone().into_iter()).unwrap();
+                    let exp_domain: Vec<_> = domain.iter().map(|val| *val).filter(|&val| val != value).collect();
+                    let exp_res = if exp_domain.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain == domain {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    check_domain_and_invariants!(
+                        var,
+                        remove_value,
+                        value,
+                        exp_res,
+                        exp_domain,
+                        name);
+                }
+            }
         }
 
         #[test]
@@ -572,41 +680,41 @@ macro_rules! test_int_var{
                 vec![1, 5, 7, 9],
                 vec![1],
             ];
-            let values = vec![
-                vec![0, 10],
-                vec![0, 4, 6, 10],
-                vec![0, 4, 7, 8, 10],
-                vec![0, 2, 10],
-                vec![0, 2, 3, 4, 6, 8, 10],
-                vec![0, 2],
-            ];
-            let names = vec![
-                "consectuive sorted values",
-                "middle isolated value",
-                "last isolated",
-                "first isolated",
-                "only isolated values",
-                "signleton domain",
-            ];
-            let tests = domains
-                .into_iter()
-                .zip(values.into_iter())
-                .zip(names.into_iter())
-                .map(|((domain, values), name)| (domain, values, name));
-            for (domain, values, name) in tests {
-                let var = <$var>::new_from_values(domain.into_iter()).unwrap();
-                for value in values.into_iter() {
-                    let mut var = var.clone();
-                    let res = var.set_value(value);
-                    assert_eq!(
-                        res, Err(VariableError::DomainWipeout),
-                        "Expected Error for {:?} with value {:?} found {:?}.",
-                        name,
-                        value,
-                        res
-                        )
-                }
-            }
+                let values = vec![
+                    vec![0, 10],
+                    vec![0, 4, 6, 10],
+                    vec![0, 4, 7, 8, 10],
+                    vec![0, 2, 10],
+                    vec![0, 2, 3, 4, 6, 8, 10],
+                    vec![0, 2],
+                ];
+                    let names = vec![
+                        "consectuive sorted values",
+                        "middle isolated value",
+                        "last isolated",
+                        "first isolated",
+                        "only isolated values",
+                        "signleton domain",
+                    ];
+                    let tests = domains
+                        .into_iter()
+                        .zip(values.into_iter())
+                        .zip(names.into_iter())
+                        .map(|((domain, values), name)| (domain, values, name));
+                    for (domain, values, name) in tests {
+                        let var = <$var>::new_from_values(domain.into_iter()).unwrap();
+                        for value in values.into_iter() {
+                            let mut var = var.clone();
+                            let res = var.set_value(value);
+                            assert_eq!(
+                                res, Err(VariableError::DomainWipeout),
+                                "Expected Error for {:?} with value {:?} found {:?}.",
+                                name,
+                                value,
+                                res
+                                )
+                        }
+                    }
         }
 
         #[test]
@@ -654,26 +762,26 @@ macro_rules! test_int_var{
                 vec![1, 5, 7, 9],
                 vec![1],
             ];
-            let expected_domains = domains.clone();
-            let domains = domains.into_iter()
-                .map(|values| <$var>::new_from_values(values.into_iter()))
-                .map(Option::unwrap)
-                .collect::<Vec<_>>();
-            let names = vec![
-                "consectuive sorted values",
-                "middle isolated value",
-                "last isolated",
-                "first isolated",
-                "only isolated values",
-                "singleton domain",
-            ];
-            let tests = domains.into_iter()
-                .zip(expected_domains.into_iter())
-                .zip(names.into_iter())
-                .map(|((domain,expected),name)| (domain, expected, name));
-            for (domain, expected, name) in tests {
-                assert_domain_eq!(domain, expected, name);
-            }
+                let expected_domains = domains.clone();
+                let domains = domains.into_iter()
+                    .map(|values| <$var>::new_from_values(values.into_iter()))
+                    .map(Option::unwrap)
+                    .collect::<Vec<_>>();
+                let names = vec![
+                    "consectuive sorted values",
+                    "middle isolated value",
+                    "last isolated",
+                    "first isolated",
+                    "only isolated values",
+                    "singleton domain",
+                ];
+                let tests = domains.into_iter()
+                    .zip(expected_domains.into_iter())
+                    .zip(names.into_iter())
+                    .map(|((domain,expected),name)| (domain, expected, name));
+                for (domain, expected, name) in tests {
+                    assert_domain_eq!(domain, expected, name);
+                }
         }
     }
 }
