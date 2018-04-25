@@ -88,8 +88,10 @@ macro_rules! variables_handler_build {
         use $crate::variables::Variable;
         use $crate::variables::Array;
         use $crate::variables::handlers::macros::{VarView, ArrayView, ArrayViewType};
-        use $crate::variables::handlers::{VariablesHandlerBuilder, SpecificVariablesHandler,
-        SpecificVariablesHandlerBuilder};
+        use $crate::variables::handlers::{
+            VariablesHandlerBuilder,
+            SpecificVariablesHandler,
+            SpecificVariablesHandlerBuilder};
 
         #[derive(Debug,Clone)]
         struct SpecificTypeHandler<Var: Variable> {

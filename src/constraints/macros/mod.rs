@@ -5,6 +5,16 @@
 
 #[macro_export]
 macro_rules! constraint_build {
+    (@Imports) => {
+        use std::marker::PhantomData;
+        use $crate::variables::{VariableView,Variable};
+        use $crate::variables::handlers::{
+            VariablesHandler,
+            SpecificVariablesHandler,
+            get_mut_from_handler};
+        //use $crate::constraints::{ConstraintState};
+        use $crate::constraints;
+    };
     (
         @Vars struct<$($var_type: ident),+> {
             $( $var: ident: $tvar: ty),+
@@ -44,7 +54,10 @@ macro_rules! constraint_build {
                         unsafe {
                             StructVars {
                                 $(
-                                    $var: get_mut_from_handler(&mut *(variables_handler as *mut _), &self.$var)
+                                    $var: get_mut_from_handler(
+                                        &mut *(variables_handler as *mut _),
+                                        &self.$var
+                                        )
                                  ),+
                             }
                         }
@@ -99,7 +112,8 @@ macro_rules! constraint_build {
             {
                 fn propagate(&mut self, variables_handler: &mut H) {
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
+                    let _ = self.propagator.$fnpropagate::<$($var_type),+>(
+                        $(variables.$var),+);
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
@@ -129,7 +143,9 @@ macro_rules! constraint_build {
                 fn propagate(&mut self, variables_handler: &mut H) {
                     // TODO $state
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+, &mut self.state);
+                    let _ = self.propagator.$fnpropagate::<$($var_type),+>(
+                        $(variables.$var),+,
+                        &mut self.state);
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
@@ -150,11 +166,17 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: VariableView),+, $($var_type: $($var_bound+)+),+> Constraint<$($var),+, $($var_type),+> {
+        impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
+            where
+                $($var: VariableView),+,
+                $($var_type: $($var_bound+)+),+
+        {
 
             #[allow(non_camel_case_types)]
             #[allow(non_snake_case)]
-            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+, $($var_type),+> {
+            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
+                -> Constraint<$($var),+, $($var_type),+>
+            {
                 let mut ids = vec![$($var.get_id()),+];
                 ids.sort();
                 let ids = ids;
@@ -189,11 +211,17 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: VariableView),+, $($var_type: $($var_bound+)+),+> Constraint<$($var),+, $($var_type),+> {
+        impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
+        where
+            $($var: VariableView),+,
+            $($var_type: $($var_bound+)+),+
+        {
 
             #[allow(non_camel_case_types)]
             #[allow(non_snake_case)]
-            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+, $($var_type),+> {
+            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
+                -> Constraint<$($var),+, $($var_type),+>
+            {
                 let mut ids = vec![$($var.get_id()),+];
                 ids.sort();
                 let ids = ids;
@@ -227,8 +255,12 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        pub fn $fnnew<$($var: VariableView),+,$($var_type: $($var_bound+)+),+>(
-            $($var: &$var),+,$($param: $tparam),*) -> Constraint<$($var),+,$($var_type),+> {
+        pub fn $fnnew<$($var),+,$($var_type),+>($($var: &$var),+,$($param: $tparam),*)
+            -> Constraint<$($var),+,$($var_type),+>
+        where
+            $($var: VariableView),+,
+            $($var_type: $($var_bound+)+),+
+        {
             Constraint::$fnnew($($var),+,$($param),*)
         }
     };
@@ -239,11 +271,7 @@ macro_rules! constraint_build {
         fn $fnpropagate: ident($( $var: ident: $tvar: ty),+)
         where  $($var_type: ident: $($var_bound: path)|+),+;
     ) => {
-        use std::marker::PhantomData;
-        use $crate::variables::{VariableView,Variable};
-        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
-        //use $crate::constraints::{ConstraintState};
-        use $crate::constraints;
+        constraint_build!(@Imports);
 
         constraint_build!(
             @Vars struct<$($var_type),+> {
@@ -289,11 +317,7 @@ macro_rules! constraint_build {
         fn $fnpropagate: ident($( $var: ident: $tvar: ty),+) -> Option<$state: ty>
         where  $($var_type: ident: $($var_bound: path)|+),+;
     ) => {
-        use std::marker::PhantomData;
-        use $crate::variables::{VariableView,Variable};
-        use $crate::variables::handlers::{VariablesHandler,SpecificVariablesHandler,get_mut_from_handler};
-        //use $crate::constraints::{ConstraintState};
-        use $crate::constraints;
+        constraint_build!(@Imports);
 
         constraint_build!(
             @Vars struct<$($var_type),+> {
@@ -349,25 +373,29 @@ macro_rules! constraints {
     };
     (handler = $handler: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
-            $handler.add(Box::new($crate::constraints::arithmetic::less_than::new(&$x, &$y)));
+            $handler.add(Box::new(
+                $crate::constraints::arithmetic::less_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident <= $y: ident; $($tail:tt)*) => {
         {
-            $handler.add(Box::new($crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
+            $handler.add(Box::new(
+                $crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident > $y: ident; $($tail:tt)*) => {
         {
-            $handler.add(Box::new($crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
+            $handler.add(Box::new(
+                $crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident >= $y: ident; $($tail:tt)*) => {
         {
-            $handler.add(Box::new($crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
+            $handler.add(Box::new(
+                $crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
