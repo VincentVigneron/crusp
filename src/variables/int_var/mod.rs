@@ -9,6 +9,10 @@ use super::{Variable, VariableError, VariableState};
 //
 // Bounds => min max new_from_range
 // Iterable => iter new_from_values
+// TODO macro for test remove duplciate code
+// TODO Change enum for variable state
+// TODO Change(Bound), Change(Values)
+// TODO Enum Change add numver of removed values
 
 pub trait IntVar: Variable + Eq {
     type Type: Ord + PartialOrd;
@@ -48,8 +52,8 @@ pub trait BoundsIntVar: IntVar + Variable {
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.strict_upperbound(value.max())?;
-        let state_value = value.strict_lowerbound(self.min())?;
+        let state_self = self.weak_upperbound(value.max())?;
+        let state_value = value.weak_lowerbound(self.min())?;
 
         Ok((state_self, state_value))
     }
@@ -68,8 +72,8 @@ pub trait BoundsIntVar: IntVar + Variable {
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.strict_lowerbound(value.min())?;
-        let state_value = value.strict_upperbound(self.max())?;
+        let state_self = self.weak_lowerbound(value.min())?;
+        let state_value = value.weak_upperbound(self.max())?;
 
         Ok((state_self, state_value))
     }
@@ -369,7 +373,7 @@ macro_rules! bound_test_error {
             let tests = domains
                 .into_iter()
                 .zip(names.into_iter());
-            for (domain, name) in tests {
+            for (domain, _name) in tests {
                 for bound in bounds.iter().map(|val| *val) {
                     let mut var =
                         <$var>::new_from_values(domain.clone().into_iter()).unwrap();
@@ -394,7 +398,7 @@ macro_rules! test_int_var{
 
         // TODO test maxvalue
         #[test]
-        fn test_new_from_range() {
+        fn new_from_range() {
             let vars = vec![(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)];
             let name = "range";
             for (min, max) in vars.into_iter() {
@@ -407,7 +411,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_new_from_range_error() {
+        fn new_from_range_error() {
             let vars = vec![(1, 0), (100, 22), (10, 5), (15, 9), (3, 2)];
             for (min, max) in vars.into_iter() {
                 let var = <$var>::new_from_range(min, max);
@@ -420,7 +424,7 @@ macro_rules! test_int_var{
 
         // TODO refactoring
         #[test]
-        fn test_new_from_values() {
+        fn new_from_values() {
             use rand::{thread_rng, Rng};
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -464,7 +468,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_new_from_values_error() {
+        fn new_from_values_error() {
             let domain: Vec<<$var as IntVar>::Type> = Vec::new();
             assert!(
                 <$var>::new_from_values(domain.into_iter()).is_none(),
@@ -473,9 +477,9 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_size() {
+        fn size() {
             // comparaison between themselves
-            let mut domains = vec![
+            let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
                 vec![1, 2, 3, 5, 6, 9],
@@ -559,7 +563,7 @@ macro_rules! test_int_var{
             9 => 11);
 
         #[test]
-        fn test_remove_value() {
+        fn remove_value() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -569,7 +573,6 @@ macro_rules! test_int_var{
                 vec![1],
             ];
             let (min, max) = (0,11);
-            let expected_domains = domains.clone();
             let names = vec![
                 "consectuive sorted values",
                 "middle isolated value",
@@ -609,7 +612,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_remove_if() {
+        fn remove_if() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -623,7 +626,6 @@ macro_rules! test_int_var{
                 (Box::new(move |val: &i32| *val>2), "Greater than 2"),
                 (Box::new(move |val: &i32| (*val>= 3) && (*val <= 6)), "Between 3 and 6"),
             ];
-            let expected_domains = domains.clone();
             let names = vec![
                 "consectuive sorted values",
                 "middle isolated value",
@@ -664,7 +666,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_retains_if() {
+        fn retains_if() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -678,7 +680,6 @@ macro_rules! test_int_var{
                 (Box::new(move |val: &i32| *val>2), "Greater than 2"),
                 (Box::new(move |val: &i32| (*val>= 3) && (*val <= 6)), "Between 3 and 6"),
             ];
-            let expected_domains = domains.clone();
             let names = vec![
                 "consectuive sorted values",
                 "middle isolated value",
@@ -719,74 +720,483 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_less_than() {
-            unreachable!();
-            let domains = vec![
+        fn less_than() {
+            let mut domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
                 vec![1, 2, 3, 5, 6, 9],
                 vec![1, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 5, 7, 9],
                 vec![1],
+                vec![9,10,12,15,17],
+                vec![10,12,15],
+                vec![-1,0,2,5],
+                vec![-2,-3,-1],
+                vec![-2,-3,-1,0,1],
             ];
-            let (min, max) = (0,11);
-            let expected_domains = domains.clone();
-            let names = vec![
-                "consectuive sorted values",
-                "middle isolated value",
-                "last isolated",
-                "first isolated",
-                "only isolated values",
-                "singleton domain",
-            ];
-            for (domain, name) in domains.into_iter().zip(names.into_iter()) {
-                for value in min..max {
-                    let mut var =
-                        <$var>::new_from_values(domain.clone().into_iter()).unwrap();
-                    let exp_domain: Vec<_> = domain.iter()
+            for domain in domains.iter_mut() {
+                domain.sort();
+            }
+            let domains = domains;
+            let names: Vec<_> = (0..domains.len())
+                .map(|idx| format!("test{}", idx+1))
+                .collect();
+            for (domain_left, name_left) in domains.iter().zip(names.iter()) {
+                for (domain_right, name_right) in domains.iter().zip(names.iter()) {
+                    let mut var_left =
+                        <$var>::new_from_values(domain_left.clone().into_iter()).unwrap();
+                    let mut var_right=
+                        <$var>::new_from_values(domain_right.clone().into_iter()).unwrap();
+                    let left_min = unwrap_first!(domain_left);
+                    let right_max = unwrap_last!(domain_right);
+                    let exp_domain_left: Vec<_> = domain_left.iter()
                         .map(|val| *val)
-                        .filter(|&val| val != value)
+                        .filter(|&val| val < right_max)
                         .collect();
-                    let exp_res = if exp_domain.is_empty() {
+                    let exp_domain_right: Vec<_> = domain_right.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val > left_min)
+                        .collect();
+                    let exp_res_left = if exp_domain_left.is_empty() {
                         Err(VariableError::DomainWipeout)
-                    } else if exp_domain == domain {
+                    } else if exp_domain_left == *domain_left {
                         Ok(VariableState::NoChange)
-                    } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
+                    } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
                         Ok(VariableState::BoundChange)
-                    } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
+                    } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
                         Ok(VariableState::BoundChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
-                    check_domain_and_invariants!(
-                        var,
-                        remove_value,
-                        value,
+                    let exp_res_right = if exp_domain_right.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_right == *domain_right {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res = if exp_res_left.is_err() || exp_res_right.is_err() {
+                        Err(VariableError::DomainWipeout)
+                    } else {
+                        Ok((exp_res_left.unwrap(), exp_res_right.unwrap()))
+                    };
+                    let var_left_clone = var_left.clone();
+                    let var_right_clone = var_right.clone();
+                    let res = var_left.less_than(&mut var_right);
+                    assert_eq!(
+                        res, exp_res,
+                        "Result expected {:?} for {:?}.{}({:?}) found {:?}",
                         exp_res,
-                        exp_domain,
-                        name);
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, res);
+                    if exp_res.is_err() {
+                        continue;
+                    }
+                    assert_eq!(
+                        unwrap_first!(exp_domain_left), var_left.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_left),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_left.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_left), var_left.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_left),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_left.max());
+                    assert_eq!(
+                        exp_domain_left.len(), var_left.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_left.len(),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_left.size());
+                    assert_domain_eq!(var_left, exp_domain_left, name_left);
+                    assert_eq!(
+                        unwrap_first!(exp_domain_right), var_right.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_right),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_right.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_right), var_right.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_right),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_right.max());
+                    assert_eq!(
+                        exp_domain_right.len(), var_right.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_right.len(),
+                        var_left_clone, stringify!(less_than),
+                        var_right_clone, var_right.size());
+                    assert_domain_eq!(var_right, exp_domain_right, name_right);
                 }
             }
         }
 
         #[test]
-        fn test_less_or_equal_than() {
-            unimplemented!()
+        fn less_or_equal_than() {
+            let mut domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                vec![1],
+                vec![9,10,12,15,17],
+                vec![10,12,15],
+                vec![-1,0,2,5],
+                vec![-2,-3,-1],
+                vec![-2,-3,-1,0,1],
+            ];
+            for domain in domains.iter_mut() {
+                domain.sort();
+            }
+            let domains = domains;
+            let names: Vec<_> = (0..domains.len())
+                .map(|idx| format!("test{}", idx+1))
+                .collect();
+            for (domain_left, name_left) in domains.iter().zip(names.iter()) {
+                for (domain_right, name_right) in domains.iter().zip(names.iter()) {
+                    let mut var_left =
+                        <$var>::new_from_values(domain_left.clone().into_iter()).unwrap();
+                    let mut var_right=
+                        <$var>::new_from_values(domain_right.clone().into_iter()).unwrap();
+                    let left_min = unwrap_first!(domain_left);
+                    let right_max = unwrap_last!(domain_right);
+                    let exp_domain_left: Vec<_> = domain_left.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val <= right_max)
+                        .collect();
+                    let exp_domain_right: Vec<_> = domain_right.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val >= left_min)
+                        .collect();
+                    let exp_res_left = if exp_domain_left.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_left == *domain_left {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res_right = if exp_domain_right.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_right == *domain_right {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res = if exp_res_left.is_err() || exp_res_right.is_err() {
+                        Err(VariableError::DomainWipeout)
+                    } else {
+                        Ok((exp_res_left.unwrap(), exp_res_right.unwrap()))
+                    };
+                    let var_left_clone = var_left.clone();
+                    let var_right_clone = var_right.clone();
+                    let res = var_left.less_or_equal_than(&mut var_right);
+                    assert_eq!(
+                        res, exp_res,
+                        "Result expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_res,
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, res);
+                    if exp_res.is_err() {
+                        continue;
+                    }
+                    assert_eq!(
+                        unwrap_first!(exp_domain_left), var_left.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_left),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_left.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_left), var_left.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_left),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_left.max());
+                    assert_eq!(
+                        exp_domain_left.len(), var_left.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_left.len(),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_left.size());
+                    assert_domain_eq!(var_left, exp_domain_left, name_left);
+                    assert_eq!(
+                        unwrap_first!(exp_domain_right), var_right.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_right),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_right.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_right), var_right.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_right),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_right.max());
+                    assert_eq!(
+                        exp_domain_right.len(), var_right.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_right.len(),
+                        var_left_clone, stringify!(less_or_equal_than),
+                        var_right_clone, var_right.size());
+                    assert_domain_eq!(var_right, exp_domain_right, name_right);
+                }
+            }
         }
 
         #[test]
-        fn test_greater_than() {
-            unimplemented!()
+        fn greater_than() {
+            let mut domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                vec![1],
+                vec![9,10,12,15,17],
+                vec![10,12,15],
+                vec![-1,0,2,5],
+                vec![-2,-3,-1],
+                vec![-2,-3,-1,0,1],
+            ];
+            for domain in domains.iter_mut() {
+                domain.sort();
+            }
+            let domains = domains;
+            let names: Vec<_> = (0..domains.len())
+                .map(|idx| format!("test{}", idx+1))
+                .collect();
+            for (domain_left, name_left) in domains.iter().zip(names.iter()) {
+                for (domain_right, name_right) in domains.iter().zip(names.iter()) {
+                    let mut var_left =
+                        <$var>::new_from_values(domain_left.clone().into_iter()).unwrap();
+                    let mut var_right=
+                        <$var>::new_from_values(domain_right.clone().into_iter()).unwrap();
+                    let left_max = unwrap_last!(domain_left);
+                    let right_min = unwrap_first!(domain_right);
+                    let exp_domain_left: Vec<_> = domain_left.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val > right_min)
+                        .collect();
+                    let exp_domain_right: Vec<_> = domain_right.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val < left_max)
+                        .collect();
+                    let exp_res_left = if exp_domain_left.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_left == *domain_left {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res_right = if exp_domain_right.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_right == *domain_right {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res = if exp_res_left.is_err() || exp_res_right.is_err() {
+                        Err(VariableError::DomainWipeout)
+                    } else {
+                        Ok((exp_res_left.unwrap(), exp_res_right.unwrap()))
+                    };
+                    let var_left_clone = var_left.clone();
+                    let var_right_clone = var_right.clone();
+                    let res = var_left.greater_than(&mut var_right);
+                    assert_eq!(
+                        res, exp_res,
+                        "Result expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_res,
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, res);
+                    if exp_res.is_err() {
+                        continue;
+                    }
+                    assert_eq!(
+                        unwrap_first!(exp_domain_left), var_left.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_left),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_left.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_left), var_left.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_left),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_left.max());
+                    assert_eq!(
+                        exp_domain_left.len(), var_left.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_left.len(),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_left.size());
+                    assert_domain_eq!(var_left, exp_domain_left, name_left);
+                    assert_eq!(
+                        unwrap_first!(exp_domain_right), var_right.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_right),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_right.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_right), var_right.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_right),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_right.max());
+                    assert_eq!(
+                        exp_domain_right.len(), var_right.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_right.len(),
+                        var_left_clone, stringify!(greater_than),
+                        var_right_clone, var_right.size());
+                    assert_domain_eq!(var_right, exp_domain_right, name_right);
+                }
+            }
         }
 
         #[test]
-        fn test_greater_or_equal_than() {
-            unimplemented!()
+        fn greater_or_equal_than() {
+            let mut domains = vec![
+                vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 2, 3, 5, 7, 8, 9],
+                vec![1, 2, 3, 5, 6, 9],
+                vec![1, 3, 4, 5, 6, 7, 8, 9],
+                vec![1, 5, 7, 9],
+                vec![1],
+                vec![9,10,12,15,17],
+                vec![10,12,15],
+                vec![-1,0,2,5],
+                vec![-2,-3,-1],
+                vec![-2,-3,-1,0,1],
+            ];
+            for domain in domains.iter_mut() {
+                domain.sort();
+            }
+            let domains = domains;
+            let names: Vec<_> = (0..domains.len())
+                .map(|idx| format!("test{}", idx+1))
+                .collect();
+            for (domain_left, name_left) in domains.iter().zip(names.iter()) {
+                for (domain_right, name_right) in domains.iter().zip(names.iter()) {
+                    let mut var_left =
+                        <$var>::new_from_values(domain_left.clone().into_iter()).unwrap();
+                    let mut var_right=
+                        <$var>::new_from_values(domain_right.clone().into_iter()).unwrap();
+                    let left_max = unwrap_last!(domain_left);
+                    let right_min = unwrap_first!(domain_right);
+                    let exp_domain_left: Vec<_> = domain_left.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val >= right_min)
+                        .collect();
+                    let exp_domain_right: Vec<_> = domain_right.iter()
+                        .map(|val| *val)
+                        .filter(|&val| val <= left_max)
+                        .collect();
+                    let exp_res_left = if exp_domain_left.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_left == *domain_left {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res_right = if exp_domain_right.is_empty() {
+                        Err(VariableError::DomainWipeout)
+                    } else if exp_domain_right == *domain_right {
+                        Ok(VariableState::NoChange)
+                    } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
+                        Ok(VariableState::BoundChange)
+                    } else {
+                        Ok(VariableState::ValuesChange)
+                    };
+                    let exp_res = if exp_res_left.is_err() || exp_res_right.is_err() {
+                        Err(VariableError::DomainWipeout)
+                    } else {
+                        Ok((exp_res_left.unwrap(), exp_res_right.unwrap()))
+                    };
+                    let var_left_clone = var_left.clone();
+                    let var_right_clone = var_right.clone();
+                    let res = var_left.greater_or_equal_than(&mut var_right);
+                    assert_eq!(
+                        res, exp_res,
+                        "Result expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_res,
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, res);
+                    if exp_res.is_err() {
+                        continue;
+                    }
+                    assert_eq!(
+                        unwrap_first!(exp_domain_left), var_left.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_left),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_left.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_left), var_left.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_left),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_left.max());
+                    assert_eq!(
+                        exp_domain_left.len(), var_left.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_left.len(),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_left.size());
+                    assert_domain_eq!(var_left, exp_domain_left, name_left);
+                    assert_eq!(
+                        unwrap_first!(exp_domain_right), var_right.min(),
+                        "Min expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_first!(exp_domain_right),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_right.min());
+                    assert_eq!(
+                        unwrap_last!(exp_domain_right), var_right.max(),
+                        "Max expected {:?} for {:?}.{}({:?}) found {:?}",
+                        unwrap_last!(exp_domain_right),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_right.max());
+                    assert_eq!(
+                        exp_domain_right.len(), var_right.size(),
+                        "Size expected {:?} for {:?}.{}({:?}) found {:?}",
+                        exp_domain_right.len(),
+                        var_left_clone, stringify!(greater_or_equal_than),
+                        var_right_clone, var_right.size());
+                    assert_domain_eq!(var_right, exp_domain_right, name_right);
+                }
+            }
         }
 
-
         #[test]
-        fn test_equal() {
+        fn equal() {
             // comparaison between themselves
             let mut domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
@@ -863,7 +1273,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_set_value() {
+        fn set_value() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -922,7 +1332,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_set_value_error() {
+        fn set_value_error() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -969,7 +1379,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_in_values() {
+        fn in_values() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -989,7 +1399,6 @@ macro_rules! test_int_var{
                 vec![5,4,3,1],
                 vec![1,10,5,7,8,7,15],
             ];
-            let expected_domains = domains.clone();
             let names = vec![
                 "consectuive sorted values",
                 "middle isolated value",
@@ -1032,7 +1441,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_in_sorted_values() {
+        fn in_sorted_values() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
@@ -1052,7 +1461,6 @@ macro_rules! test_int_var{
                 vec![1,3,4,5],
                 vec![1,5,7,7,8,10,15],
             ];
-            let expected_domains = domains.clone();
             let names = vec![
                 "consectuive sorted values",
                 "middle isolated value",
@@ -1095,7 +1503,7 @@ macro_rules! test_int_var{
         }
 
         #[test]
-        fn test_from_range_iter() {
+        fn from_range_iter() {
             let vars = [(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)]
                 .into_iter()
                 .map(|&(min, max)| <$var>::new_from_range(min, max))
@@ -1109,15 +1517,13 @@ macro_rules! test_int_var{
                 (2..3).collect::<Vec<_>>(),
             ];
             for (domain, expected) in vars.into_iter().zip(domains.into_iter()) {
-                let tmp_domain = domain.clone();
-                let tmp_expected = expected.clone();
                 let name = "dom iter";
                 assert_domain_eq!(domain, expected, name);
             }
         }
 
         #[test]
-        fn test_from_values_iter() {
+        fn from_values_iter() {
             let domains = vec![
                 vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
                 vec![1, 2, 3, 5, 7, 8, 9],
