@@ -33,7 +33,7 @@ pub mod propagator {
             if state.is_none() {
                 *state = Some(RegularState {});
             }
-            Ok(PropagationState::FixPoint(vec![]))
+            Ok(PropagationState::FixPoint)
         }
     }
 }

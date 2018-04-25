@@ -64,11 +64,11 @@ impl Variable for SetIntVar {
         self.domain.len() == 1
     }
 
-    fn getState(&self) -> &VariableState {
+    fn get_state(&self) -> &VariableState {
         &self.state
     }
 
-    fn retrieveState(&mut self) -> VariableState {
+    fn retrieve_state(&mut self) -> VariableState {
         use std::mem;
         let mut state = VariableState::NoChange;
         mem::swap(&mut self.state, &mut state);

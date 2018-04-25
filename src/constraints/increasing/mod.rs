@@ -39,7 +39,7 @@ pub mod propagator {
                     let _ = lhs.less_than(rhs);
                 }
             }
-            Ok(PropagationState::FixPoint(vec![]))
+            Ok(PropagationState::FixPoint)
         }
     }
 }

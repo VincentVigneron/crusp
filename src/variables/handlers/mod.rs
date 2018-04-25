@@ -24,6 +24,7 @@ where
 {
     fn get_mut(&mut self, &View) -> &mut Var;
     fn get(&self, &View) -> &Var;
+    // fn iter(&self) -> &mut Variable;
 }
 
 pub fn get_mut_from_handler<'a, Handler, Var, View>(

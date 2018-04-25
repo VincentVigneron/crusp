@@ -11,8 +11,9 @@ pub enum ConstraintState {
 // TODO Passing view to propator and variables handler? => proble with unit test
 
 pub enum PropagationState {
-    FixPoint(Vec<VariableState>),
-    Subsumed(Vec<VariableState>),
+    FixPoint,
+    Subsumed,
+    NoChange,
 }
 
 // TODO adding view as a parameter

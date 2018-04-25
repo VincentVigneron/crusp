@@ -19,9 +19,9 @@ impl ArithmeticComparatorPropagator {
         match lhs.less_than(rhs) {
             Ok((state_lhs, state_rhs)) => {
                 if lhs.max() < rhs.min() {
-                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::Subsumed)
                 } else {
-                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::FixPoint)
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -36,9 +36,9 @@ impl ArithmeticComparatorPropagator {
         match lhs.less_or_equal_than(rhs) {
             Ok((state_lhs, state_rhs)) => {
                 if lhs.max() <= rhs.min() {
-                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::Subsumed)
                 } else {
-                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::FixPoint)
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -53,9 +53,9 @@ impl ArithmeticComparatorPropagator {
         match lhs.greater_than(rhs) {
             Ok((state_lhs, state_rhs)) => {
                 if lhs.min() > rhs.max() {
-                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::Subsumed)
                 } else {
-                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::FixPoint)
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -70,9 +70,9 @@ impl ArithmeticComparatorPropagator {
         match lhs.greater_or_equal_than(rhs) {
             Ok((state_lhs, state_rhs)) => {
                 if lhs.min() >= rhs.max() {
-                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::Subsumed)
                 } else {
-                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
+                    Ok(PropagationState::FixPoint)
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),

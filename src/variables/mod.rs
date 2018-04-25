@@ -18,11 +18,12 @@ pub enum VariableError {
 
 pub trait Variable: Clone {
     fn is_fixed(&self) -> bool;
-    fn getState(&self) -> &VariableState;
-    fn retrieveState(&mut self) -> VariableState;
+    fn get_state(&self) -> &VariableState;
+    fn retrieve_state(&mut self) -> VariableState;
 }
 
-pub trait VariableView: Clone {
+// Should be cloneable
+pub trait VariableView {
     fn get_id(&self) -> ProcessUniqueId;
 }
 
@@ -51,10 +52,10 @@ impl<Var: Variable> Variable for Array<Var> {
     fn is_fixed(&self) -> bool {
         unimplemented!()
     }
-    fn getState(&self) -> &VariableState {
+    fn get_state(&self) -> &VariableState {
         unimplemented!()
     }
-    fn retrieveState(&mut self) -> VariableState {
+    fn retrieve_state(&mut self) -> VariableState {
         unimplemented!()
     }
 }

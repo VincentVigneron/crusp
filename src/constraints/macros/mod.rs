@@ -8,7 +8,7 @@
 macro_rules! constraint_build {
     (@Imports) => {
         use std::marker::PhantomData;
-        use $crate::variables::{VariableView,Variable};
+        use $crate::variables::{VariableView,Variable,VariableState};
         use $crate::variables::handlers::{
             VariablesHandler,
             SpecificVariablesHandler,
@@ -106,7 +106,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         impl<$($var: 'static + Clone + VariableView),+,
-        $($var_type: 'static + $($var_bound+)+),+,
+        $($var_type: 'static + Variable + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+>
@@ -115,7 +115,20 @@ macro_rules! constraint_build {
                     -> Result<PropagationState, PropagationError>
                 {
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+)
+                    let res = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
+                    let views: Vec<Box<VariableView>> =
+                        vec![$(Box::new(self.variables.$var.clone())),+];
+                    let states = vec![$(variables.$var.retrieve_state()),+];
+                    let _changes: Vec<_> = views.into_iter()
+                        .zip(states.into_iter())
+                        .filter(|&(_,ref state)| {
+                            match *state {
+                                VariableState::NoChange => false,
+                                _ => true,
+                            }
+                        })
+                        .collect();
+                    res
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
@@ -172,7 +185,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
             where
-                $($var: VariableView),+,
+                $($var: VariableView + Clone),+,
                 $($var_type: $($var_bound+)+),+
         {
 
@@ -217,7 +230,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
         where
-            $($var: VariableView),+,
+            $($var: VariableView + Clone),+,
             $($var_type: $($var_bound+)+),+
         {
 
@@ -262,7 +275,7 @@ macro_rules! constraint_build {
         pub fn $fnnew<$($var),+,$($var_type),+>($($var: &$var),+,$($param: $tparam),*)
             -> Constraint<$($var),+,$($var_type),+>
         where
-            $($var: VariableView),+,
+            $($var: VariableView + Clone),+,
             $($var_type: $($var_bound+)+),+
         {
             Constraint::$fnnew($($var),+,$($param),*)
