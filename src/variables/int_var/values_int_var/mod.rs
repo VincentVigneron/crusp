@@ -208,9 +208,9 @@ impl ValuesIntVar for SetIntVar {
             let check_change = |var: &mut SetIntVar| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
-                } else if var.min() != *domain.first().unwrap() {
+                } else if var.min() != unwrap_first!(domain) {
                     VariableState::BoundChange
-                } else if var.max() != *domain.last().unwrap() {
+                } else if var.max() != unwrap_last!(domain) {
                     VariableState::BoundChange
                 } else {
                     VariableState::ValuesChange
@@ -242,9 +242,9 @@ impl ValuesIntVar for SetIntVar {
             let check_change = |var: &mut SetIntVar| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
-                } else if var.min() != *domain.first().unwrap() {
+                } else if var.min() != unwrap_first!(domain) {
                     VariableState::BoundChange
-                } else if var.min() != *domain.first().unwrap() {
+                } else if var.max() != unwrap_last!(domain) {
                     VariableState::BoundChange
                 } else {
                     VariableState::ValuesChange
@@ -252,6 +252,7 @@ impl ValuesIntVar for SetIntVar {
             };
             check_change(self)
         };
+        self.domain = domain;
         Ok(ok_self)
     }
 
@@ -284,10 +285,10 @@ impl ValuesIntVar for SetIntVar {
 
     fn remove_if<Predicate>(
         &mut self,
-        pred: Predicate,
+        mut pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: Fn(&Self::Type) -> bool,
+        Predicate: FnMut(&Self::Type) -> bool,
     {
         let (min, max, size) = (self.min(), self.max(), self.size());
         self.domain.retain(|v| !pred(v));
@@ -296,10 +297,10 @@ impl ValuesIntVar for SetIntVar {
 
     fn retains_if<Predicate>(
         &mut self,
-        pred: Predicate,
+        mut pred: Predicate,
     ) -> Result<VariableState, VariableError>
     where
-        Predicate: Fn(&Self::Type) -> bool,
+        Predicate: FnMut(&Self::Type) -> bool,
     {
         let (min, max, size) = (self.min(), self.max(), self.size());
         self.domain.retain(|v| pred(v));
