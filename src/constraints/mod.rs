@@ -27,3 +27,4 @@ pub mod macros;
 pub mod handlers;
 pub mod arithmetic;
 pub mod increasing;
+pub mod regular;

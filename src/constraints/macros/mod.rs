@@ -1,6 +1,7 @@
 // TODO return (nuplet views, constraint)
 // TODO many new
 // TODO derive clone
+// TODO use where instead of generic parameters
 
 #[macro_export]
 macro_rules! constraint_build {
@@ -128,7 +129,7 @@ macro_rules! constraint_build {
                 fn propagate(&mut self, variables_handler: &mut H) {
                     // TODO $state
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
+                    let _ = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+, &mut self.state);
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
