@@ -1,3 +1,4 @@
+use variables::VariableState;
 use variables::handlers::VariablesHandler;
 
 pub enum ConstraintState {
@@ -6,8 +7,8 @@ pub enum ConstraintState {
 }
 
 pub enum PropagationState {
-    FixPoint,
-    Subsumed,
+    FixPoint(Vec<VariableState>),
+    Subsumed(Vec<VariableState>),
 }
 
 // TODO adding view as a parameter

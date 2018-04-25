@@ -17,11 +17,11 @@ impl ArithmeticComparatorPropagator {
         rhs: &mut VarType,
     ) -> Result<PropagationState, PropagationError> {
         match lhs.less_than(rhs) {
-            Ok(_) => {
+            Ok((state_lhs, state_rhs)) => {
                 if lhs.max() < rhs.min() {
-                    Ok(PropagationState::Subsumed)
+                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
                 } else {
-                    Ok(PropagationState::FixPoint)
+                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -34,11 +34,11 @@ impl ArithmeticComparatorPropagator {
         rhs: &mut VarType,
     ) -> Result<PropagationState, PropagationError> {
         match lhs.less_or_equal_than(rhs) {
-            Ok(_) => {
+            Ok((state_lhs, state_rhs)) => {
                 if lhs.max() <= rhs.min() {
-                    Ok(PropagationState::Subsumed)
+                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
                 } else {
-                    Ok(PropagationState::FixPoint)
+                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -51,11 +51,11 @@ impl ArithmeticComparatorPropagator {
         rhs: &mut VarType,
     ) -> Result<PropagationState, PropagationError> {
         match lhs.greater_than(rhs) {
-            Ok(_) => {
+            Ok((state_lhs, state_rhs)) => {
                 if lhs.min() > rhs.max() {
-                    Ok(PropagationState::Subsumed)
+                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
                 } else {
-                    Ok(PropagationState::FixPoint)
+                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
@@ -68,11 +68,11 @@ impl ArithmeticComparatorPropagator {
         rhs: &mut VarType,
     ) -> Result<PropagationState, PropagationError> {
         match lhs.greater_or_equal_than(rhs) {
-            Ok(_) => {
+            Ok((state_lhs, state_rhs)) => {
                 if lhs.min() >= rhs.max() {
-                    Ok(PropagationState::Subsumed)
+                    Ok(PropagationState::Subsumed(vec![state_lhs, state_rhs]))
                 } else {
-                    Ok(PropagationState::FixPoint)
+                    Ok(PropagationState::FixPoint(vec![state_lhs, state_rhs]))
                 }
             }
             Err(_) => Err(PropagationError::DomainWipeout),
