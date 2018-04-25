@@ -1,5 +1,3 @@
-//use std::cell::RefCell;
-//use std::sync::Arc;
 use variables::handlers::VariablesHandler;
 
 pub enum ConstraintState {
@@ -7,9 +5,19 @@ pub enum ConstraintState {
     NotReady,
 }
 
+pub enum PropagationState {
+    FixPoint,
+    Subsumed,
+}
+
+// TODO adding view as a parameter
+pub enum PropagationError {
+    DomainWipeout,
+}
+
 pub trait Constraint<H: VariablesHandler> {
     fn box_clone(&self) -> Box<Constraint<H>>;
-    fn propagate(&mut self, &mut H);
+    fn propagate(&mut self, &mut H) -> Result<PropagationState, PropagationError>;
     //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
 }
 

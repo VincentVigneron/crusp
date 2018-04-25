@@ -2,6 +2,7 @@
 // TODO many new
 // TODO derive clone
 // TODO use where instead of generic parameters
+// TODO check import to avoid conflict with import during the declaration
 
 #[macro_export]
 macro_rules! constraint_build {
@@ -12,7 +13,7 @@ macro_rules! constraint_build {
             VariablesHandler,
             SpecificVariablesHandler,
             get_mut_from_handler};
-        //use $crate::constraints::{ConstraintState};
+        use $crate::constraints::{PropagationState,PropagationError};
         use $crate::constraints;
     };
     (
@@ -110,10 +111,11 @@ macro_rules! constraint_build {
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+>
             {
-                fn propagate(&mut self, variables_handler: &mut H) {
+                fn propagate(&mut self, variables_handler: &mut H)
+                    -> Result<PropagationState, PropagationError>
+                {
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type),+>(
-                        $(variables.$var),+);
+                    self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+)
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
@@ -140,12 +142,14 @@ macro_rules! constraint_build {
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+>
             {
-                fn propagate(&mut self, variables_handler: &mut H) {
+                fn propagate(&mut self, variables_handler: &mut H)
+                    -> Result<PropagationState, PropagationError>
+                {
                     // TODO $state
                     let variables = self.variables.retrieve_variables(variables_handler);
-                    let _ = self.propagator.$fnpropagate::<$($var_type),+>(
+                    self.propagator.$fnpropagate::<$($var_type),+>(
                         $(variables.$var),+,
-                        &mut self.state);
+                        &mut self.state)
                 }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {

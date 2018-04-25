@@ -1,4 +1,4 @@
-use super::Propagator;
+use super::{PropagationError, PropagationState, Propagator};
 use variables::int_var::BoundsIntVar;
 
 // using macro
@@ -14,32 +14,44 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) {
-        let _ = lhs.less_than(rhs);
+    ) -> Result<PropagationState, PropagationError> {
+        match lhs.less_than(rhs) {
+            Ok(_) => Ok(PropagationState::FixPoint),
+            Err(_) => Err(PropagationError::DomainWipeout),
+        }
     }
 
     pub fn less_or_equal_than<VarType: BoundsIntVar<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) {
-        let _ = lhs.less_or_equal_than(rhs);
+    ) -> Result<PropagationState, PropagationError> {
+        match lhs.less_or_equal_than(rhs) {
+            Ok(_) => Ok(PropagationState::FixPoint),
+            Err(_) => Err(PropagationError::DomainWipeout),
+        }
     }
 
     pub fn greater_than<VarType: BoundsIntVar<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) {
-        let _ = rhs.greater_than(lhs);
+    ) -> Result<PropagationState, PropagationError> {
+        match lhs.greater_than(rhs) {
+            Ok(_) => Ok(PropagationState::FixPoint),
+            Err(_) => Err(PropagationError::DomainWipeout),
+        }
     }
 
     pub fn greater_or_equal_than<VarType: BoundsIntVar<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) {
-        let _ = rhs.greater_or_equal_than(lhs);
+    ) -> Result<PropagationState, PropagationError> {
+        match lhs.greater_or_equal_than(rhs) {
+            Ok(_) => Ok(PropagationState::FixPoint),
+            Err(_) => Err(PropagationError::DomainWipeout),
+        }
     }
 }
 
