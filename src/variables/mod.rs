@@ -29,11 +29,12 @@ pub trait VariableView {
 }
 
 // TODO index remove pub befor var
+// TODO store state
 #[derive(Debug, Clone)]
 pub struct Array<Var: Variable> {
     pub variables: Vec<Var>,
     state: VariableState,
-    states: Vec<VariableState>,
+    //states: Vec<VariableState>,
 }
 
 impl<Var: Variable> Array<Var> {
@@ -41,7 +42,7 @@ impl<Var: Variable> Array<Var> {
         Some(Array {
             variables: vec![var.clone(); len],
             state: VariableState::NoChange,
-            states: vec![VariableState::NoChange; len],
+            //states: vec![VariableState::NoChange; len],
         })
     }
 
@@ -58,10 +59,21 @@ impl<Var: Variable> Variable for Array<Var> {
         unimplemented!()
     }
     fn get_state(&self) -> &VariableState {
-        unimplemented!()
+        &self.state
     }
     fn retrieve_state(&mut self) -> VariableState {
-        unimplemented!()
+        self.variables.iter().map(|var| var.get_state()).fold(
+            VariableState::NoChange,
+            |acc, state| {
+                if acc == VariableState::NoChange {
+                    state.clone()
+                } else if *state == VariableState::BoundChange {
+                    VariableState::BoundChange
+                } else {
+                    acc
+                }
+            },
+        )
     }
 }
 
