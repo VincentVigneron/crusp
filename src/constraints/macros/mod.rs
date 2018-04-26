@@ -439,4 +439,18 @@ macro_rules! constraints {
             constraints!(handler = $handler; $($tail)*);
         }
     };
+    (handler = $handler: ident; constraint $x:ident == $y: ident; $($tail:tt)*) => {
+        {
+            $handler.add(Box::new(
+                    $crate::constraints::arithmetic::equal::new(&$x, &$y)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
+    (handler = $handler: ident; constraint $x:ident |==| $y: ident; $($tail:tt)*) => {
+        {
+            $handler.add(Box::new(
+                    $crate::constraints::arithmetic::equal_on_bounds::new(&$x, &$y)));
+            constraints!(handler = $handler; $($tail)*);
+        }
+    };
 }
