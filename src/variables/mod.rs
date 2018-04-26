@@ -62,18 +62,25 @@ impl<Var: Variable> Variable for Array<Var> {
         &self.state
     }
     fn retrieve_state(&mut self) -> VariableState {
-        self.variables.iter().map(|var| var.get_state()).fold(
-            VariableState::NoChange,
-            |acc, state| {
-                if acc == VariableState::NoChange {
+        self.variables
+            .iter()
+            .map(|var| var.get_state())
+            .scan(VariableState::NoChange, |acc, state| {
+                if *acc == VariableState::BoundChange {
+                    return None;
+                }
+                *acc = if *acc == VariableState::NoChange {
                     state.clone()
                 } else if *state == VariableState::BoundChange {
                     VariableState::BoundChange
                 } else {
-                    acc
-                }
-            },
-        )
+                    acc.clone()
+                };
+
+                Some(acc.clone())
+            })
+            .last()
+            .unwrap()
     }
 }
 
