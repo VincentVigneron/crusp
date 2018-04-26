@@ -4,9 +4,6 @@ use variables::VariableView;
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
 // TODO two views of the same index of the array must have the same type
-// TODO remove array view index and use VarView
-// TODO Add two fields to VarView
-// TODO remove unecessary code
 // TODO add trait Array: ?Var and trait Var: ? Array ... ?
 
 #[derive(Clone, Debug)]
