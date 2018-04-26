@@ -237,7 +237,8 @@ macro_rules! constraint_build {
                                     Some(equals)
                                 }).all(|x| !x);
                             if !valid {
-                                panic!("All views must refer to different variables.");
+                                panic!("All views must refer to different variables for: \"{}\".",
+                                       stringify!($propagator));
                             }
 
                             Constraint {
