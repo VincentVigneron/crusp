@@ -3,7 +3,6 @@ use variables::VariableError;
 use variables::int_var::{BoundsIntVar, ValuesIntVar};
 
 // using macro
-// TODO adding a subsume state to VariableState
 #[derive(Debug, Clone)]
 struct ArithmeticComparatorPropagator {}
 impl Propagator for ArithmeticComparatorPropagator {}
@@ -12,7 +11,6 @@ impl ArithmeticComparatorPropagator {
         ArithmeticComparatorPropagator {}
     }
 
-    // TODO Subsumed
     pub fn equal<VarType: ValuesIntVar<Type = i32>>(
         &self,
         lhs: &mut VarType,
@@ -22,8 +20,6 @@ impl ArithmeticComparatorPropagator {
         Ok(PropagationState::FixPoint)
     }
 
-    // TODO Subsumed
-    // TODO Error
     pub fn equal_on_bounds<
         Left: BoundsIntVar<Type = i32>,
         Right: BoundsIntVar<Type = i32>,

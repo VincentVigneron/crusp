@@ -111,10 +111,10 @@ where
     }
 }
 
-// TODO branch generate iterator or Not?
-// TODO Clone variable inside Iterator?
-// TODO Store immutable reference inside it?
-// TODO New consuming var? (ie no cloning during search)
+// MAYBE branch generate iterator or Not?
+// MAYBE Clone variable inside Iterator?
+// MAYBE Store immutable reference inside it?
+// MAYBE New consuming var? (ie no cloning during search)
 impl<Handler, View> Brancher<Handler> for FirstVariableBrancher<View>
 where
     Handler: VariablesHandler + SpecificVariablesHandler<IntVar, View> + Clone + 'static,
@@ -156,7 +156,6 @@ where
     }
 }
 
-// TODO view, handler or handler,view consistance
 pub struct FirstVariableBrancherIterator<View, Handler>
 where
     View: VariableView,

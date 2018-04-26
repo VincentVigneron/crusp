@@ -1,4 +1,3 @@
-// TODO acces to array view
 #[macro_export]
 macro_rules! variables {
     () => {};

@@ -1,10 +1,8 @@
 use snowflake::ProcessUniqueId;
 
-// TODO adding name to view
 pub mod int_var;
 pub mod handlers;
 
-// TODO adding a subsume state to VariableState
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableState {
     BoundChange,
@@ -16,14 +14,12 @@ pub enum VariableError {
     DomainWipeout,
 }
 
-// TODO renaming?
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum ViewType {
     FromVar(usize),
     FromArray(usize, usize),
 }
 
-// TODO PartialEq on ProcessUniqId only !!!!
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,
@@ -63,14 +59,10 @@ pub trait Variable: Clone {
     fn retrieve_state(&mut self) -> VariableState;
 }
 
-// TODO impl should be cloneable
-// TODO impl should be PartialEq SubView = view and view = Subview...
 pub trait VariableView {
     fn get_id(&self) -> ViewIndex;
 }
 
-// TODO index remove pub befor var
-// TODO store state
 #[derive(Debug, Clone)]
 pub struct Array<Var: Variable> {
     pub variables: Vec<Var>,

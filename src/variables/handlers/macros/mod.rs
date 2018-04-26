@@ -3,9 +3,6 @@ use variables::{VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
-// TODO two views of the same index of the array must have the same type
-// TODO add trait Array: ?Var and trait Var: ? Array ... ?
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VarViewType {
     FromVar(usize),
@@ -154,7 +151,6 @@ macro_rules! variables_handler_build {
             }
         }
 
-        // TODO call retrieve_all_changed_states from specifichandlers
         impl $crate::variables::handlers::VariablesHandler for Handler {
             fn retrieve_all_changed_states(
                 &mut self,

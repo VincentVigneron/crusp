@@ -6,18 +6,12 @@ pub enum ConstraintState {
     NotReady,
 }
 
-// TODO Array State ?
-// TODO returning tuple of state instead of a vec
-// TODO Passing view to propator and variables handler? => proble with unit test
-
 pub enum PropagationState {
     FixPoint,
     Subsumed,
     NoChange,
 }
 
-// TODO change Result Error to VariableError
-// TODO propagate without retrieving states
 pub trait Constraint<H: VariablesHandler> {
     fn box_clone(&self) -> Box<Constraint<H>>;
     fn propagate(

@@ -20,7 +20,6 @@ where
     fn add(&mut self, Var) -> View;
 }
 
-// TODO get_mut
 pub trait SpecificVariablesHandler<Var, View>: VariablesHandler
 where
     Var: Variable,

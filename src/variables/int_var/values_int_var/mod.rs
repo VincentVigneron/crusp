@@ -1,4 +1,4 @@
-use variables::{Variable, VariableError, VariableState};
+(use variables::{Variable, VariableError, VariableState};
 use variables::int_var::{BoundsIntVar, IntVar, ValuesIntVar};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -7,7 +7,6 @@ pub struct SetIntVar {
     state: VariableState,
 }
 
-// TODO Add checking to avoid unecessary computation
 impl SetIntVar {
     pub fn new(min: i32, max: i32) -> Option<SetIntVar> {
         if min > max {

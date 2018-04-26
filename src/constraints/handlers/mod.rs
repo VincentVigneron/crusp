@@ -2,7 +2,6 @@ use super::{Constraint, PropagationState};
 use variables::VariableError;
 use variables::handlers::VariablesHandler;
 
-// TODO better namings for State and Error
 pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
     fn propagate_all(&mut self, &mut H) -> Result<PropagationState, VariableError>;
     fn add(&mut self, Box<Constraint<H>>);

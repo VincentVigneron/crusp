@@ -9,10 +9,6 @@ use super::{Variable, VariableError, VariableState};
 //
 // Bounds => min max new_from_range
 // Iterable => iter new_from_values
-// TODO macro for test remove duplciate code
-// TODO Change enum for variable state
-// TODO Change(Bound), Change(Values)
-// TODO Enum Change add numver of removed values
 
 pub trait IntVar: Variable + Eq {
     type Type: Ord + PartialOrd;
@@ -82,7 +78,6 @@ pub trait BoundsIntVar: IntVar + Variable {
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        // TODO keep record of first update
         // invalide atm
         let _ = value.less_or_equal_than(self)?;
         self.less_or_equal_than(value)
@@ -396,7 +391,6 @@ macro_rules! test_int_var{
     ($var: ty) => {
         use super::*;
 
-        // TODO test maxvalue
         #[test]
         fn new_from_range() {
             let vars = vec![(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)];
@@ -422,7 +416,6 @@ macro_rules! test_int_var{
             }
         }
 
-        // TODO refactoring
         #[test]
         fn new_from_values() {
             use rand::{thread_rng, Rng};

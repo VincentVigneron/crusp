@@ -18,8 +18,6 @@ use solver_cp::variables::handlers::*;
 //use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;
 
-// TODO expect
-
 fn main() {
     let mut variables_handler = default_handler::Builder::new();
     let mut constraints_handler = SequentialConstraintsHandler::new();
@@ -40,6 +38,8 @@ fn main() {
         let e = array[10] of var int(1 .. 15);
         let f = e[0];
         let g = var int(3 .. 5);
+        let i = var int(3 .. 3);
+        let j = var int(3 .. 3);
         );
     constraints!(
         handler = constraints_handler;
@@ -47,15 +47,18 @@ fn main() {
         constraint c >= b;
         constraint d > c;
         constraint f |==| g;
+        constraint i < j;
         constraint increasing(e);
         );
     // INIT
     let mut variables_handler = variables_handler.finalize();
     println!("#############");
     println!("{:?}", variables_handler);
-    constraints_handler.propagate_all(&mut variables_handler);
     println!("=============");
-    println!("{:?}", variables_handler);
+    match constraints_handler.propagate_all(&mut variables_handler) {
+        Ok(_) => println!("{:?}", variables_handler),
+        Err(_) => println!("Error"),
+    }
     //let brancher_ab = FirstVariableBrancher::new(vec![a, b]);
     //let brancher_c = FirstVariableBrancher::new(vec![c]);
     //let mut brancher = MultipleBrancherHandler::new();

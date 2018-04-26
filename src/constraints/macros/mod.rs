@@ -1,9 +1,3 @@
-// TODO return (nuplet views, constraint)
-// TODO many new
-// TODO derive clone
-// TODO use where instead of generic parameters
-// TODO check import to avoid conflict with import during the declaration
-
 #[macro_export]
 macro_rules! constraint_build {
     (@Imports) => {
@@ -98,7 +92,6 @@ macro_rules! constraint_build {
             $($var_type: PhantomData<$var_type>),+
         }
     };
-    // TODO avoid duplication of retive_changed_views
     (
         @Propagate struct<$($var_type: ident: $($var_bound: path)|+),+> {
             $( $var: ident: $tvar: ty),+
@@ -113,7 +106,6 @@ macro_rules! constraint_build {
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+> {
 
-            // TODO remove duplication for prpagate function
             fn propagate(&mut self, variables_handler: &mut H)
                 -> Result<PropagationState, VariableError> {
                 let variables =
@@ -135,9 +127,6 @@ macro_rules! constraint_build {
                 variables_handler: &mut H
             ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
                 use std::iter;
-                // TODO grouping same views together?
-                // TODO remove clone for variable view
-                // TODO propagate without retrieving states
                 let states = vec![
                     $(
                         variables_handler.retrieve_states(
@@ -189,9 +178,6 @@ macro_rules! constraint_build {
                 variables_handler: &mut H
             ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
                 use std::iter;
-                // TODO grouping same views together?
-                // TODO remove clone for variable view
-                // TODO propagate without retrieving states
                 let states = vec![
                     $(
                         variables_handler.retrieve_states(

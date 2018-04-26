@@ -1,12 +1,5 @@
 //use super::{Variable, VariableError, VariableState};
 
-// TODO min & max update
-// TODO min & max check for every domain update !!
-// TODO remove duplicated code
-// TODO update size
-// TODO lowerbound take_while
-// TODO stop iteration as soon as possible
-
 // prefix with unsafe for n checking already invalid var
 //
 
@@ -40,7 +33,6 @@ impl IntVar {
         }
     }
 
-    // TODO better handling
     pub fn new(min: i32, max: i32) -> Option<IntVar> {
         let domain = vec![(min, max)];
 
@@ -61,7 +53,6 @@ impl IntVar {
         self.size
     }
 
-    // TODO specific iterator
     pub fn new_from_iterator<Values: Iterator<Item = i32>>(
         values: Values,
     ) -> Option<IntVar> {
@@ -227,7 +218,6 @@ impl IntVar {
         self.update_binf(index, binf + 1)
     }
 
-    // TODO macros ?
     pub fn less_than(
         &mut self,
         value: &mut IntVar,
@@ -450,7 +440,6 @@ impl Iterator for IntVarDomainIterator {
 mod tests {
     use super::*;
 
-    // TODO test maxvalue
     #[test]
     fn test_new() {
         let vars = vec![(0, 1), (-1, 22), (3, 5), (5, 9), (2, 2)];
@@ -475,7 +464,6 @@ mod tests {
         }
     }
 
-    // TODO refactoring
     #[test]
     fn test_new_from_iterator() {
         use rand::{thread_rng, Rng};
