@@ -124,6 +124,8 @@ macro_rules! constraint_build {
                                 $(variables.$var),+)
                         };
                         // TODO grouping same views together?
+                        // TODO remove clone for variable view
+                        // TODO propagate without retrieving states
                         let states = vec![
                             $(
                                 variables_handler.retrieve_states(

@@ -21,6 +21,7 @@ pub enum PropagationError {
     DomainWipeout,
 }
 
+// TODO propagate without retrieving states
 pub trait Constraint<H: VariablesHandler> {
     fn box_clone(&self) -> Box<Constraint<H>>;
     fn propagate(&mut self, &mut H) -> Result<PropagationState, PropagationError>;
