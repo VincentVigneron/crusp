@@ -265,8 +265,8 @@ macro_rules! check_domain_and_invariants{
 #[allow(unused_macros)]
 macro_rules! assert_var_eq{
     ($x: ident, $y: ident) => {
-        assert!(
-            $x == $y,
+        assert_eq!(
+            $x, $y,
             "Expected {:?} equals to {:?}",
             $x,
             $y
@@ -379,8 +379,8 @@ macro_rules! bound_test_error {
                         <$var>::new_from_values(domain.clone().into_iter()).unwrap();
                     let var_clone = var.clone();
                     let res = var.$fnbound(bound);
-                    assert_eq!(
-                        res, exp_res,
+                    assert!(
+                        res == exp_res,
                         "Result expected {:?} for {:?}.{}({}) found {:?}",
                         exp_res,
                         var_clone, stringify!($fnbound),
@@ -1221,6 +1221,8 @@ macro_rules! test_int_var{
                     let var1_base = var1.clone();
                     let var2_base = var2.clone();
                     let res = var1.equal(&mut var2);
+                    let _ = var1.retrieve_state();
+                    let _ = var2.retrieve_state();
                     let dom_eq = domain1
                         .iter()
                         .filter(|&&val| domain2.contains(&val))
@@ -1309,6 +1311,7 @@ macro_rules! test_int_var{
                 for value in domain_clone.into_iter() {
                     let mut var = var.clone();
                     let res = var.set_value(value);
+                    let _ = var.retrieve_state();
                     assert!(
                         res == expected,
                         "Expected {:?} for {:?} with value {:?} found {:?}.",
