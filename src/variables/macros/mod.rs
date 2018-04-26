@@ -20,6 +20,14 @@ macro_rules! variables {
             let $x = $handler.add($x);
             variables!(handler = $handler; $($tail)*);
     };
+    (
+        handler = $handler: ident;
+        $x: ident = $array: ident[$idx: expr];
+        $($tail:tt)*
+    ) => {
+            let $x = $array.get($idx);
+            variables!(handler = $handler; $($tail)*);
+    };
 }
 
 #[macro_export]
