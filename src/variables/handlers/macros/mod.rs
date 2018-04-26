@@ -1,12 +1,12 @@
 use snowflake::ProcessUniqueId;
-use variables::VariableView;
+use variables::{VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
 // TODO two views of the same index of the array must have the same type
 // TODO add trait Array: ?Var and trait Var: ? Array ... ?
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VarViewType {
     FromVar(usize),
     FromArray(usize, usize),
@@ -19,9 +19,9 @@ pub struct VarView {
 }
 
 impl VarView {
-    pub fn new(x: usize) -> VarView {
+    pub fn new(id: ProcessUniqueId, x: usize) -> VarView {
         VarView {
-            id: ProcessUniqueId::new(),
+            id: id,
             view: VarViewType::FromVar(x),
         }
     }
@@ -32,8 +32,11 @@ impl VarView {
 }
 
 impl VariableView for VarView {
-    fn get_id(&self) -> ProcessUniqueId {
-        self.id
+    fn get_id(&self) -> ViewIndex {
+        match self.view {
+            VarViewType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
+            VarViewType::FromArray(x, y) => ViewIndex::new_from_array(self.id, x, y),
+        }
     }
 }
 
@@ -44,17 +47,14 @@ pub struct ArrayView {
 }
 
 impl ArrayView {
-    pub fn new(x: usize) -> ArrayView {
-        ArrayView {
-            id: ProcessUniqueId::new(),
-            x: x,
-        }
+    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayView {
+        ArrayView { id: id, x: x }
     }
 
     // Change id type to implement partialeq
     pub fn get(&self, y: usize) -> VarView {
         VarView {
-            id: ProcessUniqueId::new(),
+            id: self.id,
             view: VarViewType::FromArray(self.x, y),
         }
     }
@@ -65,8 +65,8 @@ impl ArrayView {
 }
 
 impl VariableView for ArrayView {
-    fn get_id(&self) -> ProcessUniqueId {
-        self.id
+    fn get_id(&self) -> ViewIndex {
+        ViewIndex::new_from_var(self.id, self.x)
     }
 }
 
@@ -92,9 +92,11 @@ macro_rules! variables_handler_build {
             VariablesHandlerBuilder,
             SpecificVariablesHandler,
             SpecificVariablesHandlerBuilder};
+        use snowflake::ProcessUniqueId;
 
         #[derive(Debug,Clone)]
         struct SpecificTypeHandler<Var: Variable> {
+            id: ProcessUniqueId,
             variables: Vec<Var>,
             variables_array: Vec<Array<Var>>,
         }
@@ -102,6 +104,7 @@ macro_rules! variables_handler_build {
         impl<Var: Variable> SpecificTypeHandler<Var> {
             fn new() -> Self {
                 SpecificTypeHandler {
+                    id: ProcessUniqueId::new(),
                     variables: Vec::new(),
                     variables_array: Vec::new(),
                 }
@@ -148,7 +151,7 @@ macro_rules! variables_handler_build {
             impl SpecificVariablesHandlerBuilder<$type, VarView, Handler>
             for Builder {
                 fn add(&mut self, x: $type) -> VarView {
-                    let view = VarView::new(self.$type.variables.len());
+                    let view = VarView::new(self.$type.id, self.$type.variables.len());
                     self.$type.variables.push(x);
                     view
                 }
@@ -157,7 +160,7 @@ macro_rules! variables_handler_build {
             impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView, Handler>
             for Builder {
                 fn add(&mut self, x: Array<$type>) -> ArrayView {
-                    let view = ArrayView::new(self.$type.variables_array.len());
+                    let view = ArrayView::new(self.$type.id, self.$type.variables_array.len());
                     self.$type.variables_array.push(x);
                     view
                 }
@@ -225,6 +228,9 @@ macro_rules! variables_handler_build {
                 fn retrieve_all_states(
                     &mut self,
                 ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                    //self.$type.variables.iter()
+                        //.enumerate()
+                        //.map(|(idx,val)| (view))
                     unimplemented!()
                 }
             }

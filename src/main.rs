@@ -36,18 +36,17 @@ fn main() {
         a = var int(3 .. 10);
         b = var int(2 .. 6);
         c = var int(1 .. 9);
-        d = var int(2 .. 11);
-        e = array[10] of var int(1 .. 9);
+        d = var int((-1) .. 12);
+        e = array[10] of var int(1 .. 15);
+        f = e[0];
+        g = var int(3 .. 5);
         );
     constraints!(
         handler = constraints_handler;
         constraint a < b;
-        constraint c < d;
-        constraint b > a;
-        constraint b >= a;
-        constraint a <= b;
-        constraint a == b;
-        constraint c |==| b;
+        constraint c >= b;
+        constraint d > c;
+        constraint f |==| g;
         constraint increasing(e);
         );
     // INIT

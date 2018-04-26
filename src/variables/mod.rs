@@ -16,6 +16,47 @@ pub enum VariableError {
     DomainWipeout,
 }
 
+// TODO renaming?
+#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+pub enum ViewType {
+    FromVar(usize),
+    FromArray(usize, usize),
+}
+
+// TODO PartialEq on ProcessUniqId only !!!!
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ViewIndex {
+    id: ProcessUniqueId,
+    view: ViewType,
+}
+
+impl ViewIndex {
+    pub fn new_from_var(id: ProcessUniqueId, x: usize) -> ViewIndex {
+        ViewIndex {
+            id: id,
+            view: ViewType::FromVar(x),
+        }
+    }
+    pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
+        ViewIndex {
+            id: id,
+            view: ViewType::FromArray(x, y),
+        }
+    }
+    pub fn is_subview_of(&self, idx: &ViewIndex) -> bool {
+        if self.id != idx.id {
+            return false;
+        }
+        match self.view {
+            ViewType::FromArray(x, _) => match idx.view {
+                ViewType::FromVar(x_) if x == x_ => true,
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+}
+
 pub trait Variable: Clone {
     fn is_fixed(&self) -> bool;
     fn get_state(&self) -> &VariableState;
@@ -25,7 +66,7 @@ pub trait Variable: Clone {
 // TODO impl should be cloneable
 // TODO impl should be PartialEq SubView = view and view = Subview...
 pub trait VariableView {
-    fn get_id(&self) -> ProcessUniqueId;
+    fn get_id(&self) -> ViewIndex;
 }
 
 // TODO index remove pub befor var

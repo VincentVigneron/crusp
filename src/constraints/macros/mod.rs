@@ -220,11 +220,11 @@ macro_rules! constraint_build {
                             let mut ids = vec![$($var.get_id()),+];
                             ids.sort();
                             let ids = ids;
-                            let first = *ids.first().unwrap();
+                            let first = ids.first().unwrap().clone();
                             let valid = ids.iter().skip(1)
-                                .scan(first, |state, &x| {
-                                    let equals = *state == x;
-                                    *state = x;
+                                .scan(first, |state, ref x| {
+                                    let equals = *state == **x;
+                                    *state = (**x).clone();
                                     Some(equals)
                                 }).all(|x| !x);
                             if !valid {
@@ -265,11 +265,11 @@ macro_rules! constraint_build {
                             let mut ids = vec![$($var.get_id()),+];
                             ids.sort();
                             let ids = ids;
-                            let first = *ids.first().unwrap();
+                            let first = ids.first().unwrap().clone();
                             let valid = ids.iter().skip(1)
-                                .scan(first, |state, &x| {
-                                    let equals = *state == x;
-                                    *state = x;
+                                .scan(first, |state, ref x| {
+                                    let equals = *state == **x;
+                                    *state = (**x).clone();
                                     Some(equals)
                                 }).all(|x| !x);
                             if !valid {
