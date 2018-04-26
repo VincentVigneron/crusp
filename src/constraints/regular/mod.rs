@@ -9,8 +9,8 @@ constraint_build!(
     );
 
 pub mod propagator {
-    use constraints::{PropagationError, PropagationState, Propagator};
-    use variables::Array;
+    use constraints::{PropagationState, Propagator};
+    use variables::{Array, VariableError};
     use variables::int_var::ValuesIntVar;
 
     #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ pub mod propagator {
             &self,
             _array: &mut Array<VarType>,
             state: &mut Option<RegularState>,
-        ) -> Result<PropagationState, PropagationError> {
+        ) -> Result<PropagationState, VariableError> {
             if state.is_none() {
                 *state = Some(RegularState {});
             }

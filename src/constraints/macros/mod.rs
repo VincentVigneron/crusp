@@ -9,12 +9,12 @@ macro_rules! constraint_build {
     (@Imports) => {
         use std::marker::PhantomData;
         #[allow(unused_imports)]
-        use $crate::variables::{VariableView,Variable,VariableState};
+        use $crate::variables::{VariableView,Variable,VariableState,VariableError};
         use $crate::variables::handlers::{
             VariablesHandler,
             SpecificVariablesHandler,
             get_mut_from_handler};
-        use $crate::constraints::{PropagationState,PropagationError};
+        use $crate::constraints::{PropagationState};
         use $crate::constraints;
     };
     (
@@ -115,7 +115,7 @@ macro_rules! constraint_build {
 
             // TODO remove duplication for prpagate function
             fn propagate(&mut self, variables_handler: &mut H)
-                -> Result<PropagationState, PropagationError> {
+                -> Result<PropagationState, VariableError> {
                 use std::iter;
                 let res = {
                     let variables =
@@ -185,7 +185,7 @@ macro_rules! constraint_build {
             for Constraint<$($var),+,$($var_type),+> {
 
             fn propagate(&mut self, variables_handler: &mut H)
-                -> Result<PropagationState, PropagationError>
+                -> Result<PropagationState, VariableError>
                 {
                     use std::iter;
                     let res = {

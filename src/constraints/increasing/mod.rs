@@ -9,7 +9,7 @@ constraint_build!(
     );
 
 pub mod propagator {
-    use constraints::{PropagationError, PropagationState, Propagator};
+    use constraints::{PropagationState, Propagator, VariableError};
     use variables::Array;
     use variables::int_var::BoundsIntVar;
     #[derive(Debug, Clone)]
@@ -23,20 +23,20 @@ pub mod propagator {
         pub fn propagate<VarType: BoundsIntVar<Type = i32>>(
             &self,
             array: &mut Array<VarType>,
-        ) -> Result<PropagationState, PropagationError> {
+        ) -> Result<PropagationState, VariableError> {
             let len = array.variables.len();
             for i in 0..(len - 1) {
                 unsafe {
                     let lhs: &mut VarType = array_get_mut!(array[i]);
                     let rhs: &mut VarType = array_get_mut!(array[i + 1]);
-                    let _ = lhs.less_than(rhs);
+                    let _ = lhs.less_than(rhs)?;
                 }
             }
             for i in 0..(len - 1) {
                 unsafe {
                     let lhs: &mut VarType = array_get_mut!(array[len - 2 - i]);
                     let rhs: &mut VarType = array_get_mut!(array[len - 1 - i]);
-                    let _ = lhs.less_than(rhs);
+                    let _ = lhs.less_than(rhs)?;
                 }
             }
             Ok(PropagationState::FixPoint)

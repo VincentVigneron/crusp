@@ -1,4 +1,4 @@
-use variables::{VariableState, VariableView};
+use variables::{VariableError, VariableState, VariableView};
 use variables::handlers::VariablesHandler;
 
 pub enum ConstraintState {
@@ -16,11 +16,6 @@ pub enum PropagationState {
     NoChange,
 }
 
-// TODO adding view as a parameter
-pub enum PropagationError {
-    DomainWipeout,
-}
-
 // TODO change Result Error to VariableError
 // TODO propagate without retrieving states
 pub trait Constraint<H: VariablesHandler> {
@@ -28,7 +23,7 @@ pub trait Constraint<H: VariablesHandler> {
     fn propagate(
         &mut self,
         variables_handler: &mut H,
-    ) -> Result<PropagationState, PropagationError>;
+    ) -> Result<PropagationState, VariableError>;
     fn retrieve_changed_views(
         &self,
         variables_handler: &mut H,

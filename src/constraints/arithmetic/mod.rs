@@ -1,4 +1,5 @@
-use super::{PropagationError, PropagationState, Propagator};
+use super::{PropagationState, Propagator};
+use variables::VariableError;
 use variables::int_var::{BoundsIntVar, ValuesIntVar};
 
 // using macro
@@ -16,11 +17,9 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) -> Result<PropagationState, PropagationError> {
-        match lhs.equal(rhs) {
-            Ok((_state_lhs, _state_rhs)) => Ok(PropagationState::FixPoint),
-            Err(_) => Err(PropagationError::DomainWipeout),
-        }
+    ) -> Result<PropagationState, VariableError> {
+        let _ = lhs.equal(rhs)?;
+        Ok(PropagationState::FixPoint)
     }
 
     // TODO Subsumed
@@ -32,11 +31,11 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut Left,
         rhs: &mut Right,
-    ) -> Result<PropagationState, PropagationError> {
-        let _ = lhs.weak_upperbound(rhs.max());
-        let _ = rhs.weak_upperbound(lhs.max());
-        let _ = lhs.weak_lowerbound(rhs.min());
-        let _ = rhs.weak_lowerbound(lhs.min());
+    ) -> Result<PropagationState, VariableError> {
+        let _ = lhs.weak_upperbound(rhs.max())?;
+        let _ = rhs.weak_upperbound(lhs.max())?;
+        let _ = lhs.weak_lowerbound(rhs.min())?;
+        let _ = rhs.weak_lowerbound(lhs.min())?;
         Ok(PropagationState::FixPoint)
     }
 
@@ -44,16 +43,12 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) -> Result<PropagationState, PropagationError> {
-        match lhs.less_than(rhs) {
-            Ok((state_lhs, state_rhs)) => {
-                if lhs.max() < rhs.min() {
-                    Ok(PropagationState::Subsumed)
-                } else {
-                    Ok(PropagationState::FixPoint)
-                }
-            }
-            Err(_) => Err(PropagationError::DomainWipeout),
+    ) -> Result<PropagationState, VariableError> {
+        let (_, _) = lhs.less_than(rhs)?;
+        if lhs.max() < rhs.min() {
+            Ok(PropagationState::Subsumed)
+        } else {
+            Ok(PropagationState::FixPoint)
         }
     }
 
@@ -61,16 +56,12 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) -> Result<PropagationState, PropagationError> {
-        match lhs.less_or_equal_than(rhs) {
-            Ok((state_lhs, state_rhs)) => {
-                if lhs.max() <= rhs.min() {
-                    Ok(PropagationState::Subsumed)
-                } else {
-                    Ok(PropagationState::FixPoint)
-                }
-            }
-            Err(_) => Err(PropagationError::DomainWipeout),
+    ) -> Result<PropagationState, VariableError> {
+        let (_, _) = lhs.less_or_equal_than(rhs)?;
+        if lhs.max() <= rhs.min() {
+            Ok(PropagationState::Subsumed)
+        } else {
+            Ok(PropagationState::FixPoint)
         }
     }
 
@@ -78,16 +69,12 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) -> Result<PropagationState, PropagationError> {
-        match lhs.greater_than(rhs) {
-            Ok((state_lhs, state_rhs)) => {
-                if lhs.min() > rhs.max() {
-                    Ok(PropagationState::Subsumed)
-                } else {
-                    Ok(PropagationState::FixPoint)
-                }
-            }
-            Err(_) => Err(PropagationError::DomainWipeout),
+    ) -> Result<PropagationState, VariableError> {
+        let (_, _) = lhs.greater_than(rhs)?;
+        if lhs.min() > rhs.max() {
+            Ok(PropagationState::Subsumed)
+        } else {
+            Ok(PropagationState::FixPoint)
         }
     }
 
@@ -95,16 +82,12 @@ impl ArithmeticComparatorPropagator {
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
-    ) -> Result<PropagationState, PropagationError> {
-        match lhs.greater_or_equal_than(rhs) {
-            Ok((state_lhs, state_rhs)) => {
-                if lhs.min() >= rhs.max() {
-                    Ok(PropagationState::Subsumed)
-                } else {
-                    Ok(PropagationState::FixPoint)
-                }
-            }
-            Err(_) => Err(PropagationError::DomainWipeout),
+    ) -> Result<PropagationState, VariableError> {
+        let (_, _) = lhs.greater_or_equal_than(rhs)?;
+        if lhs.min() >= rhs.max() {
+            Ok(PropagationState::Subsumed)
+        } else {
+            Ok(PropagationState::FixPoint)
         }
     }
 }
