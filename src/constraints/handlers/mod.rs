@@ -1,8 +1,10 @@
-use super::Constraint;
+use super::{Constraint, PropagationState};
+use variables::VariableError;
 use variables::handlers::VariablesHandler;
 
+// TODO better namings for State and Error
 pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
-    fn propagate_all(&mut self, &mut H);
+    fn propagate_all(&mut self, &mut H) -> Result<PropagationState, VariableError>;
     fn add(&mut self, Box<Constraint<H>>);
 }
 
@@ -20,10 +22,14 @@ impl<H: VariablesHandler> SequentialConstraintsHandler<H> {
 }
 
 impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler<H> {
-    fn propagate_all(&mut self, variables: &mut H) {
+    fn propagate_all(
+        &mut self,
+        variables: &mut H,
+    ) -> Result<PropagationState, VariableError> {
         for constraint in self.constraints.iter_mut() {
-            constraint.propagate(variables);
+            let _ = constraint.propagate(variables)?;
         }
+        Ok(PropagationState::Subsumed)
     }
 
     fn add(&mut self, constraint: Box<Constraint<H>>) {
