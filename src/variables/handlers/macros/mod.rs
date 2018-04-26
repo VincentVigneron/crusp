@@ -204,6 +204,46 @@ macro_rules! variables_handler_build {
                     changed_states.into_iter().flat_map(|changes| changes)
                 )
             }
+            fn retrieve_changed_states<Views>(
+                &mut self,
+                views: Views,
+            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>
+            where Views: Iterator<Item = Box<VariableView>> {
+                use $crate::variables::ViewType;
+                let states = views
+                    .map(|view| {
+                        let idx = view.get_id();
+                        let state = match idx.id {
+                            $(
+                                id if id == self.$type.id => {
+                                    match idx.view {
+                                        ViewType::FromVar(x) => {
+                                            unsafe {
+                                                self.$type.variables
+                                                    .get_unchecked_mut(x)
+                                                    .retrieve_state()
+                                            }
+                                        }
+                                        ViewType::FromArray(x,y) => {
+                                            unsafe {
+                                                self.$type.variables_array
+                                                    .get_unchecked_mut(x)
+                                                    .variables
+                                                    .get_unchecked_mut(y)
+                                                    .retrieve_state()
+                                            }
+                                        }
+                                    }
+                                }
+                            )+
+                            _ => {unreachable!()}
+                        };
+                        (view, state)
+                    })
+                    .filter(|&(_,ref state)| *state != VariableState::NoChange)
+                    .collect::<Vec<_>>();
+                    Box::new(states.into_iter())
+            }
         }
 
         $(

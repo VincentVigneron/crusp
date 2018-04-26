@@ -1,4 +1,4 @@
-(use variables::{Variable, VariableError, VariableState};
+use variables::{Variable, VariableError, VariableState};
 use variables::int_var::{BoundsIntVar, IntVar, ValuesIntVar};
 
 #[derive(Clone, Debug, Eq, PartialEq)]

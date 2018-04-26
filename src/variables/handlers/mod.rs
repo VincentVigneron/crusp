@@ -1,9 +1,17 @@
 use super::{Variable, VariableState, VariableView};
 
+// VariableView or VariableViewIndex
 pub trait VariablesHandler: Clone {
     fn retrieve_all_changed_states(
         &mut self,
     ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
+
+    fn retrieve_changed_states<Views>(
+        &mut self,
+        views: Views,
+    ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>
+    where
+        Views: Iterator<Item = Box<VariableView>>;
 }
 
 pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
