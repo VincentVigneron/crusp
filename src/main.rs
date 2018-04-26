@@ -33,13 +33,13 @@ fn main() {
 
     variables!(
         handler = variables_handler;
-        a = var int(3 .. 10);
-        b = var int(2 .. 6);
-        c = var int(1 .. 9);
-        d = var int((-1) .. 12);
-        e = array[10] of var int(1 .. 15);
-        f = e[0];
-        g = var int(3 .. 5);
+        let a = var int(3 .. 10);
+        let b = var int(2 .. 6);
+        let c = var int(1 .. 9);
+        let d = var int((-1) .. 12);
+        let e = array[10] of var int(1 .. 15);
+        let f = e[0];
+        let g = var int(3 .. 5);
         );
     constraints!(
         handler = constraints_handler;
