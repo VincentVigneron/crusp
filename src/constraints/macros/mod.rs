@@ -98,6 +98,7 @@ macro_rules! constraint_build {
             $($var_type: PhantomData<$var_type>),+
         }
     };
+    // TODO avoid duplication of retive_changed_views
     (
         @Propagate struct<$($var_type: ident: $($var_bound: path)|+),+> {
             $( $var: ident: $tvar: ty),+
@@ -110,43 +111,63 @@ macro_rules! constraint_build {
         $($var_type: 'static + Variable + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
-            for Constraint<$($var),+,$($var_type),+>
-            {
-                // TODO remove duplication for prpagate function
-                fn propagate(&mut self, variables_handler: &mut H)
-                    -> Result<PropagationState, PropagationError>
-                    {
-                        use std::iter;
-                        let res = {
-                            let variables =
-                                self.variables.retrieve_variables(variables_handler);
-                            self.propagator.$fnpropagate::<$($var_type),+>(
-                                $(variables.$var),+)
-                        };
-                        // TODO grouping same views together?
-                        // TODO remove clone for variable view
-                        // TODO propagate without retrieving states
-                        let states = vec![
-                            $(
-                                variables_handler.retrieve_states(
-                                    iter::once(&self.variables.$var))
-                            ),+
-                        ];
-                        let _changed: Vec<_> = states.into_iter()
-                            .flat_map(|states| states)
-                            .filter(|&(_,ref state)| *state == VariableState::NoChange)
-                            .collect();
-                        res
-                    }
+            for Constraint<$($var),+,$($var_type),+> {
 
-                fn box_clone(&self) -> Box<constraints::Constraint<H>> {
-                    let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
-                    let cloned: Constraint<$($var),+, $($var_type),+> =
-                        <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
-
-                    Box::new(cloned) as Box<constraints::Constraint<H>>
-                }
+            // TODO remove duplication for prpagate function
+            fn propagate(&mut self, variables_handler: &mut H)
+                -> Result<PropagationState, PropagationError> {
+                use std::iter;
+                let res = {
+                    let variables =
+                        self.variables.retrieve_variables(variables_handler);
+                    self.propagator.$fnpropagate::<$($var_type),+>(
+                        $(variables.$var),+)
+                };
+                // TODO grouping same views together?
+                // TODO remove clone for variable view
+                // TODO propagate without retrieving states
+                let states = vec![
+                    $(
+                        variables_handler.retrieve_states(
+                            iter::once(&self.variables.$var))
+                    ),+
+                ];
+                let _changed: Vec<_> = states.into_iter()
+                    .flat_map(|states| states)
+                    .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                    .collect();
+                res
             }
+
+            fn box_clone(&self) -> Box<constraints::Constraint<H>> {
+                let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
+                let cloned: Constraint<$($var),+, $($var_type),+> =
+                    <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
+
+                Box::new(cloned) as Box<constraints::Constraint<H>>
+            }
+
+            fn retrieve_changed_views(
+                &self,
+                variables_handler: &mut H
+            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                use std::iter;
+                // TODO grouping same views together?
+                // TODO remove clone for variable view
+                // TODO propagate without retrieving states
+                let states = vec![
+                    $(
+                        variables_handler.retrieve_states(
+                            iter::once(&self.variables.$var))
+                    ),+
+                ];
+                let changed: Vec<_> = states.into_iter()
+                    .flat_map(|states| states)
+                    .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                    .collect();
+                Box::new(changed.into_iter())
+            }
+        }
     };
     (
         @Propagate struct<$($var_type: ident: $($var_bound: path)|+),+> {
@@ -161,41 +182,61 @@ macro_rules! constraint_build {
         $($var_type: 'static + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
-            for Constraint<$($var),+,$($var_type),+>
-            {
-                fn propagate(&mut self, variables_handler: &mut H)
-                    -> Result<PropagationState, PropagationError>
-                    {
-                        use std::iter;
-                        let res = {
-                            let variables =
-                                self.variables.retrieve_variables(variables_handler);
-                            self.propagator.$fnpropagate::<$($var_type),+>(
-                                $(variables.$var),+,
-                                &mut self.state)
-                        };
-                        // TODO grouping same views together?
-                        let states = vec![
-                            $(
-                                variables_handler.retrieve_states(
-                                    iter::once(&self.variables.$var))
-                            ),+
-                        ];
-                        let _changed: Vec<_> = states.into_iter()
-                            .flat_map(|states| states)
-                            .filter(|&(_,ref state)| *state == VariableState::NoChange)
-                            .collect();
-                        res
-                    }
+            for Constraint<$($var),+,$($var_type),+> {
 
-                fn box_clone(&self) -> Box<constraints::Constraint<H>> {
-                    let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
-                    let cloned: Constraint<$($var),+, $($var_type),+> =
-                        <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
-
-                    Box::new(cloned) as Box<constraints::Constraint<H>>
+            fn propagate(&mut self, variables_handler: &mut H)
+                -> Result<PropagationState, PropagationError>
+                {
+                    use std::iter;
+                    let res = {
+                        let variables =
+                            self.variables.retrieve_variables(variables_handler);
+                        self.propagator.$fnpropagate::<$($var_type),+>(
+                            $(variables.$var),+,
+                            &mut self.state)
+                    };
+                    // TODO grouping same views together?
+                    let states = vec![
+                        $(
+                            variables_handler.retrieve_states(
+                                iter::once(&self.variables.$var))
+                        ),+
+                    ];
+                    let _changed: Vec<_> = states.into_iter()
+                        .flat_map(|states| states)
+                        .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                        .collect();
+                    res
                 }
+
+            fn box_clone(&self) -> Box<constraints::Constraint<H>> {
+                let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
+                let cloned: Constraint<$($var),+, $($var_type),+> =
+                    <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
+
+                Box::new(cloned) as Box<constraints::Constraint<H>>
             }
+            fn retrieve_changed_views(
+                &self,
+                variables_handler: &mut H
+            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                use std::iter;
+                // TODO grouping same views together?
+                // TODO remove clone for variable view
+                // TODO propagate without retrieving states
+                let states = vec![
+                    $(
+                        variables_handler.retrieve_states(
+                            iter::once(&self.variables.$var))
+                    ),+
+                ];
+                let changed: Vec<_> = states.into_iter()
+                    .flat_map(|states| states)
+                    .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                    .collect();
+                Box::new(changed.into_iter())
+            }
+        }
     };
     (
         @ConstraintImpl struct<$($var_type: ident: $($var_bound: path)|+),+> {

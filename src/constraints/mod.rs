@@ -1,4 +1,4 @@
-use variables::VariableState;
+use variables::{VariableState, VariableView};
 use variables::handlers::VariablesHandler;
 
 pub enum ConstraintState {
@@ -25,7 +25,14 @@ pub enum PropagationError {
 // TODO propagate without retrieving states
 pub trait Constraint<H: VariablesHandler> {
     fn box_clone(&self) -> Box<Constraint<H>>;
-    fn propagate(&mut self, &mut H) -> Result<PropagationState, PropagationError>;
+    fn propagate(
+        &mut self,
+        variables_handler: &mut H,
+    ) -> Result<PropagationState, PropagationError>;
+    fn retrieve_changed_views(
+        &self,
+        variables_handler: &mut H,
+    ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
     //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
 }
 
