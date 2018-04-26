@@ -31,12 +31,16 @@ pub trait VariableView {
 #[derive(Debug, Clone)]
 pub struct Array<Var: Variable> {
     pub variables: Vec<Var>,
+    state: VariableState,
+    states: Vec<VariableState>,
 }
 
 impl<Var: Variable> Array<Var> {
     pub fn new(len: usize, var: Var) -> Option<Self> {
         Some(Array {
             variables: vec![var.clone(); len],
+            state: VariableState::NoChange,
+            states: vec![VariableState::NoChange; len],
         })
     }
 

@@ -33,7 +33,7 @@ macro_rules! constraint_build {
     ) => {
         #[derive(Clone)]
         #[allow(non_camel_case_types)]
-        struct StructViews<$($var: VariableView),+> {
+        struct StructViews<$($var: VariableView + 'static),+> {
             $($var: $var),+
         }
     };
@@ -75,7 +75,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: VariableView),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: VariableView + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             $($var_type: PhantomData<$var_type>),+
@@ -91,7 +91,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: VariableView),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: VariableView + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             state: Option<$state>,
