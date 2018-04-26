@@ -154,6 +154,61 @@ macro_rules! variables_handler_build {
             }
         }
 
+        impl $crate::variables::handlers::VariablesHandler for Handler {
+            fn retrieve_all_changed_states(
+                &mut self,
+            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                let changed_states = vec![$({
+                    let id = self.$type.id.clone();
+                    let var_states: Vec<(Box<VariableView>, _)> = self.$type
+                        .variables_array
+                        .iter_mut()
+                        .enumerate()
+                        .flat_map(|(x,val)| {
+                              val.iter_mut()
+                                  .enumerate()
+                                  .map(move |(y,val)| (x,y,val.retrieve_state()))
+                        })
+                        .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
+                        .map(|(x,y,state)| {
+                            let view: Box<VariableView> =
+                                Box::new(VarView::new_from_array(id, x, y));
+                            (view, state)
+                        })
+                        .collect();
+                    let array_states: Vec<(Box<VariableView>, _)> = self.$type
+                        .variables_array
+                        .iter_mut()
+                        .enumerate()
+                        .map(|(x,val)| (x, val.retrieve_state()))
+                        .filter(|&(_,ref state)| *state != VariableState::NoChange)
+                        .map(|(x,state)| {
+                            let view: Box<VariableView> = Box::new(VarView::new(id, x));
+                            (view, state)
+                        })
+                        .collect();
+                    let id = self.$type.id.clone();
+                    let views: Vec<(Box<VariableView>, _)> = self.$type.variables
+                        .iter_mut()
+                        .enumerate()
+                        .map(|(x,val)| (x, val.retrieve_state()))
+                        .filter(|&(_,ref state)| *state != VariableState::NoChange)
+                        .map(|(x,state)| {
+                            let view: Box<VariableView> = Box::new(VarView::new(id, x));
+                            (view, state)
+                        })
+                        .collect();
+                    Box::new(
+                        var_states.into_iter()
+                            .chain(array_states.into_iter())
+                            .chain(views.into_iter()))
+                }),+];
+                Box::new(
+                    changed_states.into_iter().flat_map(|changes| changes)
+                )
+            }
+        }
+
         $(
             impl SpecificVariablesHandlerBuilder<$type, VarView, Handler>
             for Builder {
@@ -170,14 +225,6 @@ macro_rules! variables_handler_build {
                     let view = ArrayView::new(self.$type.id, self.$type.variables_array.len());
                     self.$type.variables_array.push(x);
                     view
-                }
-            }
-
-            impl $crate::variables::handlers::VariablesHandler for Handler {
-                fn retrieve_all_changed_states(
-                    &mut self,
-                ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
-                    unimplemented!()
                 }
             }
 
