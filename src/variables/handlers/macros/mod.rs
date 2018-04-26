@@ -154,6 +154,7 @@ macro_rules! variables_handler_build {
             }
         }
 
+        // TODO call retrieve_all_changed_states from specifichandlers
         impl $crate::variables::handlers::VariablesHandler for Handler {
             fn retrieve_all_changed_states(
                 &mut self,
