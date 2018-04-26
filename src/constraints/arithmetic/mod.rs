@@ -34,8 +34,8 @@ impl ArithmeticComparatorPropagator {
         rhs: &mut Right,
     ) -> Result<PropagationState, PropagationError> {
         let _ = lhs.weak_upperbound(rhs.max());
-        let _ = rhs.weak_lowerbound(lhs.max());
-        let _ = lhs.weak_upperbound(rhs.min());
+        let _ = rhs.weak_upperbound(lhs.max());
+        let _ = lhs.weak_lowerbound(rhs.min());
         let _ = rhs.weak_lowerbound(lhs.min());
         Ok(PropagationState::FixPoint)
     }
