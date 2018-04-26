@@ -46,6 +46,8 @@ fn main() {
         constraint b > a;
         constraint b >= a;
         constraint a <= b;
+        constraint a == b;
+        constraint c |==| b;
         constraint increasing(e);
         );
     // INIT

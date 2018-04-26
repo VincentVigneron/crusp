@@ -207,7 +207,13 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl $crate::variables::handlers::VariablesHandler for Handler {}
+            impl $crate::variables::handlers::VariablesHandler for Handler {
+                fn retrieve_all_states(
+                    &mut self,
+                ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                    unimplemented!()
+                }
+            }
 
             impl SpecificVariablesHandler<$type, VarView> for Handler {
                 fn get_mut(&mut self, view: &VarView) -> &mut $type {
@@ -237,6 +243,11 @@ macro_rules! variables_handler_build {
                         states.push((view,state));
                     }
                     Box::new(states.into_iter())
+                }
+                fn retrieve_all_states(
+                    &mut self,
+                ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                    unimplemented!()
                 }
             }
 
@@ -284,6 +295,11 @@ macro_rules! variables_handler_build {
                     }
                     Box::new(states.into_iter())
                 }
+                fn retrieve_all_states(
+                    &mut self,
+                ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                    unimplemented!()
+                }
             }
 
             // TODO index on Array<Var>
@@ -330,6 +346,11 @@ macro_rules! variables_handler_build {
                         states.push((view,state));
                     }
                     Box::new(states.into_iter())
+                }
+                fn retrieve_all_states(
+                    &mut self,
+                ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+                    unimplemented!()
                 }
             }
         )+
