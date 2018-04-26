@@ -22,7 +22,8 @@ pub trait Variable: Clone {
     fn retrieve_state(&mut self) -> VariableState;
 }
 
-// Should be cloneable
+// TODO impl should be cloneable
+// TODO impl should be PartialEq SubView = view and view = Subview...
 pub trait VariableView {
     fn get_id(&self) -> ProcessUniqueId;
 }

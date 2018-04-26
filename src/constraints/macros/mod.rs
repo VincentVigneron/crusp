@@ -45,25 +45,25 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
         impl<$($var: VariableView),+> StructViews<$($var),+> {
-        #[allow(non_snake_case)]
+            #[allow(non_snake_case)]
             #[allow(non_camel_case_types)]
             pub fn retrieve_variables<'a, $($var_type: 'a + Variable),+, H>(
                 &self,
                 variables_handler: &'a mut H,
                 ) -> StructVars<'a, $($var_type),+>
                 where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
-                {
-                        unsafe {
-                            StructVars {
-                                $(
-                                    $var: get_mut_from_handler(
-                                        &mut *(variables_handler as *mut _),
-                                        &self.$var
-                                        )
-                                 ),+
-                            }
-                        }
-                }
+                      {
+                          unsafe {
+                              StructVars {
+                                  $(
+                                      $var: get_mut_from_handler(
+                                          &mut *(variables_handler as *mut _),
+                                          &self.$var
+                                          )
+                                   ),+
+                              }
+                          }
+                      }
         }
     };
     (
@@ -114,23 +114,23 @@ macro_rules! constraint_build {
             {
                 fn propagate(&mut self, variables_handler: &mut H)
                     -> Result<PropagationState, PropagationError>
-                {
-                    let variables = self.variables.retrieve_variables(variables_handler);
-                    let res = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
-                    let views: Vec<Box<VariableView>> =
-                        vec![$(Box::new(self.variables.$var.clone())),+];
-                    let states = vec![$(variables.$var.retrieve_state()),+];
-                    let _changes: Vec<_> = views.into_iter()
-                        .zip(states.into_iter())
-                        .filter(|&(_,ref state)| {
-                            match *state {
-                                VariableState::NoChange => false,
-                                _ => true,
-                            }
-                        })
+                    {
+                        let variables = self.variables.retrieve_variables(variables_handler);
+                        let res = self.propagator.$fnpropagate::<$($var_type),+>($(variables.$var),+);
+                        let views: Vec<Box<VariableView>> =
+                            vec![$(Box::new(self.variables.$var.clone())),+];
+                        let states = vec![$(variables.$var.retrieve_state()),+];
+                        let _changes: Vec<_> = views.into_iter()
+                            .zip(states.into_iter())
+                            .filter(|&(_,ref state)| {
+                                match *state {
+                                    VariableState::NoChange => false,
+                                    _ => true,
+                                }
+                            })
                         .collect();
-                    res
-                }
+                        res
+                    }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
                     let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
@@ -158,13 +158,13 @@ macro_rules! constraint_build {
             {
                 fn propagate(&mut self, variables_handler: &mut H)
                     -> Result<PropagationState, PropagationError>
-                {
-                    // TODO $state
-                    let variables = self.variables.retrieve_variables(variables_handler);
-                    self.propagator.$fnpropagate::<$($var_type),+>(
-                        $(variables.$var),+,
-                        &mut self.state)
-                }
+                    {
+                        // TODO $state
+                        let variables = self.variables.retrieve_variables(variables_handler);
+                        self.propagator.$fnpropagate::<$($var_type),+>(
+                            $(variables.$var),+,
+                            &mut self.state)
+                    }
 
                 fn box_clone(&self) -> Box<constraints::Constraint<H>> {
                     let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
@@ -188,36 +188,36 @@ macro_rules! constraint_build {
             where
                 $($var: VariableView + Clone),+,
                 $($var_type: $($var_bound+)+),+
-        {
+                {
 
-            #[allow(non_camel_case_types)]
-            #[allow(non_snake_case)]
-            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
-                -> Constraint<$($var),+, $($var_type),+>
-            {
-                let mut ids = vec![$($var.get_id()),+];
-                ids.sort();
-                let ids = ids;
-                let first = *ids.first().unwrap();
-                let valid = ids.iter().skip(1)
-                    .scan(first, |state, &x| {
-                        let equals = *state == x;
-                        *state = x;
-                        Some(equals)
-                    }).all(|x| !x);
-                if !valid {
-                    panic!("All views must refer to different variables.");
-                }
+                    #[allow(non_camel_case_types)]
+                    #[allow(non_snake_case)]
+                    pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
+                        -> Constraint<$($var),+, $($var_type),+>
+                        {
+                            let mut ids = vec![$($var.get_id()),+];
+                            ids.sort();
+                            let ids = ids;
+                            let first = *ids.first().unwrap();
+                            let valid = ids.iter().skip(1)
+                                .scan(first, |state, &x| {
+                                    let equals = *state == x;
+                                    *state = x;
+                                    Some(equals)
+                                }).all(|x| !x);
+                            if !valid {
+                                panic!("All views must refer to different variables.");
+                            }
 
-                Constraint {
-                    propagator: <$propagator>::$fnnew($($param),*),
-                    variables: StructViews {
-                        $($var: $var.clone()),+,
-                    },
-                    $($var_type: PhantomData),+
+                            Constraint {
+                                propagator: <$propagator>::$fnnew($($param),*),
+                                variables: StructViews {
+                                    $($var: $var.clone()),+,
+                                },
+                                $($var_type: PhantomData),+
+                            }
+                        }
                 }
-            }
-        }
     };
     (
         @ConstraintImpl struct<$($var_type: ident: $($var_bound: path)|+),+> {
@@ -230,40 +230,40 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
-        where
-            $($var: VariableView + Clone),+,
-            $($var_type: $($var_bound+)+),+
-        {
+            where
+                $($var: VariableView + Clone),+,
+                $($var_type: $($var_bound+)+),+
+                {
 
-            #[allow(non_camel_case_types)]
-            #[allow(non_snake_case)]
-            pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
-                -> Constraint<$($var),+, $($var_type),+>
-            {
-                let mut ids = vec![$($var.get_id()),+];
-                ids.sort();
-                let ids = ids;
-                let first = *ids.first().unwrap();
-                let valid = ids.iter().skip(1)
-                    .scan(first, |state, &x| {
-                        let equals = *state == x;
-                        *state = x;
-                        Some(equals)
-                    }).all(|x| !x);
-                if !valid {
-                    panic!("All views must refer to different variables.");
-                }
+                    #[allow(non_camel_case_types)]
+                    #[allow(non_snake_case)]
+                    pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
+                        -> Constraint<$($var),+, $($var_type),+>
+                        {
+                            let mut ids = vec![$($var.get_id()),+];
+                            ids.sort();
+                            let ids = ids;
+                            let first = *ids.first().unwrap();
+                            let valid = ids.iter().skip(1)
+                                .scan(first, |state, &x| {
+                                    let equals = *state == x;
+                                    *state = x;
+                                    Some(equals)
+                                }).all(|x| !x);
+                            if !valid {
+                                panic!("All views must refer to different variables.");
+                            }
 
-                Constraint {
-                    propagator: <$propagator>::$fnnew($($param),*),
-                    state: None,
-                    variables: StructViews {
-                        $($var: $var.clone()),+,
-                    },
-                    $($var_type: PhantomData),+
+                            Constraint {
+                                propagator: <$propagator>::$fnnew($($param),*),
+                                state: None,
+                                variables: StructViews {
+                                    $($var: $var.clone()),+,
+                                },
+                                $($var_type: PhantomData),+
+                            }
+                        }
                 }
-            }
-        }
     };
     (
         @New struct<$($var_type: ident: $($var_bound: path)|+),+> {
@@ -275,12 +275,12 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         pub fn $fnnew<$($var),+,$($var_type),+>($($var: &$var),+,$($param: $tparam),*)
             -> Constraint<$($var),+,$($var_type),+>
-        where
+            where
             $($var: VariableView + Clone),+,
             $($var_type: $($var_bound+)+),+
-        {
-            Constraint::$fnnew($($var),+,$($param),*)
-        }
+            {
+                Constraint::$fnnew($($var),+,$($param),*)
+            }
     };
     (
         $(#[$outer:meta])*
@@ -392,28 +392,28 @@ macro_rules! constraints {
     (handler = $handler: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new(
-                $crate::constraints::arithmetic::less_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::less_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident <= $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new(
-                $crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident > $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new(
-                $crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
     (handler = $handler: ident; constraint $x:ident >= $y: ident; $($tail:tt)*) => {
         {
             $handler.add(Box::new(
-                $crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
             constraints!(handler = $handler; $($tail)*);
         }
     };
