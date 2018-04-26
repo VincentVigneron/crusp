@@ -1,7 +1,7 @@
 use super::{Variable, VariableState, VariableView};
 
 pub trait VariablesHandler: Clone {
-    fn retrieve_all_states(
+    fn retrieve_all_changed_states(
         &mut self,
     ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
 }
@@ -34,7 +34,7 @@ where
         &mut self,
         views: Views,
     ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
-    fn retrieve_all_states(
+    fn retrieve_all_changed_states(
         &mut self,
     ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
     // fn iter(&self) -> &mut Variable;

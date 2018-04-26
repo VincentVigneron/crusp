@@ -94,6 +94,10 @@ impl<Var: Variable> Array<Var> {
     pub fn get(&self, idx: usize) -> &Var {
         unsafe { self.variables.get_unchecked(idx) }
     }
+
+    pub fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a> {
+        Box::new(self.variables.iter_mut())
+    }
 }
 impl<Var: Variable> Variable for Array<Var> {
     fn is_fixed(&self) -> bool {
