@@ -39,16 +39,21 @@ impl ViewIndex {
             index_type: IndexType::FromArray(x, y),
         }
     }
+    // x sub_view_of x
+    // x sub_view_of_y && y sub_view_of x => x == y
     pub fn is_subview_of(&self, idx: &ViewIndex) -> bool {
         if self.id != idx.id {
             return false;
         }
         match self.index_type {
-            IndexType::FromArray(x, _) => match idx.index_type {
-                IndexType::FromVar(x_) if x == x_ => true,
+            IndexType::FromArray(x, y) => match idx.index_type {
+                IndexType::FromVar(x_) => x == x_,
+                IndexType::FromArray(x_, y_) => x == x_ && y == y_,
+            },
+            IndexType::FromVar(x) => match idx.index_type {
+                IndexType::FromVar(x_) => x == x_,
                 _ => false,
             },
-            _ => false,
         }
     }
 
@@ -58,6 +63,39 @@ impl ViewIndex {
 
     pub fn get_type(&self) -> IndexType {
         self.index_type.clone()
+    }
+}
+
+pub trait AllDisjoint: Iterator<Item = ViewIndex> {
+    fn all_disjoint(self) -> Result<(), (ViewIndex, ViewIndex)>
+    where
+        Self: Sized;
+}
+
+// More precise result for all_disjoint (i.e. which views are equal and ,which view is a
+// subview of an array)
+impl<I> AllDisjoint for I
+where
+    I: Iterator<Item = ViewIndex>,
+{
+    fn all_disjoint(self) -> Result<(), (ViewIndex, ViewIndex)>
+    where
+        Self: Sized,
+    {
+        use std::iter;
+        let views: Vec<_> = self.collect();
+        let incompatibles = views
+            .iter()
+            .enumerate()
+            .map(|(i, view)| (view, views.iter().skip(i + 1)))
+            .flat_map(|(left, rights)| iter::repeat(left).zip(rights))
+            .find(|&(ref left, ref right)| {
+                left.is_subview_of(right) || right.is_subview_of(left)
+            });
+        match incompatibles {
+            None => Ok(()),
+            Some((left, right)) => Err((left.clone(), right.clone())),
+        }
     }
 }
 

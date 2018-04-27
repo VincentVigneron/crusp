@@ -212,19 +212,16 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            let mut ids = vec![$($var.clone().into()),+];
-                            ids.sort();
-                            let ids = ids;
-                            let first = ids.first().unwrap().clone();
-                            let valid = ids.iter().skip(1)
-                                .scan(first, |state, ref x| {
-                                    let equals = *state == **x;
-                                    *state = (**x).clone();
-                                    Some(equals)
-                                }).all(|x| !x);
-                            if !valid {
-                                panic!("All views must refer to different variables for: \"{}\".",
-                                       stringify!($propagator));
+                            use $crate::variables::AllDisjoint;
+                            let valid = vec![$($var.clone().into()),+]
+                                .into_iter()
+                                .all_disjoint();
+                            if let Err((left,right)) = valid {
+                                panic!("All views must refer to different variables for: \"{}\". Variable {:?} and {:?} are tied together",
+                                       stringify!($propagator),
+                                       left,
+                                       right
+                                       );
                             }
 
                             Constraint {
@@ -258,18 +255,16 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            let mut ids = vec![$($var.clone().into()),+];
-                            ids.sort();
-                            let ids = ids;
-                            let first = ids.first().unwrap().clone();
-                            let valid = ids.iter().skip(1)
-                                .scan(first, |state, ref x| {
-                                    let equals = *state == **x;
-                                    *state = (**x).clone();
-                                    Some(equals)
-                                }).all(|x| !x);
-                            if !valid {
-                                panic!("All views must refer to different variables.");
+                            use $crate::variables::AllDisjoint;
+                            let valid = vec![$($var.clone().into()),+]
+                                .into_iter()
+                                .all_disjoint();
+                            if let Err((left,right)) = valid {
+                                panic!("All views must refer to different variables for: \"{}\". Variable {:?} and {:?} are tied together",
+                                       stringify!($propagator),
+                                       left,
+                                       right
+                                       );
                             }
 
                             Constraint {
