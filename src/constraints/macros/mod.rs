@@ -72,6 +72,7 @@ macro_rules! constraint_build {
         pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
+            indexes: Vec<ViewIndex>,
             $($var_type: PhantomData<$var_type>),+
         }
     };
@@ -88,6 +89,7 @@ macro_rules! constraint_build {
         pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
+            indexes: Vec<ViewIndex>,
             state: Option<$state>,
             $($var_type: PhantomData<$var_type>),+
         }
@@ -144,11 +146,16 @@ macro_rules! constraint_build {
                 &self,
                 states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
             ) -> bool {
-                unimplemented!()
+                for &(ref idx, _) in states {
+                    if self.indexes.contains(&idx) {
+                        return true;
+                    }
+                }
+                false
             }
 
-            fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool {
-                unimplemented!()
+            fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
+                self.indexes.contains(&view_index)
             }
         }
     };
@@ -206,11 +213,16 @@ macro_rules! constraint_build {
                 &self,
                 states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
             ) -> bool {
-                unimplemented!()
+                for &(ref idx, _) in states {
+                    if self.indexes.contains(&idx) {
+                        return true;
+                    }
+                }
+                false
             }
 
-            fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool {
-                unimplemented!()
+            fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
+                self.indexes.contains(&view_index)
             }
         }
     };
@@ -235,7 +247,9 @@ macro_rules! constraint_build {
                         -> Constraint<$($var),+, $($var_type),+>
                         {
                             use $crate::variables::AllDisjoint;
-                            let valid = vec![$($var.clone().into()),+]
+                            // avoid clone => all disjoint on iter and not into_iter
+                            let indexes = vec![$($var.clone().into()),+];
+                            let valid = indexes.clone()
                                 .into_iter()
                                 .all_disjoint();
                             if let Err((left,right)) = valid {
@@ -251,6 +265,7 @@ macro_rules! constraint_build {
                                 variables: StructViews {
                                     $($var: $var.clone()),+,
                                 },
+                                indexes: indexes,
                                 $($var_type: PhantomData),+
                             }
                         }
@@ -278,7 +293,8 @@ macro_rules! constraint_build {
                         -> Constraint<$($var),+, $($var_type),+>
                         {
                             use $crate::variables::AllDisjoint;
-                            let valid = vec![$($var.clone().into()),+]
+                            let indexes = vec![$($var.clone().into()),+];
+                            let valid = indexes.clone()
                                 .into_iter()
                                 .all_disjoint();
                             if let Err((left,right)) = valid {
@@ -295,6 +311,7 @@ macro_rules! constraint_build {
                                 variables: StructViews {
                                     $($var: $var.clone()),+,
                                 },
+                                indexes: indexes,
                                 $($var_type: PhantomData),+
                             }
                         }
