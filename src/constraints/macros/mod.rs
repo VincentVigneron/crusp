@@ -3,7 +3,7 @@ macro_rules! constraint_build {
     (@Imports) => {
         use std::marker::PhantomData;
         #[allow(unused_imports)]
-        use $crate::variables::{VariableView,Variable,VariableState,VariableError};
+        use $crate::variables::{ViewIndex,Variable,VariableState,VariableError};
         use $crate::variables::handlers::{
             VariablesHandler,
             SpecificVariablesHandler,
@@ -27,7 +27,7 @@ macro_rules! constraint_build {
     ) => {
         #[derive(Clone)]
         #[allow(non_camel_case_types)]
-        struct StructViews<$($var: VariableView + 'static),+> {
+        struct StructViews<$($var: Into<ViewIndex> + 'static),+> {
             $($var: $var),+
         }
     };
@@ -38,7 +38,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
-        impl<$($var: VariableView),+> StructViews<$($var),+> {
+        impl<$($var: Into<ViewIndex>),+> StructViews<$($var),+> {
             #[allow(non_snake_case)]
             #[allow(non_camel_case_types)]
             pub fn retrieve_variables<'a, $($var_type: 'a + Variable),+, H>(
@@ -69,7 +69,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: VariableView + 'static),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             $($var_type: PhantomData<$var_type>),+
@@ -85,7 +85,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: VariableView + 'static),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             state: Option<$state>,
@@ -100,7 +100,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: 'static + Clone + VariableView),+,
+        impl<$($var: 'static + Clone + Into<ViewIndex>),+,
         $($var_type: 'static + Variable + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
@@ -125,7 +125,7 @@ macro_rules! constraint_build {
             fn retrieve_changed_views(
                 &self,
                 variables_handler: &mut H
-            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
                 use std::iter;
                 let states = vec![
                     $(
@@ -150,7 +150,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: 'static + Clone + VariableView),+,
+        impl<$($var: 'static + Clone + Into<ViewIndex>),+,
         $($var_type: 'static + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
@@ -176,7 +176,7 @@ macro_rules! constraint_build {
             fn retrieve_changed_views(
                 &self,
                 variables_handler: &mut H
-            ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>> {
+            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
                 use std::iter;
                 let states = vec![
                     $(
@@ -203,7 +203,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
             where
-                $($var: VariableView + Clone),+,
+                $($var: Into<ViewIndex> + Clone),+,
                 $($var_type: $($var_bound+)+),+
                 {
 
@@ -212,7 +212,7 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            let mut ids = vec![$($var.get_id()),+];
+                            let mut ids = vec![$($var.clone().into()),+];
                             ids.sort();
                             let ids = ids;
                             let first = ids.first().unwrap().clone();
@@ -249,7 +249,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
             where
-                $($var: VariableView + Clone),+,
+                $($var: Into<ViewIndex> + Clone),+,
                 $($var_type: $($var_bound+)+),+
                 {
 
@@ -258,7 +258,7 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            let mut ids = vec![$($var.get_id()),+];
+                            let mut ids = vec![$($var.clone().into()),+];
                             ids.sort();
                             let ids = ids;
                             let first = ids.first().unwrap().clone();
@@ -294,7 +294,7 @@ macro_rules! constraint_build {
         pub fn $fnnew<$($var),+,$($var_type),+>($($var: &$var),+,$($param: $tparam),*)
             -> Constraint<$($var),+,$($var_type),+>
             where
-            $($var: VariableView + Clone),+,
+            $($var: Into<ViewIndex> + Clone),+,
             $($var_type: $($var_bound+)+),+
             {
                 Constraint::$fnnew($($var),+,$($param),*)

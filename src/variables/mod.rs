@@ -23,33 +23,41 @@ pub enum ViewType {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,
-    view: ViewType,
+    view_type: ViewType,
 }
 
 impl ViewIndex {
     pub fn new_from_var(id: ProcessUniqueId, x: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            view: ViewType::FromVar(x),
+            view_type: ViewType::FromVar(x),
         }
     }
     pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            view: ViewType::FromArray(x, y),
+            view_type: ViewType::FromArray(x, y),
         }
     }
     pub fn is_subview_of(&self, idx: &ViewIndex) -> bool {
         if self.id != idx.id {
             return false;
         }
-        match self.view {
-            ViewType::FromArray(x, _) => match idx.view {
+        match self.view_type {
+            ViewType::FromArray(x, _) => match idx.view_type {
                 ViewType::FromVar(x_) if x == x_ => true,
                 _ => false,
             },
             _ => false,
         }
+    }
+
+    pub fn get_id(&self) -> ProcessUniqueId {
+        self.id.clone()
+    }
+
+    pub fn get_type(&self) -> ViewType {
+        self.view_type.clone()
     }
 }
 
@@ -57,10 +65,6 @@ pub trait Variable: Clone {
     fn is_fixed(&self) -> bool;
     fn get_state(&self) -> &VariableState;
     fn retrieve_state(&mut self) -> VariableState;
-}
-
-pub trait VariableView {
-    fn get_id(&self) -> ViewIndex;
 }
 
 #[derive(Debug, Clone)]

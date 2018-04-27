@@ -1,4 +1,4 @@
-use variables::{VariableError, VariableState, VariableView};
+use variables::{VariableError, VariableState, ViewIndex};
 use variables::handlers::VariablesHandler;
 
 pub enum ConstraintState {
@@ -21,7 +21,7 @@ pub trait Constraint<H: VariablesHandler> {
     fn retrieve_changed_views(
         &self,
         variables_handler: &mut H,
-    ) -> Box<Iterator<Item = (Box<VariableView>, VariableState)>>;
+    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
     //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
 }
 

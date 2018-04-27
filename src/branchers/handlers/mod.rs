@@ -1,5 +1,5 @@
 //use std::marker::PhantomData;
-//use variables::VariableView;
+//use variables::ViewIndex;
 //use variables::handlers::{get_from_handler, get_mut_from_handler,
 //SpecificVariablesHandler, VariablesHandler};
 //use variables::int_var::*;
@@ -93,7 +93,7 @@ impl<Handler: VariablesHandler> MultipleBrancherHandler<Handler> {
 #[derive(Clone)]
 pub struct FirstVariableBrancher<View>
 where
-    View: VariableView,
+    View: ViewIndex,
 {
     //views: Vec<(bool, View)>,
     views: Vec<View>,
@@ -101,7 +101,7 @@ where
 
 impl<View> FirstVariableBrancher<View>
 where
-    View: VariableView,
+    View: ViewIndex,
 {
     pub fn new(views: Vec<View>) -> FirstVariableBrancher<View> {
         FirstVariableBrancher {
@@ -118,7 +118,7 @@ where
 impl<Handler, View> Brancher<Handler> for FirstVariableBrancher<View>
 where
     Handler: VariablesHandler + SpecificVariablesHandler<IntVar, View> + Clone + 'static,
-    View: VariableView + Clone + 'static,
+    View: Into<ViewIndex> + Clone + 'static,
 {
     fn box_clone(&self) -> Box<Brancher<Handler>> {
         let ref_self: &FirstVariableBrancher<_> = &self;
@@ -158,7 +158,7 @@ where
 
 pub struct FirstVariableBrancherIterator<View, Handler>
 where
-    View: VariableView,
+    View: ViewIndex,
     Handler: VariablesHandler + SpecificVariablesHandler<IntVar, View>,
 {
     view: View,
@@ -168,7 +168,7 @@ where
 
 impl<View, Handler> FirstVariableBrancherIterator<View, Handler>
 where
-    View: VariableView,
+    View: ViewIndex,
     Handler: VariablesHandler + SpecificVariablesHandler<IntVar, View>,
 {
     fn new(
@@ -186,7 +186,7 @@ where
 impl<Handler, View> Iterator for FirstVariableBrancherIterator<View, Handler>
 where
     Handler: VariablesHandler + SpecificVariablesHandler<IntVar, View>,
-    View: VariableView + 'static,
+    View: Into<ViewIndex> + 'static,
 {
     type Item = Box<Fn(&mut Handler) -> ()>;
 
