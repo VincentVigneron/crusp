@@ -139,6 +139,17 @@ macro_rules! constraint_build {
                     .collect();
                 Box::new(changed.into_iter())
             }
+
+            fn affected_by_changes<'a>(
+                &self,
+                states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
+            ) -> bool {
+                unimplemented!()
+            }
+
+            fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool {
+                unimplemented!()
+            }
         }
     };
     (
@@ -189,6 +200,17 @@ macro_rules! constraint_build {
                     .filter(|&(_,ref state)| *state == VariableState::NoChange)
                     .collect();
                 Box::new(changed.into_iter())
+            }
+
+            fn affected_by_changes<'a>(
+                &self,
+                states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
+            ) -> bool {
+                unimplemented!()
+            }
+
+            fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool {
+                unimplemented!()
             }
         }
     };

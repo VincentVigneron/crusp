@@ -22,6 +22,11 @@ pub trait Constraint<H: VariablesHandler> {
         &self,
         variables_handler: &mut H,
     ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
+    fn affected_by_changes<'a>(
+        &self,
+        states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
+    ) -> bool;
+    fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool;
     //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
 }
 
