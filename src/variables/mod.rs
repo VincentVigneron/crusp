@@ -15,7 +15,7 @@ pub enum VariableError {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub enum ViewType {
+pub enum IndexType {
     FromVar(usize),
     FromArray(usize, usize),
 }
@@ -23,29 +23,29 @@ pub enum ViewType {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,
-    view_type: ViewType,
+    index_type: IndexType,
 }
 
 impl ViewIndex {
     pub fn new_from_var(id: ProcessUniqueId, x: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            view_type: ViewType::FromVar(x),
+            index_type: IndexType::FromVar(x),
         }
     }
     pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            view_type: ViewType::FromArray(x, y),
+            index_type: IndexType::FromArray(x, y),
         }
     }
     pub fn is_subview_of(&self, idx: &ViewIndex) -> bool {
         if self.id != idx.id {
             return false;
         }
-        match self.view_type {
-            ViewType::FromArray(x, _) => match idx.view_type {
-                ViewType::FromVar(x_) if x == x_ => true,
+        match self.index_type {
+            IndexType::FromArray(x, _) => match idx.index_type {
+                IndexType::FromVar(x_) if x == x_ => true,
                 _ => false,
             },
             _ => false,
@@ -56,8 +56,8 @@ impl ViewIndex {
         self.id.clone()
     }
 
-    pub fn get_type(&self) -> ViewType {
-        self.view_type.clone()
+    pub fn get_type(&self) -> IndexType {
+        self.index_type.clone()
     }
 }
 

@@ -4,7 +4,7 @@ use variables::ViewIndex;
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum VarViewType {
+pub enum VarIndexType {
     FromVar(usize),
     FromArray(usize, usize),
 }
@@ -12,25 +12,25 @@ pub enum VarViewType {
 #[derive(Clone, Debug)]
 pub struct VarView {
     id: ProcessUniqueId,
-    view: VarViewType,
+    view: VarIndexType,
 }
 
 impl VarView {
     pub fn new(id: ProcessUniqueId, x: usize) -> VarView {
         VarView {
             id: id,
-            view: VarViewType::FromVar(x),
+            view: VarIndexType::FromVar(x),
         }
     }
 
     pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> VarView {
         VarView {
             id: id,
-            view: VarViewType::FromArray(x, y),
+            view: VarIndexType::FromArray(x, y),
         }
     }
 
-    pub fn get_idx(&self) -> &VarViewType {
+    pub fn get_idx(&self) -> &VarIndexType {
         &self.view
     }
 }
@@ -38,8 +38,8 @@ impl VarView {
 impl Into<ViewIndex> for VarView {
     fn into(self) -> ViewIndex {
         match self.view {
-            VarViewType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
-            VarViewType::FromArray(x, y) => ViewIndex::new_from_array(self.id, x, y),
+            VarIndexType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
+            VarIndexType::FromArray(x, y) => ViewIndex::new_from_array(self.id, x, y),
         }
     }
 }
@@ -59,7 +59,7 @@ impl ArrayView {
     pub fn get(&self, y: usize) -> VarView {
         VarView {
             id: self.id,
-            view: VarViewType::FromArray(self.x, y),
+            view: VarIndexType::FromArray(self.x, y),
         }
     }
 
@@ -91,7 +91,7 @@ macro_rules! variables_handler_build {
         use $crate::variables::ViewIndex;
         use $crate::variables::VariableState;
         use $crate::variables::Array;
-        use $crate::variables::handlers::macros::{VarView, ArrayView, VarViewType};
+        use $crate::variables::handlers::macros::{VarView, ArrayView, VarIndexType};
         use $crate::variables::handlers::{
             VariablesHandlerBuilder,
             SpecificVariablesHandler,
@@ -211,22 +211,22 @@ macro_rules! variables_handler_build {
                 views: Views,
             ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
             where Views: Iterator<Item = ViewIndex> {
-                use $crate::variables::ViewType;
+                use $crate::variables::IndexType;
                 let states = views
                     .map(|idx| {
                         // maybe using get_id and get_type?
                         let state = match idx.id {
                             $(
                                 id if id == self.$type.id => {
-                                    match idx.view_type {
-                                        ViewType::FromVar(x) => {
+                                    match idx.index_type {
+                                        IndexType::FromVar(x) => {
                                             unsafe {
                                                 self.$type.variables
                                                     .get_unchecked_mut(x)
                                                     .retrieve_state()
                                             }
                                         }
-                                        ViewType::FromArray(x,y) => {
+                                        IndexType::FromArray(x,y) => {
                                             unsafe {
                                                 self.$type.variables_array
                                                     .get_unchecked_mut(x)
@@ -270,10 +270,10 @@ macro_rules! variables_handler_build {
             impl SpecificVariablesHandler<$type, VarView> for Handler {
                 fn get_mut(&mut self, view: &VarView) -> &mut $type {
                     match *view.get_idx() {
-                        VarViewType::FromVar(x) => {
+                        VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked_mut(x) }
                         }
-                        VarViewType::FromArray(x,y) => {
+                        VarIndexType::FromArray(x,y) => {
                             unsafe {
                                 self.$type.variables_array
                                     .get_unchecked_mut(x)
@@ -285,10 +285,10 @@ macro_rules! variables_handler_build {
                 }
                 fn get(&self, view: &VarView) -> &$type {
                     match *view.get_idx() {
-                        VarViewType::FromVar(x) => {
+                        VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked(x) }
                         }
-                        VarViewType::FromArray(x,y) => {
+                        VarIndexType::FromArray(x,y) => {
                             unsafe {
                                 self.$type.variables_array
                                     .get_unchecked(x)
