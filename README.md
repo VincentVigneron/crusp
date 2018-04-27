@@ -38,3 +38,4 @@
 - [ ] Consistance between generic parameters order.
 - [ ] Rewritting branching.
 - [ ] Use expect instead of panic as much as possible.
+- [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)

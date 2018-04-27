@@ -23,12 +23,41 @@ impl<H: VariablesHandler> SequentialConstraintsHandler<H> {
 impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler<H> {
     fn propagate_all(
         &mut self,
-        variables: &mut H,
+        variables_handler: &mut H,
     ) -> Result<PropagationState, VariableError> {
+        // Option<ConstraintState> instead
+        let mut change = false;
         for constraint in self.constraints.iter_mut() {
-            let _ = constraint.propagate(variables)?;
+            change = change || match constraint.propagate(variables_handler)? {
+                PropagationState::FixPoint => true,
+                PropagationState::Subsumed => true,
+                PropagationState::NoChange => false,
+            };
         }
-        Ok(PropagationState::Subsumed)
+        if !change {
+            return Ok(PropagationState::FixPoint);
+        }
+        let mut variables_states: Vec<_> =
+            variables_handler.retrieve_all_changed_states().collect();
+        while change {
+            change = false;
+            for constraint in self.constraints.iter_mut() {
+                let mut states = variables_states.iter();
+                if constraint.affected_by_changes(&mut states) {
+                    change = change || match constraint.propagate(variables_handler)? {
+                        PropagationState::FixPoint => true,
+                        PropagationState::Subsumed => true,
+                        PropagationState::NoChange => false,
+                    };
+                }
+            }
+            if !change {
+                return Ok(PropagationState::FixPoint);
+            }
+            variables_states = variables_handler.retrieve_all_changed_states().collect();
+        }
+        //unreachable!()
+        Ok(PropagationState::FixPoint)
     }
 
     fn add(&mut self, constraint: Box<Constraint<H>>) {
