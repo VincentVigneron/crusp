@@ -1,8 +1,71 @@
-//use std::marker::PhantomData;
+use std::marker::PhantomData;
 //use variables::ViewIndex;
 //use variables::handlers::{get_from_handler, get_mut_from_handler,
-//SpecificVariablesHandler, VariablesHandler};
+//SpecificVariablesHandler, VariablesHandler, ViewIndex};
+use variables::ViewIndex;
+use variables::handlers::VariablesHandler;
 //use variables::int_var::*;
+
+pub trait VariableSelector<Handler>
+where
+    Handler: VariablesHandler,
+{
+    fn select(&mut self, variables: &Handler) -> Option<ViewIndex>;
+}
+
+pub trait ValuesSelector<Handler>
+where
+    Handler: VariablesHandler,
+{
+    fn select(
+        &mut self,
+        variables: &Handler,
+        view: ViewIndex,
+    ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>>;
+}
+
+pub trait Brancher<Handler>
+where
+    Handler: VariablesHandler,
+{
+    fn branch(&mut self, variables: &mut Handler) -> Result<(), ()>;
+}
+
+pub struct DefaultBrancher<Handler, VarSel, ValSel>
+where
+    Handler: VariablesHandler,
+    VarSel: VariableSelector<Handler>,
+    ValSel: ValuesSelector<Handler>,
+{
+    variables_selector: VarSel,
+    values_selector: ValSel,
+    phantom: PhantomData<Handler>,
+}
+
+impl<Handler, VarSel, ValSel> Brancher<Handler>
+    for DefaultBrancher<Handler, VarSel, ValSel>
+where
+    Handler: VariablesHandler,
+    VarSel: VariableSelector<Handler>,
+    ValSel: ValuesSelector<Handler>,
+{
+    fn branch(&mut self, variables: &mut Handler) -> Result<(), ()> {
+        let variable = self.variables_selector.select(&variables);
+        match variable {
+            Some(idx) => {
+                let values = self.values_selector.select(&variables, idx);
+                match values {
+                    Some(values) => {
+                        //Ok(values)
+                        Ok(())
+                    }
+                    None => Err(()),
+                }
+            }
+            None => Err(()),
+        }
+    }
+}
 
 /*
 pub trait SelectorState {}
