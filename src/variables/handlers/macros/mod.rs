@@ -1,5 +1,6 @@
 use snowflake::ProcessUniqueId;
-use variables::ViewIndex;
+use std::marker::PhantomData;
+use variables::{Variable, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
@@ -10,23 +11,26 @@ pub enum VarIndexType {
 }
 
 #[derive(Clone, Debug)]
-pub struct VarView {
+pub struct VarView<Var: Variable> {
     id: ProcessUniqueId,
     view: VarIndexType,
+    phantom: PhantomData<Var>,
 }
 
-impl VarView {
-    pub fn new(id: ProcessUniqueId, x: usize) -> VarView {
+impl<Var: Variable> VarView<Var> {
+    pub fn new(id: ProcessUniqueId, x: usize) -> VarView<Var> {
         VarView {
             id: id,
             view: VarIndexType::FromVar(x),
+            phantom: PhantomData,
         }
     }
 
-    pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> VarView {
+    pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> VarView<Var> {
         VarView {
             id: id,
             view: VarIndexType::FromArray(x, y),
+            phantom: PhantomData,
         }
     }
 
@@ -35,7 +39,7 @@ impl VarView {
     }
 }
 
-impl Into<ViewIndex> for VarView {
+impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     fn into(self) -> ViewIndex {
         match self.view {
             VarIndexType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
@@ -45,21 +49,27 @@ impl Into<ViewIndex> for VarView {
 }
 
 #[derive(Clone, Debug)]
-pub struct ArrayView {
+pub struct ArrayView<Var: Variable> {
     id: ProcessUniqueId,
     x: usize,
+    phantom: PhantomData<Var>,
 }
 
-impl ArrayView {
-    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayView {
-        ArrayView { id: id, x: x }
+impl<Var: Variable> ArrayView<Var> {
+    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayView<Var> {
+        ArrayView {
+            id: id,
+            x: x,
+            phantom: PhantomData,
+        }
     }
 
     // Change id type to implement partialeq
-    pub fn get(&self, y: usize) -> VarView {
+    pub fn get(&self, y: usize) -> VarView<Var> {
         VarView {
             id: self.id,
             view: VarIndexType::FromArray(self.x, y),
+            phantom: PhantomData,
         }
     }
 
@@ -68,7 +78,7 @@ impl ArrayView {
     }
 }
 
-impl Into<ViewIndex> for ArrayView {
+impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
     fn into(self) -> ViewIndex {
         ViewIndex::new_from_var(self.id, self.x)
     }
@@ -169,7 +179,7 @@ macro_rules! variables_handler_build {
                         .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,y,state)| {
                             let view: ViewIndex =
-                                VarView::new_from_array(id, x, y).into();
+                                VarView::<$type>::new_from_array(id, x, y).into();
                             (view, state)
                         })
                         .collect();
@@ -181,7 +191,7 @@ macro_rules! variables_handler_build {
                         .filter(|&(_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,state)| {
                             let view: ViewIndex =
-                                VarView::new(id, x).into();
+                                VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
                         .collect();
@@ -193,7 +203,7 @@ macro_rules! variables_handler_build {
                         .filter(|&(_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,state)| {
                             let view: ViewIndex =
-                                VarView::new(id, x).into();
+                                VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
                         .collect();
@@ -249,26 +259,26 @@ macro_rules! variables_handler_build {
         }
 
         $(
-            impl SpecificVariablesHandlerBuilder<$type, VarView, Handler>
+            impl SpecificVariablesHandlerBuilder<$type, VarView<$type>, Handler>
             for Builder {
-                fn add(&mut self, x: $type) -> VarView {
+                fn add(&mut self, x: $type) -> VarView<$type> {
                     let view = VarView::new(self.$type.id, self.$type.variables.len());
                     self.$type.variables.push(x);
                     view
                 }
             }
 
-            impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView, Handler>
+            impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView<$type>, Handler>
             for Builder {
-                fn add(&mut self, x: Array<$type>) -> ArrayView {
+                fn add(&mut self, x: Array<$type>) -> ArrayView<$type> {
                     let view = ArrayView::new(self.$type.id, self.$type.variables_array.len());
                     self.$type.variables_array.push(x);
                     view
                 }
             }
 
-            impl SpecificVariablesHandler<$type, VarView> for Handler {
-                fn get_mut(&mut self, view: &VarView) -> &mut $type {
+            impl SpecificVariablesHandler<$type, VarView<$type>> for Handler {
+                fn get_mut(&mut self, view: &VarView<$type>) -> &mut $type {
                     match *view.get_idx() {
                         VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked_mut(x) }
@@ -283,7 +293,7 @@ macro_rules! variables_handler_build {
                         }
                     }
                 }
-                fn get(&self, view: &VarView) -> &$type {
+                fn get(&self, view: &VarView<$type>) -> &$type {
                     match *view.get_idx() {
                         VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked(x) }
@@ -299,7 +309,7 @@ macro_rules! variables_handler_build {
                     }
                 }
 
-                fn retrieve_state(&mut self, view: &VarView) -> VariableState {
+                fn retrieve_state(&mut self, view: &VarView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
                 }
 
@@ -308,7 +318,7 @@ macro_rules! variables_handler_build {
                     views: Views,
                 ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
-                        Views: Iterator<Item = &'a VarView>,
+                        Views: Iterator<Item = &'a VarView<$type>>,
                 {
                     let mut states: Vec<(ViewIndex, _)> = Vec::new();
                     for view in views {
@@ -328,7 +338,7 @@ macro_rules! variables_handler_build {
                         .map(|(x,val)| (x, val.retrieve_state()))
                         .filter(|&(_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,state)| {
-                            let view: ViewIndex = VarView::new(id, x).into();
+                            let view: ViewIndex = VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
                         .collect();
@@ -336,19 +346,19 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl SpecificVariablesHandler<Array<$type>, ArrayView> for Handler {
-                fn get_mut(&mut self, view: &ArrayView) -> &mut Array<$type> {
+            impl SpecificVariablesHandler<Array<$type>, ArrayView<$type>> for Handler {
+                fn get_mut(&mut self, view: &ArrayView<$type>) -> &mut Array<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked_mut(view.get_idx())
                     }
                 }
-                fn get(&self, view: &ArrayView) -> & Array<$type> {
+                fn get(&self, view: &ArrayView<$type>) -> & Array<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked(view.get_idx())
                     }
                 }
 
-                fn retrieve_state(&mut self, view: &ArrayView) -> VariableState {
+                fn retrieve_state(&mut self, view: &ArrayView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
                 }
 
@@ -358,7 +368,7 @@ macro_rules! variables_handler_build {
                     views: Views,
                 ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
-                        Views: Iterator<Item = &'a ArrayView>,
+                        Views: Iterator<Item = &'a ArrayView<$type>>,
                 {
                     let mut states: Vec<(ViewIndex, _)> = Vec::new();
                     for view in views {
@@ -392,7 +402,7 @@ macro_rules! variables_handler_build {
                         .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,y,state)| {
                             let view: ViewIndex =
-                                VarView::new_from_array(id, x, y).into();
+                                VarView::<$type>::new_from_array(id, x, y).into();
                             (view, state)
                         })
                         .collect();
@@ -403,7 +413,7 @@ macro_rules! variables_handler_build {
                         .map(|(x,val)| (x, val.retrieve_state()))
                         .filter(|&(_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,state)| {
-                            let view: ViewIndex = VarView::new(id, x).into();
+                            let view: ViewIndex = VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
                         .collect();
