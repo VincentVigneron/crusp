@@ -20,6 +20,8 @@ pub enum IndexType {
     FromArray(usize, usize),
 }
 
+pub trait VariableView {}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,

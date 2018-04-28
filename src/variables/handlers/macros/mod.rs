@@ -1,6 +1,6 @@
 use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
-use variables::{Variable, ViewIndex};
+use variables::{Variable, VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
@@ -16,6 +16,8 @@ pub struct VarView<Var: Variable> {
     view: VarIndexType,
     phantom: PhantomData<Var>,
 }
+
+impl<Var: Variable> VariableView for VarView<Var> {}
 
 impl<Var: Variable> VarView<Var> {
     pub fn new(id: ProcessUniqueId, x: usize) -> VarView<Var> {
@@ -54,6 +56,7 @@ pub struct ArrayView<Var: Variable> {
     x: usize,
     phantom: PhantomData<Var>,
 }
+impl<Var: Variable> VariableView for ArrayView<Var> {}
 
 impl<Var: Variable> ArrayView<Var> {
     pub fn new(id: ProcessUniqueId, x: usize) -> ArrayView<Var> {

@@ -13,19 +13,17 @@ impl MinValueSelector {
 }
 
 // Remove Into<ViewIndex> Requirement if possible (does not make sense).
-impl<View> ValuesSelector<View> for MinValueSelector
+impl<Handler, Var, View> ValuesSelector<Handler, Var, View> for MinValueSelector
 where
+    Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
+    Var: Variable + IntVar,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
 {
-    fn select<Handler, Var>(
+    fn select(
         &mut self,
         handler: &Handler,
         view: View,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>
-    where
-        Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
-        Var: Variable + IntVar,
-    {
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()> {
         unimplemented!()
     }
 }

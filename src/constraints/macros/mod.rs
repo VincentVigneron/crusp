@@ -3,7 +3,12 @@ macro_rules! constraint_build {
     (@Imports) => {
         use std::marker::PhantomData;
         #[allow(unused_imports)]
-        use $crate::variables::{ViewIndex,Variable,VariableState,VariableError};
+        use $crate::variables::{
+            ViewIndex,
+            Variable,
+            VariableState,
+            VariableError,
+            VariableView};
         use $crate::variables::handlers::{
             VariablesHandler,
             SpecificVariablesHandler,
@@ -27,7 +32,7 @@ macro_rules! constraint_build {
     ) => {
         #[derive(Clone)]
         #[allow(non_camel_case_types)]
-        struct StructViews<$($var: Into<ViewIndex> + 'static),+> {
+        struct StructViews<$($var: VariableView + Into<ViewIndex> + 'static),+> {
             $($var: $var),+
         }
     };
@@ -38,7 +43,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
-        impl<$($var: Into<ViewIndex>),+> StructViews<$($var),+> {
+        impl<$($var: VariableView + Into<ViewIndex>),+> StructViews<$($var),+> {
             #[allow(non_snake_case)]
             #[allow(non_camel_case_types)]
             pub fn retrieve_variables<'a, $($var_type: 'a + Variable),+, H>(
@@ -69,7 +74,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: VariableView + Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             indexes: Vec<ViewIndex>,
@@ -86,7 +91,7 @@ macro_rules! constraint_build {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
         #[derive(Clone)]
-        pub struct Constraint<$($var: Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
+        pub struct Constraint<$($var: VariableView + Into<ViewIndex> + 'static),+,$($var_type: $($var_bound+)+),+> {
             variables: StructViews<$($var),+>,
             propagator: $propagator,
             indexes: Vec<ViewIndex>,
@@ -102,7 +107,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: 'static + Clone + Into<ViewIndex>),+,
+        impl<$($var: 'static + Clone + VariableView + Into<ViewIndex>),+,
         $($var_type: 'static + Variable + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
@@ -168,7 +173,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: 'static + Clone + Into<ViewIndex>),+,
+        impl<$($var: 'static + Clone + VariableView + Into<ViewIndex>),+,
         $($var_type: 'static + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>
@@ -237,7 +242,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
             where
-                $($var: Into<ViewIndex> + Clone),+,
+                $($var: VariableView + Into<ViewIndex> + Clone),+,
                 $($var_type: $($var_bound+)+),+
                 {
 
@@ -283,7 +288,7 @@ macro_rules! constraint_build {
         #[allow(non_snake_case)]
         impl<$($var),+, $($var_type),+> Constraint<$($var),+, $($var_type),+>
             where
-                $($var: Into<ViewIndex> + Clone),+,
+                $($var: VariableView + Into<ViewIndex> + Clone),+,
                 $($var_type: $($var_bound+)+),+
                 {
 
@@ -328,7 +333,7 @@ macro_rules! constraint_build {
         pub fn $fnnew<$($var),+,$($var_type),+>($($var: &$var),+,$($param: $tparam),*)
             -> Constraint<$($var),+,$($var_type),+>
             where
-            $($var: Into<ViewIndex> + Clone),+,
+            $($var: VariableView + Into<ViewIndex> + Clone),+,
             $($var_type: $($var_bound+)+),+
             {
                 Constraint::$fnnew($($var),+,$($param),*)
