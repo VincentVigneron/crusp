@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate solver_cp;
 
-use solver_cp::branchers::Brancher;
+use solver_cp::branchers::BranchersHandler;
 use solver_cp::branchers::brancher::DefaultBrancher;
 use solver_cp::branchers::values_selector::MinValueSelector;
 use solver_cp::branchers::variables_selector::SequentialVariableSelector;
@@ -47,8 +47,10 @@ fn main() {
     let variables_selector =
         SequentialVariableSelector::new(vec![a, b, c].into_iter()).unwrap();
     let values_selector = MinValueSelector::new();
-    let mut brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
-    brancher.branch(&variables_handler);
+    let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+    let mut branchers_handler = BranchersHandler::new();
+    branchers_handler.add_specific_brancher(Box::new(brancher));
+    branchers_handler.branch(&variables_handler).ok();
 
     // INIT
     println!("#############");
