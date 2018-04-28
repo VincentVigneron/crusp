@@ -4,8 +4,8 @@ use constraints::handlers::ConstraintsHandler;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use variables::VariableError;
-use variables::handlers::VariablesHandler;
+use variables::{Variable, VariableError, ViewIndex};
+use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -36,8 +36,13 @@ where
         }
     }
 
-    pub fn print_variables(&self) {
-        println!("{:?}", self.variables);
+    pub fn get_variable<'a, Var, View>(&'a self, view: &View) -> &'a Var
+    where
+        Var: Variable,
+        View: Into<ViewIndex> + 'static,
+        Variables: SpecificVariablesHandler<Var, View>,
+    {
+        get_from_handler(&self.variables, view)
     }
 
     pub fn propagate(&mut self) -> Result<PropagationState, VariableError> {

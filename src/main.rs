@@ -9,6 +9,7 @@ use solver_cp::constraints::handlers::*;
 use solver_cp::spaces::{Solver, Space};
 use solver_cp::variables::Array;
 use solver_cp::variables::handlers::*;
+use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;
 
 fn main() {
@@ -44,8 +45,9 @@ fn main() {
     //);
     let variables_handler = variables_handler.finalize();
 
-    let variables_selector =
-        SequentialVariableSelector::new(vec![a, b, c].into_iter()).unwrap();
+    let variables_selector = SequentialVariableSelector::new(
+        vec![a.clone(), b.clone(), c.clone()].into_iter(),
+    ).unwrap();
     let values_selector = MinValueSelector::new();
     let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
     branchers_handler.add_specific_brancher(Box::new(brancher));
@@ -54,7 +56,11 @@ fn main() {
     let space = Space::new(variables_handler, constraints_handler, branchers_handler);
     let mut solver = Solver::new(space);
     if solver.solve() {
-        solver.solution().unwrap().print_variables();
+        let solution = solver.solution().unwrap();
+        let a = solution.get_variable(&a).value().unwrap();
+        let b = solution.get_variable(&b).value().unwrap();
+        let c = solution.get_variable(&c).value().unwrap();
+        println!("{} < {} < {}", a, b, c);
     } else {
         println!("No solution");
     }
