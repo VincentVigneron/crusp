@@ -2,6 +2,7 @@ use super::VariableSelector;
 use variables::{Variable, VariableView, ViewIndex};
 use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
 
+#[derive(Clone, Debug)]
 pub struct SequentialVariableSelector<View>
 where
     View: VariableView + Clone + Into<ViewIndex> + 'static,

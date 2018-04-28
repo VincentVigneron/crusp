@@ -11,7 +11,7 @@ use super::{Variable, VariableError, VariableState};
 // Iterable => iter new_from_values
 
 pub trait IntVar: Variable + Eq {
-    type Type: Ord + PartialOrd;
+    type Type: Ord + PartialOrd + Clone + Eq + PartialEq;
     fn size(&self) -> usize;
     fn min(&self) -> Self::Type;
     fn max(&self) -> Self::Type;

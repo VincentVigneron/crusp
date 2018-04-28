@@ -2,7 +2,7 @@
 extern crate solver_cp;
 
 use solver_cp::branchers::Brancher;
-use solver_cp::branchers::handlers::DefaultBrancher;
+use solver_cp::branchers::brancher::DefaultBrancher;
 use solver_cp::branchers::values_selector::MinValueSelector;
 use solver_cp::branchers::variables_selector::SequentialVariableSelector;
 use solver_cp::constraints::handlers::*;
