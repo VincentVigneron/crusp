@@ -47,6 +47,8 @@ pub mod propagator {
             _array: &mut Array<VarType>,
             state: &mut Option<RegularState>,
         ) -> Result<PropagationState, VariableError> {
+            //self.output = self.intput;
+            //self.input = None;
             if state.is_none() {
                 *state = Some(RegularState {});
             }
