@@ -17,12 +17,29 @@ pub mod propagator {
     pub struct RegularState {}
 
     #[derive(Debug, Clone)]
-    pub struct RegularPropagator {}
+    pub struct RegularPropagator {
+        input: Option<RegularState>,
+        output: Option<RegularState>,
+    }
 
     impl Propagator for RegularPropagator {}
     impl RegularPropagator {
         pub fn new() -> RegularPropagator {
-            RegularPropagator {}
+            RegularPropagator {
+                input: None,
+                output: None,
+            }
+        }
+
+        pub fn prepare(&mut self, state: RegularState) {
+            self.input = Some(state);
+        }
+
+        pub fn retrieve_state(&mut self) -> Option<RegularState> {
+            use std::mem;
+            let mut state = None;
+            mem::swap(&mut state, &mut self.output);
+            state
         }
 
         pub fn propagate<VarType: ValuesIntVar>(
