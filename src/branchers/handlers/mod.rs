@@ -1,69 +1,54 @@
+use super::{Brancher, ValuesSelector, VariableSelector};
 use std::marker::PhantomData;
-//use variables::ViewIndex;
-//use variables::handlers::{get_from_handler, get_mut_from_handler,
-//SpecificVariablesHandler, VariablesHandler, ViewIndex};
-use variables::ViewIndex;
-use variables::handlers::VariablesHandler;
-//use variables::int_var::*;
+use variables::{Variable, VariableView, ViewIndex};
+use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
 
-pub trait VariableSelector<Handler>
+pub struct DefaultBrancher<View, VarSel, ValSel>
 where
-    Handler: VariablesHandler,
-{
-    fn select(&mut self, variables: &Handler) -> Option<ViewIndex>;
-}
-
-pub trait ValuesSelector<Handler>
-where
-    Handler: VariablesHandler,
-{
-    fn select(
-        &mut self,
-        variables: &Handler,
-        view: ViewIndex,
-    ) -> Option<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>>;
-}
-
-pub trait Brancher<Handler>
-where
-    Handler: VariablesHandler,
-{
-    fn branch(&mut self, variables: &mut Handler) -> Result<(), ()>;
-}
-
-pub struct DefaultBrancher<Handler, VarSel, ValSel>
-where
-    Handler: VariablesHandler,
-    VarSel: VariableSelector<Handler>,
-    ValSel: ValuesSelector<Handler>,
+    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    VarSel: VariableSelector<View>,
+    ValSel: ValuesSelector<View>,
 {
     variables_selector: VarSel,
     values_selector: ValSel,
-    phantom: PhantomData<Handler>,
+    /// Required for View
+    phantom_view: PhantomData<View>,
 }
 
-impl<Handler, VarSel, ValSel> Brancher<Handler>
-    for DefaultBrancher<Handler, VarSel, ValSel>
+impl<View, VarSel, ValSel> DefaultBrancher<View, VarSel, ValSel>
 where
-    Handler: VariablesHandler,
-    VarSel: VariableSelector<Handler>,
-    ValSel: ValuesSelector<Handler>,
+    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    VarSel: VariableSelector<View>,
+    ValSel: ValuesSelector<View>,
 {
-    fn branch(&mut self, variables: &mut Handler) -> Result<(), ()> {
-        let variable = self.variables_selector.select(&variables);
-        match variable {
-            Some(idx) => {
-                let values = self.values_selector.select(&variables, idx);
-                match values {
-                    Some(values) => {
-                        //Ok(values)
-                        Ok(())
-                    }
-                    None => Err(()),
-                }
-            }
-            None => Err(()),
-        }
+    pub fn new(
+        variables_selector: VarSel,
+        values_selector: ValSel,
+    ) -> Option<DefaultBrancher<View, VarSel, ValSel>> {
+        Some(DefaultBrancher {
+            variables_selector: variables_selector,
+            values_selector: values_selector,
+            phantom_view: PhantomData,
+        })
+    }
+}
+
+impl<View, VarSel, ValSel> Brancher<View> for DefaultBrancher<View, VarSel, ValSel>
+where
+    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    VarSel: VariableSelector<View>,
+    ValSel: ValuesSelector<View>,
+{
+    fn branch<Handler, Var>(
+        &mut self,
+        variables: &Handler,
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>
+    where
+        Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
+        Var: Variable,
+    {
+        let variable = self.variables_selector.select(variables)?;
+        self.values_selector.select(variables, variable)
     }
 }
 
