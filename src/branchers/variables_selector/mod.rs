@@ -1,39 +1,30 @@
 use super::VariableSelector;
-use std::marker::PhantomData;
 use variables::{Variable, VariableView, ViewIndex};
 use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
 
-pub struct SequentialVariableSelector<Handler, Var, View>
+pub struct SequentialVariableSelector<View>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
-    Var: Variable,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
 {
     variables: Vec<View>,
-    phantom_handler: PhantomData<Handler>,
-    phantom_var: PhantomData<Var>,
 }
 
-impl<Handler, Var, View> SequentialVariableSelector<Handler, Var, View>
+impl<View> SequentialVariableSelector<View>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
-    Var: Variable,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
 {
     // Check variables empty and if no doublon
     pub fn new<Views: Iterator<Item = View>>(
         variables: Views,
-    ) -> Result<SequentialVariableSelector<Handler, Var, View>, ()> {
+    ) -> Result<SequentialVariableSelector<View>, ()> {
         Ok(SequentialVariableSelector {
             variables: variables.collect(),
-            phantom_handler: PhantomData,
-            phantom_var: PhantomData,
         })
     }
 }
 
 impl<Handler, Var, View> VariableSelector<Handler, Var, View>
-    for SequentialVariableSelector<Handler, Var, View>
+    for SequentialVariableSelector<View>
 where
     Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
     Var: Variable,
