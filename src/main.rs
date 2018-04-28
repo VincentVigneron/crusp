@@ -1,21 +1,13 @@
 #[macro_use]
 extern crate solver_cp;
 
-// SPECIFIC ID
-// #[derive(Eq)]
-// struct SpecificId {
-//  puid: ProcessUniqueId,
-//  id: Some(usize),
-// }
-
-//use solver_cp::branchers::handlers::*;
-//use solver_cp::branchers::handlers::*;
+use solver_cp::branchers::Brancher;
+use solver_cp::branchers::handlers::DefaultBrancher;
+use solver_cp::branchers::values_selector::MinValueSelector;
+use solver_cp::branchers::variables_selector::SequentialVariableSelector;
 use solver_cp::constraints::handlers::*;
-//use solver_cp::spaces::*;
-//use solver_cp::variables::*;
 use solver_cp::variables::Array;
 use solver_cp::variables::handlers::*;
-//use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;
 
 fn main() {
@@ -39,7 +31,7 @@ fn main() {
         let f = e[0];
         let g = var int(3 .. 5);
         let i = var int(3 .. 3);
-        let j = var int(3 .. 3);
+        let j = var int(3 .. 4);
         );
     constraints!(
         handler = constraints_handler;
@@ -50,8 +42,15 @@ fn main() {
         constraint i < j;
         constraint increasing(e);
         );
-    // INIT
     let mut variables_handler = variables_handler.finalize();
+
+    let variables_selector =
+        SequentialVariableSelector::new(vec![a, b, c].into_iter()).unwrap();
+    let values_selector = MinValueSelector::new();
+    let mut brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+    brancher.branch(&variables_handler);
+
+    // INIT
     println!("#############");
     println!("{:?}", variables_handler);
     println!("=============");
