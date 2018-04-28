@@ -1,36 +1,34 @@
-/*
-use branchers::handlers::BranchersHandler;
+use branchers::BranchersHandler;
+use constraints::PropagationState;
 use constraints::handlers::ConstraintsHandler;
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::marker::PhantomData;
+use variables::VariableError;
 use variables::handlers::VariablesHandler;
-
-// Space : Constraints + Variables
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub struct Space<Variables, Constraints, Branchers>
+pub struct Space<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
     variables: Variables,
     constraints: Constraints,
-    brancher: Branchers,
+    brancher: BranchersHandler<Variables>,
 }
 
-impl<Variables, Constraints, Branchers> Space<Variables, Constraints, Branchers>
+impl<Variables, Constraints> Space<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + 'static + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
     pub fn new(
         variables: Variables,
         constraints: Constraints,
-        brancher: Branchers,
-    ) -> Space<Variables, Constraints, Branchers> {
+        brancher: BranchersHandler<Variables>,
+    ) -> Space<Variables, Constraints> {
         Space {
             variables: variables,
             constraints: constraints,
@@ -38,64 +36,55 @@ where
         }
     }
 
-    pub fn propagate(&mut self) -> () {
-        self.constraints.propagate_all(&mut self.variables);
+    pub fn print_variables(&self) {
+        println!("{:?}", self.variables);
     }
 
-    pub fn branch(
-        &mut self,
-    ) -> Option<
-        Box<
-            Iterator<Item = Box<Fn(&mut Space<Variables, Constraints, Branchers>) -> ()>>,
-        >,
-    > {
-        unimplemented!()
+    pub fn propagate(&mut self) -> Result<PropagationState, VariableError> {
+        self.constraints.propagate_all(&mut self.variables)
+    }
+
+    pub fn branch(&mut self) -> Option<SpaceIterator<Variables, Constraints>> {
+        SpaceIterator::new(self)
     }
 }
 
-pub struct SpaceIterator<Variables, Constraints, Branchers>
+pub struct SpaceIterator<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
     branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> ()>>>,
     phantom_constraints: PhantomData<Constraints>,
-    phantom_branchers: PhantomData<Branchers>,
 }
 
-impl<Variables, Constraints, Branchers> SpaceIterator<Variables, Constraints, Branchers>
+impl<Variables, Constraints> SpaceIterator<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + 'static + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
     fn new(
-        space: &Space<Variables, Constraints, Branchers>,
-    ) -> Option<SpaceIterator<Variables, Constraints, Branchers>> {
+        space: &mut Space<Variables, Constraints>,
+    ) -> Option<SpaceIterator<Variables, Constraints>> {
         space
             .brancher
-            .branch_fn(&space.variables)
+            .branch(&space.variables)
+            .ok()
             .map(|branches| SpaceIterator {
                 branches: branches,
                 phantom_constraints: PhantomData,
-                phantom_branchers: PhantomData,
             })
     }
 }
 
-impl<Variables, Constraints, Branchers> Iterator
-    for SpaceIterator<Variables, Constraints, Branchers>
+impl<Variables, Constraints> Iterator for SpaceIterator<Variables, Constraints>
 where
-    Variables: VariablesHandler + 'static,
+    Variables: VariablesHandler + 'static + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
-    type Item = Box<Fn(&mut Space<Variables, Constraints, Branchers>) -> ()>;
+    type Item = Box<Fn(&mut Space<Variables, Constraints>) -> ()>;
 
-    fn next(
-        &mut self,
-    ) -> Option<Box<Fn(&mut Space<Variables, Constraints, Branchers>) -> ()>> {
+    fn next(&mut self) -> Option<Box<Fn(&mut Space<Variables, Constraints>) -> ()>> {
         match self.branches.next() {
             Some(branch) => Some(Box::new(move |space| {
                 branch(&mut space.variables);
@@ -107,43 +96,46 @@ where
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub struct Solver<Variables, Constraints, Branchers>
+pub struct Solver<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
-    init: Space<Variables, Constraints, Branchers>,
+    init: Space<Variables, Constraints>,
+    solution: Option<Space<Variables, Constraints>>,
 }
 
-enum SearchState<Variables, Constraints, Branchers>
+enum SearchState<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
     Node(
-        Space<Variables, Constraints, Branchers>,
-        Box<Fn(&mut Space<Variables, Constraints, Branchers>) -> ()>,
+        Space<Variables, Constraints>,
+        Box<Fn(&mut Space<Variables, Constraints>) -> ()>,
     ),
     Finish,
     BackTrack,
 }
 
-impl<Variables, Constraints, Branchers> Solver<Variables, Constraints, Branchers>
+impl<Variables, Constraints> Solver<Variables, Constraints>
 where
-    Variables: VariablesHandler,
+    Variables: VariablesHandler + 'static + Debug,
     Constraints: ConstraintsHandler<Variables>,
-    Branchers: BranchersHandler<Variables>,
 {
-    pub fn new(
-        space: Space<Variables, Constraints, Branchers>,
-    ) -> Solver<Variables, Constraints, Branchers> {
-        Solver { init: space }
+    pub fn new(space: Space<Variables, Constraints>) -> Solver<Variables, Constraints> {
+        Solver {
+            init: space,
+            solution: None,
+        }
     }
 
     pub fn solve(&mut self) -> bool {
-        self.init.propagate();
+        let prop = self.init.propagate();
+        if prop.is_err() {
+            return false;
+        }
+        println!("{:?}", self.init.variables);
         let mut nodes = VecDeque::new();
         let branches = match self.init.branch() {
             Some(branches) => branches,
@@ -168,9 +160,21 @@ where
             match state {
                 SearchState::Node(mut space, branch) => {
                     branch(&mut space);
-                    let branches = match self.init.branch() {
+                    let prop = space.propagate();
+                    if prop.is_err() {
+                        if nodes.is_empty() {
+                            return false;
+                        } else {
+                            nodes.pop_back();
+                        }
+                    }
+                    let branches = match space.branch() {
                         Some(branches) => branches,
-                        _ => return false,
+                        // No new branch no failing on propagation success !
+                        _ => {
+                            self.solution = Some(space.clone());
+                            return true;
+                        }
                     };
                     nodes.push_back((space, branches));
                 }
@@ -182,5 +186,11 @@ where
         }
         false
     }
+
+    pub fn solution(&mut self) -> Option<Space<Variables, Constraints>> {
+        use std::mem;
+        let mut sol = None;
+        mem::swap(&mut sol, &mut self.solution);
+        sol
+    }
 }
-*/

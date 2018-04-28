@@ -28,11 +28,12 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler
         // Option<ConstraintState> instead
         let mut change = false;
         for constraint in self.constraints.iter_mut() {
-            change = change || match constraint.propagate(variables_handler)? {
+            let has_change = match constraint.propagate(variables_handler)? {
                 PropagationState::FixPoint => true,
                 PropagationState::Subsumed => true,
                 PropagationState::NoChange => false,
             };
+            change = change || has_change;
         }
         if !change {
             return Ok(PropagationState::FixPoint);
@@ -44,11 +45,12 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler
             for constraint in self.constraints.iter_mut() {
                 let mut states = variables_states.iter();
                 if constraint.affected_by_changes(&mut states) {
-                    change = change || match constraint.propagate(variables_handler)? {
+                    let has_change = match constraint.propagate(variables_handler)? {
                         PropagationState::FixPoint => true,
                         PropagationState::Subsumed => true,
                         PropagationState::NoChange => false,
                     };
+                    change = change || has_change;
                 }
             }
             if !change {

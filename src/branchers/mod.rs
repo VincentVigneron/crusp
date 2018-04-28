@@ -40,6 +40,7 @@ where
     ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>;
 }
 
+use std::fmt::Debug;
 pub trait Brancher<Handler> {
     fn branch(
         &mut self,
