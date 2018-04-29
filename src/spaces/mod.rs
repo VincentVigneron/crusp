@@ -1,13 +1,11 @@
 use branchers::BranchersHandler;
 use constraints::PropagationState;
 use constraints::handlers::ConstraintsHandler;
-use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use variables::{Variable, VariableError, ViewIndex};
 use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Space<Variables, Constraints>
 where
@@ -17,6 +15,15 @@ where
     variables: Variables,
     constraints: Constraints,
     brancher: BranchersHandler<Variables>,
+}
+
+pub enum SpaceState<Variables, Constraints>
+where
+    Variables: VariablesHandler + 'static + Debug,
+    Constraints: ConstraintsHandler<Variables>,
+{
+    Subsumed,
+    Branches(SpaceIterator<Variables, Constraints>),
 }
 
 impl<Variables, Constraints> Space<Variables, Constraints>
@@ -45,11 +52,20 @@ where
         get_from_handler(&self.variables, view)
     }
 
-    pub fn propagate(&mut self) -> Result<PropagationState, VariableError> {
+    // disable run method after it was used (chagne type/ using state)..
+    pub fn run(&mut self) -> Result<SpaceState<Variables, Constraints>, VariableError> {
+        self.propagate()?;
+        match self.branch() {
+            Some(branches) => Ok(SpaceState::Branches(branches)),
+            _ => Ok(SpaceState::Subsumed),
+        }
+    }
+
+    fn propagate(&mut self) -> Result<PropagationState, VariableError> {
         self.constraints.propagate_all(&mut self.variables)
     }
 
-    pub fn branch(&mut self) -> Option<SpaceIterator<Variables, Constraints>> {
+    fn branch(&mut self) -> Option<SpaceIterator<Variables, Constraints>> {
         SpaceIterator::new(self)
     }
 }
@@ -96,106 +112,5 @@ where
             })),
             _ => None,
         }
-    }
-}
-
-#[allow(dead_code)]
-#[derive(Clone)]
-pub struct Solver<Variables, Constraints>
-where
-    Variables: VariablesHandler + Debug,
-    Constraints: ConstraintsHandler<Variables>,
-{
-    init: Space<Variables, Constraints>,
-    solution: Option<Space<Variables, Constraints>>,
-}
-
-enum SearchState<Variables, Constraints>
-where
-    Variables: VariablesHandler + Debug,
-    Constraints: ConstraintsHandler<Variables>,
-{
-    Node(
-        Space<Variables, Constraints>,
-        Box<Fn(&mut Space<Variables, Constraints>) -> ()>,
-    ),
-    Finish,
-    BackTrack,
-}
-
-impl<Variables, Constraints> Solver<Variables, Constraints>
-where
-    Variables: VariablesHandler + 'static + Debug,
-    Constraints: ConstraintsHandler<Variables>,
-{
-    pub fn new(space: Space<Variables, Constraints>) -> Solver<Variables, Constraints> {
-        Solver {
-            init: space,
-            solution: None,
-        }
-    }
-
-    pub fn solve(&mut self) -> bool {
-        let prop = self.init.propagate();
-        if prop.is_err() {
-            return false;
-        }
-        println!("{:?}", self.init.variables);
-        let mut nodes = VecDeque::new();
-        let branches = match self.init.branch() {
-            Some(branches) => branches,
-            _ => return false,
-        };
-        nodes.push_back((self.init.clone(), branches));
-
-        'main: loop {
-            let state = {
-                match nodes.back_mut() {
-                    Some(&mut (ref mut space, ref mut branches)) => match branches.next()
-                    {
-                        Some(branch) => {
-                            let space = space.clone();
-                            SearchState::Node(space, branch)
-                        }
-                        None => SearchState::BackTrack,
-                    },
-                    None => SearchState::Finish,
-                }
-            };
-            match state {
-                SearchState::Node(mut space, branch) => {
-                    branch(&mut space);
-                    let prop = space.propagate();
-                    if prop.is_err() {
-                        if nodes.is_empty() {
-                            return false;
-                        } else {
-                            nodes.pop_back();
-                        }
-                    }
-                    let branches = match space.branch() {
-                        Some(branches) => branches,
-                        // No new branch no failing on propagation success !
-                        _ => {
-                            self.solution = Some(space.clone());
-                            return true;
-                        }
-                    };
-                    nodes.push_back((space, branches));
-                }
-                SearchState::BackTrack => {
-                    nodes.pop_back();
-                }
-                SearchState::Finish => break 'main,
-            }
-        }
-        false
-    }
-
-    pub fn solution(&mut self) -> Option<Space<Variables, Constraints>> {
-        use std::mem;
-        let mut sol = None;
-        mem::swap(&mut sol, &mut self.solution);
-        sol
     }
 }

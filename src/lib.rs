@@ -10,3 +10,4 @@ pub mod variables;
 pub mod constraints;
 pub mod branchers;
 pub mod spaces;
+pub mod search;
