@@ -18,14 +18,14 @@ pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
     fn finalize(self) -> VarHandler;
 }
 
-pub trait SpecificVariablesHandlerBuilder<Var, View, VarHandler>
+pub trait SpecificVariablesHandlerBuilder<Var, View, VarHandler, Param>
     : VariablesHandlerBuilder<VarHandler>
 where
     Var: Variable,
     View: Into<ViewIndex> + 'static,
     VarHandler: SpecificVariablesHandler<Var, View>,
 {
-    fn add(&mut self, Var) -> View;
+    fn add(&mut self, Param) -> View;
 }
 
 pub trait SpecificVariablesHandler<Var, View>: VariablesHandler
@@ -44,6 +44,8 @@ where
     fn retrieve_all_changed_states(
         &mut self,
     ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
+    fn into_indexes(&self, &View) -> Box<Iterator<Item = ViewIndex>>;
+
     // fn iter(&self) -> &mut Variable;
 }
 

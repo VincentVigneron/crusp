@@ -13,7 +13,7 @@ pub enum VarIndexType {
 #[derive(Clone, Debug)]
 pub struct VarView<Var: Variable> {
     id: ProcessUniqueId,
-    view: VarIndexType,
+    pub view: VarIndexType,
     phantom: PhantomData<Var>,
 }
 
@@ -52,7 +52,7 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
 
 #[derive(Clone, Debug)]
 pub struct ArrayView<Var: Variable> {
-    id: ProcessUniqueId,
+    pub id: ProcessUniqueId,
     x: usize,
     phantom: PhantomData<Var>,
 }
@@ -87,6 +87,36 @@ impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
     }
 }
 
+// Remove Into<ViewIndex>
+// ViewIndex given by variablehandler
+#[derive(Clone, Debug)]
+pub struct RefArrayView<Var: Variable> {
+    id: ProcessUniqueId,
+    x: usize,
+    phantom: PhantomData<Var>,
+}
+impl<Var: Variable> VariableView for RefArrayView<Var> {}
+
+impl<Var: Variable> RefArrayView<Var> {
+    pub fn new(id: ProcessUniqueId, x: usize) -> RefArrayView<Var> {
+        RefArrayView {
+            id: id,
+            x: x,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn get_idx(&self) -> usize {
+        self.x
+    }
+}
+
+impl<Var: Variable> Into<ViewIndex> for RefArrayView<Var> {
+    fn into(self) -> ViewIndex {
+        ViewIndex::new_from_array(self.id, self.x)
+    }
+}
+
 // OTHER SYNTAX
 // variables_handler_build!(
 //      IntVar,
@@ -104,19 +134,27 @@ macro_rules! variables_handler_build {
         use $crate::variables::ViewIndex;
         use $crate::variables::VariableState;
         use $crate::variables::Array;
+        use $crate::variables::RefArray;
         use $crate::variables::List;
-        use $crate::variables::handlers::macros::{VarView, ArrayView, VarIndexType};
+        use $crate::variables::handlers::macros::{
+            VarView,
+            ArrayView,
+            VarIndexType,
+            RefArrayView};
         use $crate::variables::handlers::{
             VariablesHandlerBuilder,
             SpecificVariablesHandler,
-            SpecificVariablesHandlerBuilder};
+            SpecificVariablesHandlerBuilder,
+            };
         use snowflake::ProcessUniqueId;
 
-        #[derive(Debug,Clone)]
+        #[derive(Debug)]
         struct SpecificTypeHandler<Var: Variable> {
             id: ProcessUniqueId,
             variables: Vec<Var>,
             variables_array: Vec<Array<Var>>,
+            variables_ref: Vec<RefArray<Var>>,
+            variables_ref_view: Vec<Vec<VarView<Var>>>,
         }
 
         impl<Var: Variable> SpecificTypeHandler<Var> {
@@ -125,7 +163,59 @@ macro_rules! variables_handler_build {
                     id: ProcessUniqueId::new(),
                     variables: Vec::new(),
                     variables_array: Vec::new(),
+                    variables_ref: Vec::new(),
+                    variables_ref_view: Vec::new(),
                 }
+            }
+        }
+
+        impl<Var: Variable> Clone for SpecificTypeHandler<Var> {
+            fn clone(&self) -> SpecificTypeHandler<Var> {
+                let builder = SpecificTypeHandlerBuilder {
+                    id: self.id,
+                    variables: self.variables.clone(),
+                    variables_array: self.variables_array.clone(),
+                    variables_ref_view: self.variables_ref_view.clone(),
+                };
+                builder.finalize()
+            }
+        }
+
+        #[derive(Debug,Clone)]
+        struct SpecificTypeHandlerBuilder<Var: Variable> {
+            id: ProcessUniqueId,
+            variables: Vec<Var>,
+            variables_array: Vec<Array<Var>>,
+            variables_ref_view: Vec<Vec<VarView<Var>>>,
+        }
+
+        impl<Var: Variable> SpecificTypeHandlerBuilder<Var> {
+            fn new() -> Self {
+                SpecificTypeHandlerBuilder {
+                    id: ProcessUniqueId::new(),
+                    variables: Vec::new(),
+                    variables_array: Vec::new(),
+                    variables_ref_view: Vec::new(),
+                }
+            }
+
+            fn finalize(self) -> SpecificTypeHandler<Var> {
+                unimplemented!()
+                //let variables_ref: Vec<_> = self.variables_ref_view.iter()
+                    //.map(|&view| {
+                        //match view {
+                            //VarIndexType::FromVar(x) =>  self.variables.get_unchecked_mut(x) as *mut _,
+                            //VarIndexType::FromArray(x,y) =>  self.variables_array.get_unchecked_mut(x).variables.get_unchecked_mut(y) as *mut _,
+                        //}
+                    //})
+                    //.collect();
+                //SpecificTypeHandler {
+                    //id: self.id,
+                    //variables: self.variables,
+                    //variables_array: self.variables_array,
+                    //variables_ref: RefArray::new(variables_ref),
+                    //variables_ref_view: self.variables_ref_view,
+                //}
             }
         }
 
@@ -168,7 +258,7 @@ macro_rules! variables_handler_build {
         impl $crate::variables::handlers::VariablesHandler for Handler {
             fn retrieve_all_changed_states(
                 &mut self,
-            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
                 let changed_states = vec![$({
                     let id = self.$type.id.clone();
                     let var_states: Vec<(ViewIndex, _)> = self.$type
@@ -176,17 +266,17 @@ macro_rules! variables_handler_build {
                         .iter_mut()
                         .enumerate()
                         .flat_map(|(x,val)| {
-                              val.iter_mut()
-                                  .enumerate()
-                                  .map(move |(y,val)| (x,y,val.retrieve_state()))
+                            val.iter_mut()
+                                .enumerate()
+                                .map(move |(y,val)| (x,y,val.retrieve_state()))
                         })
-                        .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
+                    .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,y,state)| {
                             let view: ViewIndex =
                                 VarView::<$type>::new_from_array(id, x, y).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     let array_states: Vec<(ViewIndex, _)> = self.$type
                         .variables_array
                         .iter_mut()
@@ -198,7 +288,7 @@ macro_rules! variables_handler_build {
                                 VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     let id = self.$type.id.clone();
                     let views: Vec<(ViewIndex, _)> = self.$type.variables
                         .iter_mut()
@@ -210,67 +300,67 @@ macro_rules! variables_handler_build {
                                 VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     Box::new(
                         var_states.into_iter()
-                            .chain(array_states.into_iter())
-                            .chain(views.into_iter()))
+                        .chain(array_states.into_iter())
+                        .chain(views.into_iter()))
                 }),+];
                 Box::new(
                     changed_states.into_iter().flat_map(|changes| changes)
-                )
+                    )
             }
             fn retrieve_changed_states<Views>(
                 &mut self,
                 views: Views,
-            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
-            where Views: Iterator<Item = ViewIndex> {
-                use $crate::variables::IndexType;
-                let states = views
-                    .map(|idx| {
-                        // maybe using get_id and get_type?
-                        let state = match idx.id {
-                            $(
-                                id if id == self.$type.id => {
-                                    match idx.index_type {
-                                        IndexType::FromVar(x) => {
-                                            unsafe {
-                                                self.$type.variables
-                                                    .get_unchecked_mut(x)
-                                                    .retrieve_state()
+                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
+                where Views: Iterator<Item = ViewIndex> {
+                    use $crate::variables::IndexType;
+                    let states = views
+                        .map(|idx| {
+                            // maybe using get_id and get_type?
+                            let state = match idx.id {
+                                $(
+                                    id if id == self.$type.id => {
+                                        match idx.index_type {
+                                            IndexType::FromVar(x) => {
+                                                unsafe {
+                                                    self.$type.variables
+                                                        .get_unchecked_mut(x)
+                                                        .retrieve_state()
+                                                }
                                             }
-                                        }
-                                        IndexType::FromArray(x) => {
-                                            unsafe {
-                                                self.$type.variables
-                                                    .get_unchecked_mut(x)
-                                                    .retrieve_state()
+                                            IndexType::FromArray(x) => {
+                                                unsafe {
+                                                    self.$type.variables
+                                                        .get_unchecked_mut(x)
+                                                        .retrieve_state()
+                                                }
                                             }
-                                        }
-                                        IndexType::FromArrayVar(x,y) => {
-                                            unsafe {
-                                                self.$type.variables_array
-                                                    .get_unchecked_mut(x)
-                                                    .variables
-                                                    .get_unchecked_mut(y)
-                                                    .retrieve_state()
+                                            IndexType::FromArrayVar(x,y) => {
+                                                unsafe {
+                                                    self.$type.variables_array
+                                                        .get_unchecked_mut(x)
+                                                        .variables
+                                                        .get_unchecked_mut(y)
+                                                        .retrieve_state()
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            )+
-                            _ => {unreachable!()}
-                        };
-                        (idx, state)
-                    })
+                                )+
+                                    _ => {unreachable!()}
+                            };
+                            (idx, state)
+                        })
                     .filter(|&(_,ref state)| *state != VariableState::NoChange)
-                    .collect::<Vec<_>>();
+                        .collect::<Vec<_>>();
                     Box::new(states.into_iter())
-            }
+                }
         }
 
         $(
-            impl SpecificVariablesHandlerBuilder<$type, VarView<$type>, Handler>
+            impl SpecificVariablesHandlerBuilder<$type, VarView<$type>, Handler, $type>
             for Builder {
                 fn add(&mut self, x: $type) -> VarView<$type> {
                     let view = VarView::new(self.$type.id, self.$type.variables.len());
@@ -279,7 +369,7 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView<$type>, Handler>
+            impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView<$type>, Handler, Array<$type>>
             for Builder {
                 fn add(&mut self, x: Array<$type>) -> ArrayView<$type> {
                     let view = ArrayView::new(self.$type.id, self.$type.variables_array.len());
@@ -287,6 +377,16 @@ macro_rules! variables_handler_build {
                     view
                 }
             }
+
+            impl SpecificVariablesHandlerBuilder<RefArray<$type>, RefArrayView<$type>, Handler, Vec<VarView<$type>>>
+            for Builder {
+                fn add(&mut self, x: Vec<VarView<$type>>) -> RefArrayView<$type> {
+                    let view = RefArrayView::new(self.$type.id, self.$type.variables_ref_view.len());
+                    self.$type.variables_ref_view.push(x);
+                    view
+                }
+            }
+
 
             impl SpecificVariablesHandler<$type, VarView<$type>> for Handler {
                 fn get_mut(&mut self, view: &VarView<$type>) -> &mut $type {
@@ -320,6 +420,11 @@ macro_rules! variables_handler_build {
                     }
                 }
 
+                fn into_indexes(&self, view: &VarView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    let view_index: ViewIndex = view.clone().into();
+                    Box::new(vec![view_index].into_iter())
+                }
+
                 fn retrieve_state(&mut self, view: &VarView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
                 }
@@ -327,21 +432,21 @@ macro_rules! variables_handler_build {
                 fn retrieve_states<'a, Views>(
                     &mut self,
                     views: Views,
-                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
                         Views: Iterator<Item = &'a VarView<$type>>,
-                {
-                    let mut states: Vec<(ViewIndex, _)> = Vec::new();
-                    for view in views {
-                        let state = self.get_mut(view).retrieve_state();
-                        let view = view.clone().into();
-                        states.push((view,state));
+                    {
+                        let mut states: Vec<(ViewIndex, _)> = Vec::new();
+                        for view in views {
+                            let state = self.get_mut(view).retrieve_state();
+                            let view = view.clone().into();
+                            states.push((view,state));
+                        }
+                        Box::new(states.into_iter())
                     }
-                    Box::new(states.into_iter())
-                }
                 fn retrieve_all_changed_states(
                     &mut self,
-                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
                     let id = self.$type.id.clone();
                     let views: Vec<(ViewIndex, _)> = self.$type.variables
                         .iter_mut()
@@ -352,7 +457,7 @@ macro_rules! variables_handler_build {
                             let view: ViewIndex = VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     Box::new(views.into_iter())
                 }
             }
@@ -373,50 +478,60 @@ macro_rules! variables_handler_build {
                     self.get_mut(view).retrieve_state()
                 }
 
+                fn into_indexes(&self, view: &ArrayView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    let range = 0..self.$type.variables_array[view.get_idx()].len();
+                    Box::new(range
+                        .map(|y| VarView::<$type>::new_from_array(view.id, view.get_idx(), y))
+                        .map(Into::<ViewIndex>::into)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                    )
+                }
+
                 // Optimize by accessing variabl directly in the data structure
                 fn retrieve_states<'a, Views>(
                     &mut self,
                     views: Views,
-                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
                         Views: Iterator<Item = &'a ArrayView<$type>>,
-                {
-                    let mut states: Vec<(ViewIndex, _)> = Vec::new();
-                    for view in views {
-                        {
-                            let state = self.get_mut(view).retrieve_state();
-                            let view = view.clone().into();
-                            states.push((view,state));
+                    {
+                        let mut states: Vec<(ViewIndex, _)> = Vec::new();
+                        for view in views {
+                            {
+                                let state = self.get_mut(view).retrieve_state();
+                                let view = view.clone().into();
+                                states.push((view,state));
+                            }
+                            for i in 0..(self.get(view).variables.len()) {
+                                let view = view.get(i);
+                                let state = self.get_mut(&view).retrieve_state();
+                                let view = view.clone().into();
+                                states.push((view,state));
+                            }
                         }
-                        for i in 0..(self.get(view).variables.len()) {
-                            let view = view.get(i);
-                            let state = self.get_mut(&view).retrieve_state();
-                            let view = view.clone().into();
-                            states.push((view,state));
-                        }
+                        Box::new(states.into_iter())
                     }
-                    Box::new(states.into_iter())
-                }
                 fn retrieve_all_changed_states(
                     &mut self,
-                ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
                     let id = self.$type.id.clone();
                     let var_states: Vec<(ViewIndex, _)> = self.$type
                         .variables_array
                         .iter_mut()
                         .enumerate()
                         .flat_map(|(x,val)| {
-                              val.iter_mut()
-                                  .enumerate()
-                                  .map(move |(y,val)| (x,y,val.retrieve_state()))
+                            val.iter_mut()
+                                .enumerate()
+                                .map(move |(y,val)| (x,y,val.retrieve_state()))
                         })
-                        .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
+                    .filter(|&(_,_,ref state)| *state != VariableState::NoChange)
                         .map(|(x,y,state)| {
                             let view: ViewIndex =
                                 VarView::<$type>::new_from_array(id, x, y).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     let array_states: Vec<(ViewIndex, _)> = self.$type
                         .variables_array
                         .iter_mut()
@@ -427,10 +542,96 @@ macro_rules! variables_handler_build {
                             let view: ViewIndex = VarView::<$type>::new(id, x).into();
                             (view, state)
                         })
-                        .collect();
+                    .collect();
                     Box::new(var_states.into_iter().chain(array_states.into_iter()))
                 }
             }
-        )+
+
+            impl SpecificVariablesHandler<RefArray<$type>, RefArrayView<$type>> for Handler {
+                fn get_mut(&mut self, view: &RefArrayView<$type>) -> &mut RefArray<$type> {
+                    unsafe {
+                        self.$type.variables_ref.get_unchecked_mut(view.get_idx())
+                    }
+                }
+                fn get(&self, view: &RefArrayView<$type>) -> & RefArray<$type> {
+                    unsafe {
+                        self.$type.variables_ref.get_unchecked(view.get_idx())
+                    }
+                }
+
+                fn retrieve_state(&mut self, view: &RefArrayView<$type>) -> VariableState {
+                    self.get_mut(view).retrieve_state()
+                }
+
+                fn into_indexes(&self, view: &RefArrayView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    Box::new(self.$type.variables_ref_view[view.get_idx()].iter()
+                        .cloned()
+                        .map(Into::<ViewIndex>::into)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                    )
+                }
+
+                // Optimize by accessing variabl directly in the data structure
+                fn retrieve_states<'a, Views>(
+                    &mut self,
+                    views: Views,
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
+                    where
+                        Views: Iterator<Item = &'a RefArrayView<$type>>,
+                    {
+                        unimplemented!()
+                        //let mut states: Vec<(ViewIndex, _)> = Vec::new();
+                        //for view in views {
+                            //{
+                                //let state = self.get_mut(view).retrieve_state();
+                                //let view = view.clone().into();
+                                //states.push((view,state));
+                            //}
+                            //for i in 0..(self.get(view).variables.len()) {
+                                //let view = view.get(i);
+                                //let state = self.get_mut(&view).retrieve_state();
+                                //let view = view.clone().into();
+                                //states.push((view,state));
+                            //}
+                        //}
+                        //Box::new(states.into_iter())
+                    }
+                fn retrieve_all_changed_states(
+                    &mut self,
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                    unimplemented!()
+                    //let id = self.$type.id.clone();
+                    //let var_states: Vec<(ViewIndex, _)> = self.$type
+                        //.variables_array
+                        //.iter_mut()
+                        //.enumerate()
+                        //.flat_map(|(x,val)| {
+                            //val.iter_mut()
+                                //.enumerate()
+                                //.map(move |(y,val)| (x,y,val.retrieve_state()))
+                        //})
+                    //.filter(|&(_,_,ref state)| *state != VariableState::NoChange)
+                        //.map(|(x,y,state)| {
+                            //let view: ViewIndex =
+                                //VarView::<$type>::new_from_array(id, x, y).into();
+                            //(view, state)
+                        //})
+                    //.collect();
+                    //let array_states: Vec<(ViewIndex, _)> = self.$type
+                        //.variables_array
+                        //.iter_mut()
+                        //.enumerate()
+                        //.map(|(x,val)| (x, val.retrieve_state()))
+                        //.filter(|&(_,ref state)| *state != VariableState::NoChange)
+                        //.map(|(x,state)| {
+                            //let view: ViewIndex = VarView::<$type>::new(id, x).into();
+                            //(view, state)
+                        //})
+                    //.collect();
+                    //Box::new(var_states.into_iter().chain(array_states.into_iter()))
+                }
+            }
+            )+
     };
 }
