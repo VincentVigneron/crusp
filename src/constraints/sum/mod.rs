@@ -47,18 +47,15 @@ pub mod propagator {
             let _ = res.weak_upperbound(max)?;
             let _ = res.weak_lowerbound(min)?;
             let f = res.max() - min;
-            //println!("{} {} {}")
             if f < 0 {
                 return Err(VariableError::DomainWipeout);
             }
-            let len = vars.len();
-            for i in 0..len {
-                unsafe {
-                    let var: &mut VarType = array_get_mut!(vars[i]);
-                    let bound = (f / self.coefs[i]) + var.min();
-                    let _ = var.weak_upperbound(bound)?;
-                }
+            let vars = vars.iter_mut().zip(self.coefs.iter());
+            for (var, coef) in vars {
+                let bound = f / coef + var.min();
+                let _ = var.weak_upperbound(bound)?;
             }
+
             Ok(PropagationState::FixPoint)
         }
     }
