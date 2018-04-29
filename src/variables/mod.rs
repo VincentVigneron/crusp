@@ -121,6 +121,14 @@ pub trait Variable: Clone {
     fn retrieve_state(&mut self) -> VariableState;
 }
 
+pub trait List<Var: Variable>: Variable {
+    fn get_mut(&mut self, idx: usize) -> &mut Var;
+    fn get(&self, idx: usize) -> &Var;
+    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a>;
+    fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a>;
+    fn len(&self) -> usize;
+}
+
 #[derive(Debug, Clone)]
 pub struct Array<Var: Variable> {
     pub variables: Vec<Var>,
@@ -136,24 +144,26 @@ impl<Var: Variable> Array<Var> {
             //states: vec![VariableState::NoChange; len],
         })
     }
+}
 
-    pub fn get_mut(&mut self, idx: usize) -> &mut Var {
+impl<Var: Variable> List<Var> for Array<Var> {
+    fn get_mut(&mut self, idx: usize) -> &mut Var {
         unsafe { &mut *(self.variables.get_unchecked_mut(idx) as *mut _) }
     }
 
-    pub fn get(&self, idx: usize) -> &Var {
+    fn get(&self, idx: usize) -> &Var {
         unsafe { self.variables.get_unchecked(idx) }
     }
 
-    pub fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
+    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
         Box::new(self.variables.iter())
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a> {
+    fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a> {
         Box::new(self.variables.iter_mut())
     }
 
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         self.variables.len()
     }
 }
@@ -167,6 +177,75 @@ impl<Var: Variable> Variable for Array<Var> {
     fn retrieve_state(&mut self) -> VariableState {
         self.variables
             .iter()
+            .map(|var| var.get_state())
+            .scan(VariableState::NoChange, |acc, state| {
+                if *acc == VariableState::BoundChange {
+                    return None;
+                }
+                *acc = if *acc == VariableState::NoChange {
+                    state.clone()
+                } else if *state == VariableState::BoundChange {
+                    VariableState::BoundChange
+                } else {
+                    acc.clone()
+                };
+
+                Some(acc.clone())
+            })
+            .last()
+            .unwrap()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RefArray<Var: Variable> {
+    pub variables: Vec<*mut Var>,
+    state: VariableState,
+    //states: Vec<VariableState>,
+}
+
+// REF ARRAY BUILDER
+impl<Var: Variable> RefArray<Var> {
+    pub fn new(len: usize, variables: Vec<*mut Var>) -> Option<Self> {
+        Some(RefArray {
+            variables: variables,
+            state: VariableState::NoChange,
+            //states: vec![VariableState::NoChange; len],
+        })
+    }
+}
+
+impl<Var: Variable> List<Var> for RefArray<Var> {
+    fn get_mut(&mut self, idx: usize) -> &mut Var {
+        unsafe { &mut (**self.variables.get_unchecked_mut(idx)) }
+    }
+
+    fn get(&self, idx: usize) -> &Var {
+        unsafe { &(**self.variables.get_unchecked(idx)) }
+    }
+
+    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
+        unsafe { Box::new(self.variables.iter().map(|&var| &*var)) }
+    }
+
+    fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a> {
+        unsafe { Box::new(self.variables.iter_mut().map(|&mut var| &mut *var)) }
+    }
+
+    fn len(&self) -> usize {
+        self.variables.len()
+    }
+}
+
+impl<Var: Variable> Variable for RefArray<Var> {
+    fn is_fixed(&self) -> bool {
+        unimplemented!()
+    }
+    fn get_state(&self) -> &VariableState {
+        &self.state
+    }
+    fn retrieve_state(&mut self) -> VariableState {
+        self.iter()
             .map(|var| var.get_state())
             .scan(VariableState::NoChange, |acc, state| {
                 if *acc == VariableState::BoundChange {

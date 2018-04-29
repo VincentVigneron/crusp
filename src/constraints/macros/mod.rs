@@ -1,3 +1,4 @@
+//EAch trait bounds can't be duplicated
 #[macro_export]
 macro_rules! constraint_build {
     (@Imports) => {
@@ -22,7 +23,8 @@ macro_rules! constraint_build {
         }
     ) => {
         struct StructVars<'a, $($var_type: 'a + Variable),+> {
-            $($var: &'a mut $tvar),+
+            $($var: &'a mut $tvar),+,
+            $($var_type: PhantomData<$var_type>),+
         }
     };
     (
@@ -59,7 +61,8 @@ macro_rules! constraint_build {
                                           &mut *(variables_handler as *mut _),
                                           &self.$var
                                           )
-                                   ),+
+                                   ),+,
+                                   $($var_type: PhantomData),+
                               }
                           }
                       }
@@ -113,56 +116,56 @@ macro_rules! constraint_build {
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+> {
 
-            fn propagate(&mut self, variables_handler: &mut H)
-                -> Result<PropagationState, VariableError> {
-                let variables =
-                    self.variables.retrieve_variables(variables_handler);
-                self.propagator.$fnpropagate::<$($var_type),+>(
-                    $(variables.$var),+)
-            }
-
-            fn box_clone(&self) -> Box<constraints::Constraint<H>> {
-                let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
-                let cloned: Constraint<$($var),+, $($var_type),+> =
-                    <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
-
-                Box::new(cloned) as Box<constraints::Constraint<H>>
-            }
-
-            fn retrieve_changed_views(
-                &self,
-                variables_handler: &mut H
-            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-                use std::iter;
-                let states = vec![
-                    $(
-                        variables_handler.retrieve_states(
-                            iter::once(&self.variables.$var))
-                    ),+
-                ];
-                let changed: Vec<_> = states.into_iter()
-                    .flat_map(|states| states)
-                    .filter(|&(_,ref state)| *state == VariableState::NoChange)
-                    .collect();
-                Box::new(changed.into_iter())
-            }
-
-            fn affected_by_changes<'a>(
-                &self,
-                states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
-            ) -> bool {
-                for &(ref idx, _) in states {
-                    if self.indexes.contains(&idx) {
-                        return true;
+                fn propagate(&mut self, variables_handler: &mut H)
+                    -> Result<PropagationState, VariableError> {
+                        let variables =
+                            self.variables.retrieve_variables::<$($var_type),+, H>(variables_handler);
+                        self.propagator.$fnpropagate::<$($var_type),+>(
+                            $(variables.$var),+)
                     }
-                }
-                false
-            }
 
-            fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
-                self.indexes.contains(&view_index)
+                fn box_clone(&self) -> Box<constraints::Constraint<H>> {
+                    let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
+                    let cloned: Constraint<$($var),+, $($var_type),+> =
+                        <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
+
+                    Box::new(cloned) as Box<constraints::Constraint<H>>
+                }
+
+                fn retrieve_changed_views(
+                    &self,
+                    variables_handler: &mut H
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                    use std::iter;
+                    let states = vec![
+                        $(
+                            variables_handler.retrieve_states(
+                                iter::once(&self.variables.$var))
+                         ),+
+                    ];
+                    let changed: Vec<_> = states.into_iter()
+                        .flat_map(|states| states)
+                        .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                        .collect();
+                    Box::new(changed.into_iter())
+                }
+
+                fn affected_by_changes<'a>(
+                    &self,
+                    states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
+                    ) -> bool {
+                    for &(ref idx, _) in states {
+                        if self.indexes.contains(&idx) {
+                            return true;
+                        }
+                    }
+                    false
+                }
+
+                fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
+                    self.indexes.contains(&view_index)
+                }
             }
-        }
     };
     (
         @Propagate struct<$($var_type: ident: $($var_bound: path)|+),+> {
@@ -179,57 +182,57 @@ macro_rules! constraint_build {
             > constraints::Constraint<H>
             for Constraint<$($var),+,$($var_type),+> {
 
-            fn propagate(&mut self, variables_handler: &mut H)
-                -> Result<PropagationState, VariableError>
-                {
-                let variables =
-                    self.variables.retrieve_variables(variables_handler);
-                self.propagator.$fnpropagate::<$($var_type),+>(
-                    $(variables.$var),+,
-                    &mut self.state)
-                }
-
-            fn box_clone(&self) -> Box<constraints::Constraint<H>> {
-                let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
-                let cloned: Constraint<$($var),+, $($var_type),+> =
-                    <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
-
-                Box::new(cloned) as Box<constraints::Constraint<H>>
-            }
-            fn retrieve_changed_views(
-                &self,
-                variables_handler: &mut H
-            ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-                use std::iter;
-                let states = vec![
-                    $(
-                        variables_handler.retrieve_states(
-                            iter::once(&self.variables.$var))
-                    ),+
-                ];
-                let changed: Vec<_> = states.into_iter()
-                    .flat_map(|states| states)
-                    .filter(|&(_,ref state)| *state == VariableState::NoChange)
-                    .collect();
-                Box::new(changed.into_iter())
-            }
-
-            fn affected_by_changes<'a>(
-                &self,
-                states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
-            ) -> bool {
-                for &(ref idx, _) in states {
-                    if self.indexes.contains(&idx) {
-                        return true;
+                fn propagate(&mut self, variables_handler: &mut H)
+                    -> Result<PropagationState, VariableError>
+                    {
+                        let variables =
+                            self.variables.retrieve_variables(variables_handler);
+                        self.propagator.$fnpropagate::<$($var_type),+>(
+                            $(variables.$var),+,
+                            &mut self.state)
                     }
-                }
-                false
-            }
 
-            fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
-                self.indexes.contains(&view_index)
+                fn box_clone(&self) -> Box<constraints::Constraint<H>> {
+                    let ref_self: &Constraint<$($var),+, $($var_type),+> = &self;
+                    let cloned: Constraint<$($var),+, $($var_type),+> =
+                        <Constraint<$($var),+,$($var_type),+> as Clone>::clone(ref_self);
+
+                    Box::new(cloned) as Box<constraints::Constraint<H>>
+                }
+                fn retrieve_changed_views(
+                    &self,
+                    variables_handler: &mut H
+                    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+                    use std::iter;
+                    let states = vec![
+                        $(
+                            variables_handler.retrieve_states(
+                                iter::once(&self.variables.$var))
+                         ),+
+                    ];
+                    let changed: Vec<_> = states.into_iter()
+                        .flat_map(|states| states)
+                        .filter(|&(_,ref state)| *state == VariableState::NoChange)
+                        .collect();
+                    Box::new(changed.into_iter())
+                }
+
+                fn affected_by_changes<'a>(
+                    &self,
+                    states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
+                    ) -> bool {
+                    for &(ref idx, _) in states {
+                        if self.indexes.contains(&idx) {
+                            return true;
+                        }
+                    }
+                    false
+                }
+
+                fn affected_by_change(&self, view_index: &ViewIndex, _state: &VariableState) -> bool {
+                    self.indexes.contains(&view_index)
+                }
             }
-        }
     };
     (
         @ConstraintImpl struct<$($var_type: ident: $($var_bound: path)|+),+> {
@@ -262,7 +265,7 @@ macro_rules! constraint_build {
                                        stringify!($propagator),
                                        left,
                                        right
-                                       );
+                                      );
                             }
 
                             Constraint {
@@ -307,7 +310,7 @@ macro_rules! constraint_build {
                                        stringify!($propagator),
                                        left,
                                        right
-                                       );
+                                      );
                             }
 
                             Constraint {

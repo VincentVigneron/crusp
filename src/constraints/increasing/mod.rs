@@ -1,16 +1,18 @@
-use variables::Array;
+use variables::List;
 use variables::int_var::BoundsIntVar;
 
 constraint_build!(
     struct Propagator = propagator::IncreasingPropagator;
     fn new();
-    fn propagate(x: Array<VarType>)
-        where VarType: BoundsIntVar<Type=i32>;
+    fn propagate(x: Array)
+        where
+        VarType: BoundsIntVar<Type=i32>,
+        Array: List<VarType>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
-    use variables::Array;
+    use variables::List;
     use variables::int_var::BoundsIntVar;
     #[derive(Debug, Clone)]
     pub struct IncreasingPropagator {}
@@ -20,11 +22,15 @@ pub mod propagator {
             IncreasingPropagator {}
         }
 
-        pub fn propagate<VarType: BoundsIntVar<Type = i32>>(
+        pub fn propagate<VarType, Array>(
             &self,
-            array: &mut Array<VarType>,
-        ) -> Result<PropagationState, VariableError> {
-            let len = array.variables.len();
+            array: &mut Array,
+        ) -> Result<PropagationState, VariableError>
+        where
+            VarType: BoundsIntVar<Type = i32>,
+            Array: List<VarType>,
+        {
+            let len = array.len();
             for i in 0..(len - 1) {
                 unsafe {
                     let lhs: &mut VarType = array_get_mut!(array[i]);

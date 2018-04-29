@@ -104,6 +104,7 @@ macro_rules! variables_handler_build {
         use $crate::variables::ViewIndex;
         use $crate::variables::VariableState;
         use $crate::variables::Array;
+        use $crate::variables::List;
         use $crate::variables::handlers::macros::{VarView, ArrayView, VarIndexType};
         use $crate::variables::handlers::{
             VariablesHandlerBuilder,
