@@ -4,6 +4,9 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use variables::handlers::VariablesHandler;
 
+#[macro_use]
+pub mod dsl;
+
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct Solver<Variables, Constraints>

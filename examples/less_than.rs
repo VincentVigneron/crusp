@@ -36,7 +36,6 @@ fn main() {
     let values_selector = MinValueSelector::new();
     let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
     branchers_handler.add_specific_brancher(Box::new(brancher));
-    branchers_handler.branch(&variables_handler).ok();
 
     let space = Space::new(variables_handler, constraints_handler, branchers_handler);
     let mut solver = Solver::new(space);
