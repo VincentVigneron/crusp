@@ -206,7 +206,7 @@ pub struct RefArray<Var: Variable> {
 
 // REF ARRAY BUILDER
 impl<Var: Variable> RefArray<Var> {
-    pub fn new(len: usize, variables: Vec<*mut Var>) -> Option<Self> {
+    pub fn new(variables: Vec<*mut Var>) -> Option<Self> {
         Some(RefArray {
             variables: variables,
             state: VariableState::NoChange,
