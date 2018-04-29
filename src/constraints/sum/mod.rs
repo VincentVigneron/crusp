@@ -1,17 +1,17 @@
 use variables::Array;
-use variables::int_var::ValuesIntVar;
+use variables::int_var::BoundsIntVar;
 
 constraint_build!(
     struct Propagator = propagator::SumPropagator;
     fn new(coefs: Vec<i32>);
     fn propagate(res: VarType, vars: Array<VarType>)
-        where VarType: ValuesIntVar<Type=i32>;
+        where VarType: BoundsIntVar<Type=i32>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
     use variables::Array;
-    use variables::int_var::ValuesIntVar;
+    use variables::int_var::BoundsIntVar;
     #[derive(Debug, Clone)]
 
     // !!!!! COEFS > 0
@@ -27,7 +27,7 @@ pub mod propagator {
         // adding to propagator/constraint information about change view
         // add iter to array and size => len
         // [HarveySchimpf02]
-        pub fn propagate<VarType: ValuesIntVar<Type = i32>>(
+        pub fn propagate<VarType: BoundsIntVar<Type = i32>>(
             &self,
             res: &mut VarType,
             vars: &mut Array<VarType>,
