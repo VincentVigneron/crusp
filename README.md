@@ -31,6 +31,7 @@ fn main() {
 ```
 
 ## TODO LIST
+- [ ] TOP PRIORITY: List of Vars
 - [ ] Better name for ConstraintHandler Error.
 - [ ] Adding multiple new functions for constraint\_build macro.
 - [ ] Use where clause for generics instead of inline constraints in constraint\_build macro.
