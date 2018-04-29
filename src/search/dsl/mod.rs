@@ -143,4 +143,27 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
     };
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+         constraint $res:ident = $coefs:ident * $vars: ident;
+         $($tail:tt)*) => {
+        {
+            $constraints.add(Box::new(
+                    $crate::constraints::sum::new(&$res, &$vars, $coefs)));
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
+    //(
+        //variables = $variables: ident; constraints = $constraints: ident;
+         //constraint $r:ident = $a:ident * $x:ident + $b: ident * $y: ident $(+ $c: ident * $z : ident)+;
+         //$($tail:tt)*) => {
+        //{
+            //let mut coeffs
+            //$constraints.add(Box::new(
+                    //$crate::constraints::arithmetic::equal_on_bounds::new(&$x, &$y)));
+
+            //cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        //}
+    //};
 }

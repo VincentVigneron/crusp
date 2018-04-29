@@ -41,7 +41,8 @@ pub trait Propagator {}
 
 #[macro_use]
 pub mod macros;
-pub mod handlers;
 pub mod arithmetic;
 pub mod increasing;
+pub mod handlers;
 pub mod regular;
+pub mod sum;

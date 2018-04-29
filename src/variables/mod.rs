@@ -145,8 +145,16 @@ impl<Var: Variable> Array<Var> {
         unsafe { self.variables.get_unchecked(idx) }
     }
 
+    pub fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
+        Box::new(self.variables.iter())
+    }
+
     pub fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a> {
         Box::new(self.variables.iter_mut())
+    }
+
+    pub fn len(&self) -> usize {
+        self.variables.len()
     }
 }
 impl<Var: Variable> Variable for Array<Var> {
