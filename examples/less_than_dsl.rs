@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate solver_cp;
 
-use solver_cp::search::dsl::*;
-
 fn main() {
     let result = cp_model!(
         model {
