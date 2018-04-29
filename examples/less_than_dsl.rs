@@ -4,7 +4,6 @@ extern crate solver_cp;
 use solver_cp::search::dsl::*;
 
 fn main() {
-    use solver_cp::constraints::handlers::SequentialConstraintsHandler;
     let result = cp_model!(
         model {
             let a = var int(3 .. 10);
