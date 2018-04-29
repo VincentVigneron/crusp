@@ -8,7 +8,6 @@ use solver_cp::branchers::variables_selector::SequentialVariableSelector;
 use solver_cp::constraints::handlers::*;
 use solver_cp::search::Solver;
 use solver_cp::spaces::Space;
-//use solver_cp::variables::Array;
 use solver_cp::variables::handlers::*;
 use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;
@@ -23,27 +22,12 @@ fn main() {
         let a = var int(3 .. 10);
         let b = var int(2 .. 6);
         let c = var int(1 .. 9);
-        //let d = var int((-1) .. 12);
-        //let e = array[10] of var int(1 .. 15);
-        //let f = e[0];
-        //let g = var int(3 .. 5);
-        //let i = var int(3 .. 3);
-        //let j = var int(3 .. 4);
         );
     constraints!(
         handler = constraints_handler;
         constraint a < b;
         constraint b < c;
     );
-    //constraints!(
-    //handler = constraints_handler;
-    //constraint a < b;
-    //constraint c >= b;
-    //constraint d > c;
-    //constraint f |==| g;
-    //constraint i < j;
-    //constraint increasing(e);
-    //);
     let variables_handler = variables_handler.finalize();
 
     let variables_selector = SequentialVariableSelector::new(

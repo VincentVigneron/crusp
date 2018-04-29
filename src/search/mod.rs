@@ -24,7 +24,7 @@ where
         Space<Variables, Constraints>,
         Box<Fn(&mut Space<Variables, Constraints>) -> ()>,
     ),
-    Finish,
+    //Finish,
     BackTrack,
 }
 

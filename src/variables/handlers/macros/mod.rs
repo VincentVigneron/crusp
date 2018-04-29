@@ -45,7 +45,7 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     fn into(self) -> ViewIndex {
         match self.view {
             VarIndexType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
-            VarIndexType::FromArray(x, y) => ViewIndex::new_from_array(self.id, x, y),
+            VarIndexType::FromArray(x, y) => ViewIndex::new_from_array_var(self.id, x, y),
         }
     }
 }
@@ -83,7 +83,7 @@ impl<Var: Variable> ArrayView<Var> {
 
 impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
     fn into(self) -> ViewIndex {
-        ViewIndex::new_from_var(self.id, self.x)
+        ViewIndex::new_from_array(self.id, self.x)
     }
 }
 
@@ -239,7 +239,14 @@ macro_rules! variables_handler_build {
                                                     .retrieve_state()
                                             }
                                         }
-                                        IndexType::FromArray(x,y) => {
+                                        IndexType::FromArray(x) => {
+                                            unsafe {
+                                                self.$type.variables
+                                                    .get_unchecked_mut(x)
+                                                    .retrieve_state()
+                                            }
+                                        }
+                                        IndexType::FromArrayVar(x,y) => {
                                             unsafe {
                                                 self.$type.variables_array
                                                     .get_unchecked_mut(x)

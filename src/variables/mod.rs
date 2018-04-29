@@ -17,7 +17,8 @@ pub enum VariableError {
 #[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum IndexType {
     FromVar(usize),
-    FromArray(usize, usize),
+    FromArray(usize),
+    FromArrayVar(usize, usize),
 }
 
 pub trait VariableView {}
@@ -35,10 +36,18 @@ impl ViewIndex {
             index_type: IndexType::FromVar(x),
         }
     }
-    pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
+
+    pub fn new_from_array(id: ProcessUniqueId, x: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            index_type: IndexType::FromArray(x, y),
+            index_type: IndexType::FromArray(x),
+        }
+    }
+
+    pub fn new_from_array_var(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
+        ViewIndex {
+            id: id,
+            index_type: IndexType::FromArrayVar(x, y),
         }
     }
     // x sub_view_of x
@@ -48,9 +57,14 @@ impl ViewIndex {
             return false;
         }
         match self.index_type {
-            IndexType::FromArray(x, y) => match idx.index_type {
-                IndexType::FromVar(x_) => x == x_,
-                IndexType::FromArray(x_, y_) => x == x_ && y == y_,
+            IndexType::FromArrayVar(x, y) => match idx.index_type {
+                IndexType::FromArray(x_) => x == x_,
+                IndexType::FromArrayVar(x_, y_) => x == x_ && y == y_,
+                _ => false,
+            },
+            IndexType::FromArray(x) => match idx.index_type {
+                IndexType::FromArray(x_) => x == x_,
+                _ => false,
             },
             IndexType::FromVar(x) => match idx.index_type {
                 IndexType::FromVar(x_) => x == x_,
