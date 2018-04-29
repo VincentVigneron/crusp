@@ -41,3 +41,4 @@
 - [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)
 - [ ] Display trait for Variable, VariableHandler, Constraint, ...
 - [ ] Register la cosntraint that modified a variable (i.e. avoid to proagate twice with the same constraint "consecutively").
+- [ ] Remove unecessary macros for specific varaibles handler.
