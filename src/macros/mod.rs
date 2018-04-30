@@ -25,7 +25,7 @@ macro_rules! unwrap_last {
     };
 }
 
-#[allow(unused_macros)]
+#[macro_export]
 macro_rules! expr {
     ($e: expr) => {
         $e

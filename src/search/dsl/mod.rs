@@ -16,20 +16,31 @@ macro_rules! cp_model {
             $($out: ident),+
         );
     ) => {{
+        #[allow(unused_imports)]
         use $crate::constraints::handlers::*;
+        #[allow(unused_imports)]
         use $crate::branchers::*;
+        #[allow(unused_imports)]
         use $crate::branchers::brancher::*;
+        #[allow(unused_imports)]
         use $crate::branchers::values_selector::*;
+        #[allow(unused_imports)]
         use $crate::branchers::variables_selector::*;
+        #[allow(unused_imports)]
         use $crate::constraints::*;
+        #[allow(unused_imports)]
         use $crate::constraints::handlers::*;
+        #[allow(unused_imports)]
         use $crate::search::*;
-        use $crate::search::*;
+        #[allow(unused_imports)]
         use $crate::spaces::*;
-        use $crate::spaces::*;
+        #[allow(unused_imports)]
         use $crate::variables::*;
+        #[allow(unused_imports)]
         use $crate::variables::handlers::*;
+        #[allow(unused_imports)]
         use $crate::variables::int_var::*;
+        #[allow(unused_imports)]
         use $crate::variables::int_var::values_int_var::*;
 
         let mut variables_handler = default_handler::Builder::new();
@@ -165,32 +176,66 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
     };
-    //(
-        //variables = $variables: ident; constraints = $constraints: ident;
-         //constraint $r:ident = $x:ident * $a:tt $(+ $rem: tt)*;
-         //$($tail:tt)*) => {
-        //{
-            //let mut coefs = vec![expr!($a)];
-            //let mut vars = vec![$x];
-            //cp_model!(coefs = coefs; vars = vars; $($rem)*;);
-            ////let RefArray::new(vars);
-            ////$constraints.add(Box::new(
-                    ////$crate::constraints::sum::new(&$r, &vars, coefs)));
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+         constraint $r:ident = ($a:tt * $x:ident + $($rem: tt)*);
+         $($tail:tt)*) => {
+        {
+            let mut coefs = vec![expr!($a)];
+            let mut vars = vec![$x.clone()];
+            cp_model!(coefs = coefs; vars = vars; ($($rem)*));
+            let vars = $variables.add(vars);
+            $constraints.add(Box::new(
+                    $crate::constraints::sum::new(&$r, &vars, coefs)));
 
-            //cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
-        //}
-    //};
-    //(coefs = $coefs: ident; vars = $vars: ident;) => {};
-    //(coefs = $coefs: ident; vars = $vars: ident; $a:ident * $x:ident) => {{
-            //$coefs.push($a);
-            //$vars.push($x);
-    //}};
-    //(
-        //coefs = $coefs: ident; vars = $vars: ident;
-        //$a:ident * $x:expr + $($rem:tt)*;) => {{
-            //$coefs.push($a);
-            //$vars.push(expr!($x));
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+         constraint $r:ident =  ($x:ident + $($rem: tt)*);
+         $($tail:tt)*) => {
+        {
+            let mut coefs = vec![1];
+            let mut vars = vec![$x.clone()];
+            cp_model!(coefs = coefs; vars = vars; ($($rem)*));
+            let vars = $variables.add(vars);
+            $constraints.add(Box::new(
+                    $crate::constraints::sum::new(&$r, &vars, coefs)));
 
-            //cp_model!(coefs = coefs; vars = vars; $($rem)+;);
-    //}};
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
+    (coefs = $coefs: ident; vars = $vars: ident;) => {};
+    (
+        coefs = $coefs: ident; vars = $vars: ident;
+         ($x:ident)
+    ) => {{
+            $coefs.push(1);
+            $vars.push($x.clone());
+    }};
+    (
+        coefs = $coefs: ident; vars = $vars: ident;
+        ($a:tt * $x:ident)
+    ) => {{
+            $coefs.push(expr!($a));
+            $vars.push($x.clone());
+    }};
+    (
+        coefs = $coefs: ident; vars = $vars: ident;
+         ($x:ident + $($rem:tt)*)
+    ) => {{
+            $coefs.push(1);
+            $vars.push($x.clone());
+            cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
+    }};
+    (
+        coefs = $coefs: ident; vars = $vars: ident;
+        ($a:tt * $x:ident + $($rem:tt)*)
+    ) => {{
+            $coefs.push(expr!($a));
+            $vars.push($x.clone());
+
+            cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
+    }};
 }

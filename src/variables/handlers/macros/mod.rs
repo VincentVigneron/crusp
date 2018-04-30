@@ -4,13 +4,13 @@ use variables::{Variable, VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum VarIndexType {
     FromVar(usize),
     FromArray(usize, usize),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct VarView<Var: Variable> {
     id: ProcessUniqueId,
     pub view: VarIndexType,
@@ -50,7 +50,7 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct ArrayView<Var: Variable> {
     pub id: ProcessUniqueId,
     x: usize,
@@ -89,7 +89,7 @@ impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
 
 // Remove Into<ViewIndex>
 // ViewIndex given by variablehandler
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct RefArrayView<Var: Variable> {
     id: ProcessUniqueId,
     x: usize,
