@@ -198,24 +198,33 @@ macro_rules! variables_handler_build {
                     variables_ref_view: Vec::new(),
                 }
             }
-
             fn finalize(self) -> SpecificTypeHandler<Var> {
-                unimplemented!()
-                //let variables_ref: Vec<_> = self.variables_ref_view.iter()
-                    //.map(|&view| {
-                        //match view {
-                            //VarIndexType::FromVar(x) =>  self.variables.get_unchecked_mut(x) as *mut _,
-                            //VarIndexType::FromArray(x,y) =>  self.variables_array.get_unchecked_mut(x).variables.get_unchecked_mut(y) as *mut _,
-                        //}
-                    //})
-                    //.collect();
-                //SpecificTypeHandler {
-                    //id: self.id,
-                    //variables: self.variables,
-                    //variables_array: self.variables_array,
-                    //variables_ref: RefArray::new(variables_ref),
-                    //variables_ref_view: self.variables_ref_view,
-                //}
+                let id = self.id;
+                let mut variables = self.variables;
+                let mut variables_array = self.variables_array;
+                let variables_ref_view = self.variables_ref_view;
+
+                let variables_ref: Vec<RefArray<Var>> = variables_ref_view.iter()
+                    .map(|ref views| {
+                        let ref_array = views.iter().map(|view| {
+                            unsafe{match view.view {
+                                VarIndexType::FromVar(x) =>
+                                    variables.get_unchecked_mut(x) as *mut _,
+                                VarIndexType::FromArray(x,y) =>
+                                    variables_array.get_unchecked_mut(x).variables.get_unchecked_mut(y) as *mut _,
+                            }}
+                        }).collect::<Vec<_>>();
+                        RefArray::new(ref_array).unwrap()
+                    })
+                    .collect();
+                //let variables_ref = RefArray::new(variables_ref);
+                SpecificTypeHandler {
+                    id: id,
+                    variables: variables,
+                    variables_array: variables_array,
+                    variables_ref: variables_ref,
+                    variables_ref_view: variables_ref_view,
+                }
             }
         }
 
@@ -223,7 +232,7 @@ macro_rules! variables_handler_build {
         #[allow(non_snake_case)]
         pub struct Builder {
             $(
-                $type: SpecificTypeHandler<$type>
+                $type: SpecificTypeHandlerBuilder<$type>
              ),+
         }
 
@@ -239,7 +248,7 @@ macro_rules! variables_handler_build {
             pub fn new() -> Builder {
                 Builder {
                     $(
-                        $type: SpecificTypeHandler::new()
+                        $type: SpecificTypeHandlerBuilder::new()
                      ),+
                 }
             }
@@ -249,7 +258,7 @@ macro_rules! variables_handler_build {
             fn finalize(self) -> Handler {
                 Handler {
                     $(
-                        $type: self.$type
+                        $type: self.$type.finalize()
                      ),+
                 }
             }
