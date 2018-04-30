@@ -284,13 +284,6 @@ macro_rules! assert_result_binary_constraint {
 }
 
 #[allow(unused_macros)]
-macro_rules! expr {
-    ($e: expr) => {
-        $e
-    }
-}
-
-#[allow(unused_macros)]
 macro_rules! bound_test {
     ($testname: ident, $var: ty, $fnbound: ident, $op: tt, $min: expr => $max: expr) => {
         #[test]

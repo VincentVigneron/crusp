@@ -31,7 +31,8 @@ fn main() {
 ```
 
 ## TODO LIST
-- [ ] TOP PRIORITY: List of Vars
+- [~] TOP PRIORITY: List of Vars
+- [ ] Detect identic RefArray one refarray for same views (if possible)
 - [ ] Better name for ConstraintHandler Error.
 - [ ] Adding multiple new functions for constraint\_build macro.
 - [ ] Use where clause for generics instead of inline constraints in constraint\_build macro.

@@ -25,7 +25,7 @@ fn main() {
             constraint d < j;
 
 
-            constraint res = coefs * values;
+            constraint res :: coefs * values;
         }
         branch [a,b,c,d,e,f,g,h,i,j];
         solve;

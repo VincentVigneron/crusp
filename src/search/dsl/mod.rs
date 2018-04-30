@@ -145,7 +145,7 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-         constraint $res:ident = $coefs:ident * $vars: ident;
+         constraint $res:ident :: $coefs:ident * $vars: ident;
          $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
@@ -154,16 +154,43 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
     };
+    (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident = sum([$($y: ident),+]*[$($a:expr),+]); $($tail:tt)*) => {
+        {
+            let coefs = vec![$($a),*];
+            let vars = vec![$($y.clone()),*];
+            let vars = $variables.add(vars);
+            $constraints.add(Box::new(
+                    $crate::constraints::sum::new(&$x, &vars, coefs)));
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
     //(
         //variables = $variables: ident; constraints = $constraints: ident;
-         //constraint $r:ident = $a:ident * $x:ident + $b: ident * $y: ident $(+ $c: ident * $z : ident)+;
+         //constraint $r:ident = $x:ident * $a:tt $(+ $rem: tt)*;
          //$($tail:tt)*) => {
         //{
-            //let mut coeffs
-            //$constraints.add(Box::new(
-                    //$crate::constraints::arithmetic::equal_on_bounds::new(&$x, &$y)));
+            //let mut coefs = vec![expr!($a)];
+            //let mut vars = vec![$x];
+            //cp_model!(coefs = coefs; vars = vars; $($rem)*;);
+            ////let RefArray::new(vars);
+            ////$constraints.add(Box::new(
+                    ////$crate::constraints::sum::new(&$r, &vars, coefs)));
 
             //cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         //}
     //};
+    //(coefs = $coefs: ident; vars = $vars: ident;) => {};
+    //(coefs = $coefs: ident; vars = $vars: ident; $a:ident * $x:ident) => {{
+            //$coefs.push($a);
+            //$vars.push($x);
+    //}};
+    //(
+        //coefs = $coefs: ident; vars = $vars: ident;
+        //$a:ident * $x:expr + $($rem:tt)*;) => {{
+            //$coefs.push($a);
+            //$vars.push(expr!($x));
+
+            //cp_model!(coefs = coefs; vars = vars; $($rem)+;);
+    //}};
 }

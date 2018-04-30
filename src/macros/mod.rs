@@ -24,3 +24,10 @@ macro_rules! unwrap_last {
         *$vec.last().unwrap()
     };
 }
+
+#[allow(unused_macros)]
+macro_rules! expr {
+    ($e: expr) => {
+        $e
+    }
+}
