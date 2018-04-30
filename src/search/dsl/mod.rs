@@ -1,7 +1,7 @@
 // More generic rules
 // Replacing variables =..; constraints =..; by space =..;
 // Allow rules with only cosntraints and variables.
-// Don't finalize without solve...
+// Don't call finalize without calling solve befor...
 #[macro_export]
 macro_rules! cp_model {
     (
