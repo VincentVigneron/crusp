@@ -52,10 +52,10 @@ fn main() {
             let r = var int (0 .. 9);
             let y = var int (0 .. 9);
 
-            constraint send = sum([s,e,n,d]*[1000,100,10,1]);
-            constraint more = sum([m,o,r,e]*[1000,100,10,1]);
-            constraint money = sum([m,o,n,e,y]*[10000,1000,100,10,1]);
-            constraint money = sum([send,more]*[1,1]);
+            constraint send = (1000*s + 100*e + 10*n + d);
+            constraint more = (1000*m + 100*o + 10*r + e);
+            constraint money = (10000*m + 1000*o + 100*n + 10*e + y);
+            constraint money = (send + more);
         }
         branch [s,e,n,d,m,o,r,y];
         solve;
