@@ -38,6 +38,8 @@ pub mod propagator {
             VarType: BoundsIntVar<Type = i32>,
             Array: List<VarType>,
         {
+            use variables::VariableState;
+            let mut change = false;
             let _contributions: Vec<_> = vars.iter()
                 .zip(self.coefs.iter())
                 .map(|(var, coef)| coef * (var.max() - var.min()))
@@ -50,8 +52,11 @@ pub mod propagator {
                 .zip(self.coefs.iter())
                 .map(|(var, coef)| coef * var.max())
                 .sum();
-            let _ = res.weak_upperbound(max)?;
-            let _ = res.weak_lowerbound(min)?;
+            let r = res.weak_upperbound(max)?;
+            change = change || (r != VariableState::NoChange);
+            let r = res.weak_lowerbound(min)?;
+            change = change || (r != VariableState::NoChange);
+
             let f = res.max() - min;
             if f < 0 {
                 return Err(VariableError::DomainWipeout);
@@ -59,10 +64,15 @@ pub mod propagator {
             let vars = vars.iter_mut().zip(self.coefs.iter());
             for (var, coef) in vars {
                 let bound = f / coef + var.min();
-                let _ = var.weak_upperbound(bound)?;
+                let r = var.weak_upperbound(bound)?;
+                change = change || (r != VariableState::NoChange);
             }
 
-            Ok(PropagationState::FixPoint)
+            if change {
+                Ok(PropagationState::FixPoint)
+            } else {
+                Ok(PropagationState::NoChange)
+            }
         }
     }
 }

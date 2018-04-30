@@ -30,22 +30,32 @@ pub mod propagator {
             VarType: BoundsIntVar<Type = i32>,
             Array: List<VarType>,
         {
+            use variables::VariableState;
+            let mut change = false;
             let len = array.len();
             for i in 0..(len - 1) {
                 unsafe {
                     let lhs: &mut VarType = array_get_mut!(array[i]);
                     let rhs: &mut VarType = array_get_mut!(array[i + 1]);
-                    let _ = lhs.less_than(rhs)?;
+                    let res = lhs.less_than(rhs)?;
+                    change = change
+                        || (res != (VariableState::NoChange, VariableState::NoChange));
                 }
             }
             for i in 0..(len - 1) {
                 unsafe {
                     let lhs: &mut VarType = array_get_mut!(array[len - 2 - i]);
                     let rhs: &mut VarType = array_get_mut!(array[len - 1 - i]);
-                    let _ = lhs.less_than(rhs)?;
+                    let res = lhs.less_than(rhs)?;
+                    change = change
+                        || (res != (VariableState::NoChange, VariableState::NoChange));
                 }
             }
-            Ok(PropagationState::FixPoint)
+            if change {
+                Ok(PropagationState::FixPoint)
+            } else {
+                Ok(PropagationState::NoChange)
+            }
         }
     }
 }

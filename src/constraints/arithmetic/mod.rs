@@ -1,5 +1,5 @@
 use super::{PropagationState, Propagator};
-use variables::VariableError;
+use variables::{VariableError, VariableState};
 use variables::int_var::{BoundsIntVar, ValuesIntVar};
 
 // using macro
@@ -16,8 +16,15 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut VarType,
         rhs: &mut VarType,
     ) -> Result<PropagationState, VariableError> {
-        let _ = lhs.equal(rhs)?;
-        Ok(PropagationState::FixPoint)
+        let mut change = false;
+        let r = lhs.equal(rhs)?;
+        change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+
+        if change {
+            Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
+        }
     }
 
     pub fn equal_on_bounds<
@@ -28,11 +35,20 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut Left,
         rhs: &mut Right,
     ) -> Result<PropagationState, VariableError> {
-        let _ = lhs.weak_upperbound(rhs.max())?;
-        let _ = rhs.weak_upperbound(lhs.max())?;
-        let _ = lhs.weak_lowerbound(rhs.min())?;
-        let _ = rhs.weak_lowerbound(lhs.min())?;
-        Ok(PropagationState::FixPoint)
+        let mut change = false;
+        let r = lhs.weak_upperbound(rhs.max())?;
+        change = change || (r != VariableState::NoChange);
+        let r = rhs.weak_upperbound(lhs.max())?;
+        change = change || (r != VariableState::NoChange);
+        let r = lhs.weak_lowerbound(rhs.min())?;
+        change = change || (r != VariableState::NoChange);
+        let r = rhs.weak_lowerbound(lhs.min())?;
+        change = change || (r != VariableState::NoChange);
+        if change {
+            Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
+        }
     }
 
     pub fn less_than<VarType: BoundsIntVar<Type = i32>>(
@@ -40,11 +56,18 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut VarType,
         rhs: &mut VarType,
     ) -> Result<PropagationState, VariableError> {
-        let (_, _) = lhs.less_than(rhs)?;
-        if lhs.max() < rhs.min() {
-            Ok(PropagationState::Subsumed)
-        } else {
+        let mut change = false;
+        let r = lhs.less_than(rhs)?;
+        change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+        //if lhs.max() < rhs.min() {
+        //Ok(PropagationState::Subsumed)
+        //} else {
+        //Ok(PropagationState::FixPoint)
+        //}
+        if change {
             Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
         }
     }
 
@@ -53,11 +76,18 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut VarType,
         rhs: &mut VarType,
     ) -> Result<PropagationState, VariableError> {
-        let (_, _) = lhs.less_or_equal_than(rhs)?;
-        if lhs.max() <= rhs.min() {
-            Ok(PropagationState::Subsumed)
-        } else {
+        let mut change = false;
+        let r = lhs.less_or_equal_than(rhs)?;
+        change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+        //if lhs.max() <= rhs.min() {
+        //Ok(PropagationState::Subsumed)
+        //} else {
+        //Ok(PropagationState::FixPoint)
+        //}
+        if change {
             Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
         }
     }
 
@@ -66,11 +96,18 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut VarType,
         rhs: &mut VarType,
     ) -> Result<PropagationState, VariableError> {
-        let (_, _) = lhs.greater_than(rhs)?;
-        if lhs.min() > rhs.max() {
-            Ok(PropagationState::Subsumed)
-        } else {
+        let mut change = false;
+        let r = lhs.greater_than(rhs)?;
+        change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+        //if lhs.min() > rhs.max() {
+        //Ok(PropagationState::Subsumed)
+        //} else {
+        //Ok(PropagationState::FixPoint)
+        //}
+        if change {
             Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
         }
     }
 
@@ -79,11 +116,18 @@ impl ArithmeticComparatorPropagator {
         lhs: &mut VarType,
         rhs: &mut VarType,
     ) -> Result<PropagationState, VariableError> {
-        let (_, _) = lhs.greater_or_equal_than(rhs)?;
-        if lhs.min() >= rhs.max() {
-            Ok(PropagationState::Subsumed)
-        } else {
+        let mut change = false;
+        let r = lhs.greater_or_equal_than(rhs)?;
+        change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+        //if lhs.min() >= rhs.max() {
+        //Ok(PropagationState::Subsumed)
+        //} else {
+        //Ok(PropagationState::FixPoint)
+        //}
+        if change {
             Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
         }
     }
 }
