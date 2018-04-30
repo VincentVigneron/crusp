@@ -85,7 +85,7 @@ macro_rules! cp_model {
         let $x: ident = array[$len: tt] of var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = Array::new(10, SetIntVar::new($min, $max).unwrap()).unwrap();
+        let $x = Array::new($len, SetIntVar::new($min, $max).unwrap()).unwrap();
         let $x = $variables.add($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
