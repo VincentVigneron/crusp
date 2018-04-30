@@ -4,9 +4,9 @@ extern crate solver_cp;
 fn main() {
     let result = cp_model!(
         model {
-            let send = var int (0 .. 9999);
-            let more = var int (0 .. 9999);
-            let money = var int (0 .. 99999);
+            let send = var int (1023 .. 9876);
+            let more = var int (1023 .. 9876);
+            let money = var int (10234 .. 98765);
 
             let s = var int (1 .. 9);
             let e = var int (0 .. 9);
