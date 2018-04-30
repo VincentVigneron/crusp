@@ -1,7 +1,7 @@
 // More generic rules
 // Replacing variables =..; constraints =..; by space =..;
 // Allow rules with only cosntraints and variables.
-// D'on't finalize without solve...
+// Don't finalize without solve...
 #[macro_export]
 macro_rules! cp_model {
     (
@@ -9,12 +9,12 @@ macro_rules! cp_model {
             $($tail:tt)*
         }
         branch [
-            $($var: ident),+
+        $($var: ident),+
         ];
         solve;
         output (
             $($out: ident),+
-        );
+            );
     ) => {{
         #[allow(unused_imports)]
         use $crate::constraints::handlers::*;
@@ -51,7 +51,7 @@ macro_rules! cp_model {
 
         let variables_selector = SequentialVariableSelector::new(
             vec![$($var.clone()),+].into_iter(),
-        ).unwrap();
+            ).unwrap();
         let values_selector = MinValueSelector::new();
         let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
         branchers_handler.add_specific_brancher(Box::new(brancher));
@@ -64,8 +64,8 @@ macro_rules! cp_model {
         if solver.solve() {
             let solution = solver.solution().unwrap();
             Some(($(
-                solution.get_variable(&$out).value().unwrap()
-            ),+))
+                        solution.get_variable(&$out).value().unwrap()
+                   ),+))
         } else {
             None
         }
@@ -136,6 +136,15 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
     };
+    (variables = $variables: ident; constraints = $constraints: ident; constraint increasing([$($x:tt),+]); $($tail:tt)*) => {
+        {
+            {
+                let list = cp_model!(@List in $variables; $($x),*);
+                $constraints.add(Box::new($crate::constraints::increasing::new(&list)));
+            }
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
@@ -186,8 +195,8 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-         constraint $res:ident :: $coefs:ident * $vars: ident;
-         $($tail:tt)*) => {
+        constraint $res:ident :: $coefs:ident * $vars: ident;
+        $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
                     $crate::constraints::sum::new(&$res, &$vars, $coefs)));
@@ -208,8 +217,8 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-         constraint $r:ident = ($a:tt * $x:ident + $($rem: tt)*);
-         $($tail:tt)*) => {
+        constraint $r:ident = ($a:tt * $x:ident + $($rem: tt)*);
+        $($tail:tt)*) => {
         {
             let mut coefs = vec![expr!($a)];
             let mut vars = vec![$x.clone()];
@@ -223,8 +232,9 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-         constraint $r:ident =  ($x:ident + $($rem: tt)*);
-         $($tail:tt)*) => {
+        constraint $r:ident =  ($x:ident + $($rem: tt)*);
+        $($tail:tt)*
+    ) => {
         {
             let mut coefs = vec![1];
             let mut vars = vec![$x.clone()];
@@ -239,33 +249,33 @@ macro_rules! cp_model {
     (coefs = $coefs: ident; vars = $vars: ident;) => {};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-         ($x:ident)
+        ($x:ident)
     ) => {{
-            $coefs.push(1);
-            $vars.push($x.clone());
+        $coefs.push(1);
+        $vars.push($x.clone());
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
         ($a:tt * $x:ident)
     ) => {{
-            $coefs.push(expr!($a));
-            $vars.push($x.clone());
+        $coefs.push(expr!($a));
+        $vars.push($x.clone());
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-         ($x:ident + $($rem:tt)*)
+        ($x:ident + $($rem:tt)*)
     ) => {{
-            $coefs.push(1);
-            $vars.push($x.clone());
-            cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
+        $coefs.push(1);
+        $vars.push($x.clone());
+        cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
         ($a:tt * $x:ident + $($rem:tt)*)
     ) => {{
-            $coefs.push(expr!($a));
-            $vars.push($x.clone());
+        $coefs.push(expr!($a));
+        $vars.push($x.clone());
 
-            cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
+        cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
     }};
 }

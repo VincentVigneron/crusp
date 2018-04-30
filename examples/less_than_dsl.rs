@@ -11,8 +11,7 @@ fn main() {
             constraint a < b;
             constraint b < c;
 
-            let abc = [a,b,c];
-            constraint increasing(abc);
+            constraint increasing([a,b,c]);
         }
         branch [a,b,c];
         solve;
