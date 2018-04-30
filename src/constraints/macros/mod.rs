@@ -22,6 +22,7 @@ macro_rules! constraint_build {
             $( $var: ident: $tvar: ty),+
         }
     ) => {
+        #[allow(non_snake_case)]
         struct StructVars<'a, $($var_type: 'a + Variable),+> {
             $($var: &'a mut $tvar),+,
             $($var_type: PhantomData<$var_type>),+
@@ -257,6 +258,7 @@ macro_rules! constraint_build {
                             use $crate::variables::AllDisjoint;
                             // avoid clone => all disjoint on iter and not into_iter
                             let indexes = vec![$($var.clone().into()),+];
+                            /*
                             let valid = indexes.clone()
                                 .into_iter()
                                 .all_disjoint();
@@ -267,6 +269,7 @@ macro_rules! constraint_build {
                                        right
                                       );
                             }
+                            */
 
                             Constraint {
                                 propagator: <$propagator>::$fnnew($($param),*),
@@ -302,6 +305,7 @@ macro_rules! constraint_build {
                         {
                             use $crate::variables::AllDisjoint;
                             let indexes = vec![$($var.clone().into()),+];
+                            /*
                             let valid = indexes.clone()
                                 .into_iter()
                                 .all_disjoint();
@@ -312,6 +316,7 @@ macro_rules! constraint_build {
                                        right
                                       );
                             }
+                            */
 
                             Constraint {
                                 propagator: <$propagator>::$fnnew($($param),*),

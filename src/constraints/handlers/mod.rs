@@ -38,25 +38,25 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler
         if !change {
             return Ok(PropagationState::FixPoint);
         }
-        let mut variables_states: Vec<_> =
-            variables_handler.retrieve_all_changed_states().collect();
+        //let mut variables_states: Vec<_> =
+        //variables_handler.retrieve_all_changed_states().collect();
         while change {
             change = false;
             for constraint in self.constraints.iter_mut() {
-                let mut states = variables_states.iter();
-                if constraint.affected_by_changes(&mut states) {
-                    let has_change = match constraint.propagate(variables_handler)? {
-                        PropagationState::FixPoint => true,
-                        PropagationState::Subsumed => true,
-                        PropagationState::NoChange => false,
-                    };
-                    change = change || has_change;
-                }
+                //let mut states = variables_states.iter();
+                //if constraint.affected_by_changes(&mut states) {
+                let has_change = match constraint.propagate(variables_handler)? {
+                    PropagationState::FixPoint => true,
+                    PropagationState::Subsumed => true,
+                    PropagationState::NoChange => false,
+                };
+                change = change || has_change;
+                //}
             }
             if !change {
                 return Ok(PropagationState::FixPoint);
             }
-            variables_states = variables_handler.retrieve_all_changed_states().collect();
+            //variables_states = variables_handler.retrieve_all_changed_states().collect();
         }
         //unreachable!()
         Ok(PropagationState::FixPoint)
