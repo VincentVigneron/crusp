@@ -53,17 +53,18 @@ pub mod propagator {
                 .map(|(var, coef)| coef * var.max())
                 .sum();
             let r = res.weak_upperbound(max)?;
+
             change = change || (r != VariableState::NoChange);
             let r = res.weak_lowerbound(min)?;
             change = change || (r != VariableState::NoChange);
 
             let f = res.max() - min;
-            if f < 0 {
-                return Err(VariableError::DomainWipeout);
-            }
+            //if f < 0 {
+            //return Err(VariableError::DomainWipeout);
+            //}
             let vars = vars.iter_mut().zip(self.coefs.iter());
             for (var, coef) in vars {
-                let bound = f / coef + var.min();
+                let bound = (f / coef) + var.min();
                 let r = var.weak_upperbound(bound)?;
                 change = change || (r != VariableState::NoChange);
             }

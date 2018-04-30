@@ -8,11 +8,11 @@ fn main() {
             let more = var int (0 .. 9999);
             let money = var int (0 .. 99999);
 
-            let s = var int (0 .. 9);
+            let s = var int (1 .. 9);
             let e = var int (0 .. 9);
             let n = var int (0 .. 9);
             let d = var int (0 .. 9);
-            let m = var int (0 .. 9);
+            let m = var int (1 .. 9);
             let o = var int (0 .. 9);
             let r = var int (0 .. 9);
             let y = var int (0 .. 9);

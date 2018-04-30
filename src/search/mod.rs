@@ -57,8 +57,10 @@ macro_rules! next_search_state {
                     let space = space.clone();
                     SearchState::Node(space, branch)
                 }
-                None => SearchState::BackTrack,
-            },
+                None => {
+                    SearchState::BackTrack
+                },
+            }
             _ => unreachable!("nodes is empty can't reach this case!"),
         }
     }};
@@ -76,15 +78,15 @@ macro_rules! run_search_state {
                         return true;
                     },
                     Ok(SpaceState::Branches(branches)) => {
+
                         $nodes.push_back((space.clone(), branches));
                     }
-                    _ => {$nodes.pop_back();}
+                    _ => ()
                 }
             }
             SearchState::BackTrack => {
                 $nodes.pop_back();
             }
-            _ => unreachable!("nodes is empty can't reach this case!"),
         }
     }
 }

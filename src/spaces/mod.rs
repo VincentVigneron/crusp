@@ -12,7 +12,7 @@ where
     Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
 {
-    variables: Variables,
+    pub variables: Variables,
     constraints: Constraints,
     brancher: BranchersHandler<Variables>,
 }
