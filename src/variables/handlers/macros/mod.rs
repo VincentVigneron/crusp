@@ -1,5 +1,6 @@
 use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
+use std::ops::Index;
 use variables::{Variable, VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
@@ -80,6 +81,13 @@ impl<Var: Variable> ArrayView<Var> {
         self.x
     }
 }
+
+//impl<Var: Variable> Index<usize> for ArrayView<Var> {
+    //type Output = VarView<Var>;
+    //fn index(&self, idx: usize) -> &VarView<Var> {
+        //&self.get(idx)
+    //}
+//}
 
 impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
     fn into(self) -> ViewIndex {

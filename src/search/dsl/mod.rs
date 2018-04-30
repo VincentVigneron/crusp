@@ -99,6 +99,36 @@ macro_rules! cp_model {
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
+    (@ListBuilder = $list: ident; ) => {};
+    (@ListBuilder = $list: ident; $x: ident) => {
+        $list.push($x.clone());
+    };
+    (@ListBuilder = $list: ident; $x: ident [$i: expr]) => {
+        $list.push($x.get(i));
+    };
+    (@ListBuilder = $list: ident; $x: ident, $($views: tt),*) => {
+        $list.push($x.clone());
+        cp_model!(@ListBuilder = $list; $($views),*);
+    };
+    (@ListBuilder = $list: ident; $x: ident [$i: expr], $($views: tt),*) => {
+        $list.push($x.get(i));
+        cp_model!(@ListBuilder = $list; $($views),*);
+    };
+    (@List in $variables: ident; $($views: tt),*) => {{
+        let mut list = Vec::new();
+        cp_model!(@ListBuilder = list; $($views),+);
+        let list = $variables.add(list);
+        list
+    }};
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+        let $x: ident = [$($views:tt),+];
+        $($tail:tt)*
+    ) => {
+        let $x = cp_model!(@List in $variables; $($views),+);
+
+        cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+    };
     (variables = $variables: ident; constraints = $constraints: ident; constraint increasing($x:ident); $($tail:tt)*) => {
         {
             $constraints.add(Box::new($crate::constraints::increasing::new(&$x)));

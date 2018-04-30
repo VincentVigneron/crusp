@@ -10,6 +10,9 @@ fn main() {
 
             constraint a < b;
             constraint b < c;
+
+            let abc = [a,b,c];
+            constraint increasing(abc);
         }
         branch [a,b,c];
         solve;
