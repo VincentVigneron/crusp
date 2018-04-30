@@ -27,7 +27,7 @@ pub trait Constraint<H: VariablesHandler> {
         states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
     ) -> bool;
     fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool;
-    //fn try_propagate(&mut self, Arc<RefCell<H>>) -> ConstraintState;
+    //fn notify_changed_views(&self, view_index: &Vec<ViewIndex>);
 }
 
 impl<H: VariablesHandler> Clone for Box<Constraint<H>> {
