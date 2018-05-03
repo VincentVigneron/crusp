@@ -80,57 +80,66 @@ pub mod propagator {
 
 pub mod new_version {
     use constraints::{PropagationState, Propagator, VariableError};
-    use variables::List;
+    use std::marker::PhantomData;
+    use variables::{List, Variable, VariableView, ViewIndex};
+    use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
+                              VariablesHandler};
     use variables::int_var::BoundsIntVar;
 
-    /*
     #[allow(non_snake_case)]
-    struct StructVars<'a, $($var_type: 'a + Variable),+> {
-        $($var: &'a mut $tvar),+,
-        $($var_type: PhantomData<$var_type>),+
+    struct Variables<'a, Var: 'a + Variable> {
+        x: &'a mut Var,
+        Var: PhantomData<Var>,
     }
 
-    #[derive(Clone)]
-    #[allow(non_camel_case_types)]
-    struct StructViews<$($var: VariableView + Into<ViewIndex> + 'static),+> {
-        $($var: $var),+
+    #[derive(Debug, Clone)]
+    #[allow(non_snake_case)]
+    struct VariableViews<x: VariableView + Into<ViewIndex> + 'static> {
+        x: x,
     }
+
     #[allow(non_snake_case)]
     #[allow(non_camel_case_types)]
-    impl<$($var: VariableView + Into<ViewIndex>),+> StructViews<$($var),+> {
+    impl<x> VariableViews<x>
+    where
+        x: VariableView + Into<ViewIndex>,
+    {
+        pub fn new(x: x) -> Self {
+            VariableViews { x: x }
+        }
         #[allow(non_snake_case)]
         #[allow(non_camel_case_types)]
-        pub fn retrieve_variables<'a, $($var_type: 'a + Variable),+, H>(
+        pub fn retrieve_variables<'a, Var, Handler>(
             &self,
-            variables_handler: &'a mut H,
-            ) -> StructVars<'a, $($var_type),+>
-            where H: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
-                  {
-                      unsafe {
-                          StructVars {
-                              $(
-                                  $var: get_mut_from_handler(
-                                      &mut *(variables_handler as *mut _),
-                                      &self.$var
-                                      )
-                               ),+,
-                               $($var_type: PhantomData),+
-                          }
-                      }
-                  }
+            variables_handler: &'a mut Handler,
+        ) -> Variables<'a, Var>
+        where
+            Var: 'a + Variable,
+            Handler: VariablesHandler + SpecificVariablesHandler<Var, x>,
+        {
+            unsafe {
+                Variables {
+                    x: get_mut_from_handler(&mut *(variables_handler as *mut _), &self.x),
+                    Var: PhantomData,
+                }
+            }
+        }
     }
 
-    */
     // !!!!! COEFS > 0
     #[derive(Debug, Clone)]
-    pub struct SumPropagator {
+    pub struct SumPropagator<View: VariableView + Into<ViewIndex> + 'static> {
         coefs: Vec<i32>,
+        variable_views: VariableViews<View>,
     }
 
-    impl Propagator for SumPropagator {}
-    impl SumPropagator {
-        pub fn new(coefs: Vec<i32>) -> SumPropagator {
-            SumPropagator { coefs: coefs }
+    //impl Propagator for SumPropagator {}
+    impl<View: VariableView + Into<ViewIndex> + 'static> SumPropagator<View> {
+        pub fn new(coefs: Vec<i32>, x: View) -> SumPropagator<View> {
+            SumPropagator {
+                coefs: coefs,
+                variable_views: VariableViews::new(x),
+            }
         }
 
         // adding to propagator/constraint information about change view
@@ -146,6 +155,7 @@ pub mod new_version {
             Array: List<VarType>,
         {
             use variables::VariableState;
+            //let mut vars = self.variable_views.retrieve_variable
             let mut change = false;
             let _contributions: Vec<_> = vars.iter()
                 .zip(self.coefs.iter())

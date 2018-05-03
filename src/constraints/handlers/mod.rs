@@ -47,7 +47,8 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler
                 //if constraint.affected_by_changes(&mut states) {
                 let has_change = match constraint.propagate(variables_handler)? {
                     PropagationState::FixPoint => true,
-                    PropagationState::Subsumed => true,
+                    //PropagationState::Subsumed => true, // remove if subsumed
+                    PropagationState::Subsumed => false,
                     PropagationState::NoChange => false,
                 };
                 change = change || has_change;

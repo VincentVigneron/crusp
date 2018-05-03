@@ -17,6 +17,8 @@ fn main() {
             let r = var int (0 .. 9);
             let y = var int (0 .. 9);
 
+            constraint all_different([s,e,n,d,m,o,r,y]);
+
             constraint send = sum([s,e,n,d]*[1000,100,10,1]);
             constraint more = sum([m,o,r,e]*[1000,100,10,1]);
             constraint money = sum([m,o,n,e,y]*[10000,1000,100,10,1]);

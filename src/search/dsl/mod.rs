@@ -195,6 +195,28 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
+        constraint all_different($vars: ident);
+        $($tail:tt)*) => {
+        {
+            $constraints.add(Box::new(
+                    $crate::constraints::all_different::new(&$vars)));
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
+    (variables = $variables: ident; constraints = $constraints: ident; constraint all_different([$($y: tt),+]); $($tail:tt)*) => {
+        {
+            {
+            let list = cp_model!(@List in $variables; $($y),+);
+            $constraints.add(Box::new(
+                    $crate::constraints::all_different::new(&list)));
+            }
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
         constraint $res:ident :: $coefs:ident * $vars: ident;
         $($tail:tt)*) => {
         {

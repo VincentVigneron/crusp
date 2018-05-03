@@ -83,10 +83,10 @@ impl<Var: Variable> ArrayView<Var> {
 }
 
 //impl<Var: Variable> Index<usize> for ArrayView<Var> {
-    //type Output = VarView<Var>;
-    //fn index(&self, idx: usize) -> &VarView<Var> {
-        //&self.get(idx)
-    //}
+//type Output = VarView<Var>;
+//fn index(&self, idx: usize) -> &VarView<Var> {
+//&self.get(idx)
+//}
 //}
 
 impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
