@@ -52,6 +52,8 @@ fn main() {
             let r = var int (0 .. 9);
             let y = var int (0 .. 9);
 
+            constraint all_different([s,e,n,d,m,o,r,y]);
+
             constraint send = (1000*s + 100*e + 10*n + d);
             constraint more = (1000*m + 100*o + 10*r + e);
             constraint money = (10000*m + 1000*o + 100*n + 10*e + y);
