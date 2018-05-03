@@ -1,6 +1,5 @@
 use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
-use std::ops::Index;
 use variables::{Variable, VariableView, ViewIndex};
 
 // move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
@@ -198,15 +197,15 @@ macro_rules! variables_handler_build {
         }
 
         impl<Var: Variable> SpecificTypeHandler<Var> {
-            fn new() -> Self {
-                SpecificTypeHandler {
-                    id: ProcessUniqueId::new(),
-                    variables: Vec::new(),
-                    variables_array: Vec::new(),
-                    variables_ref: Vec::new(),
-                    variables_ref_view: Vec::new(),
-                }
-            }
+            //fn new() -> Self {
+                //SpecificTypeHandler {
+                    //id: ProcessUniqueId::new(),
+                    //variables: Vec::new(),
+                    //variables_array: Vec::new(),
+                    //variables_ref: Vec::new(),
+                    //variables_ref_view: Vec::new(),
+                //}
+            //}
         }
 
         impl<Var: Variable> Clone for SpecificTypeHandler<Var> {
@@ -624,7 +623,7 @@ macro_rules! variables_handler_build {
                 // Optimize by accessing variabl directly in the data structure
                 fn retrieve_states<'a, Views>(
                     &mut self,
-                    views: Views,
+                    _views: Views,
                     ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
                         Views: Iterator<Item = &'a RefArrayView<$type>>,

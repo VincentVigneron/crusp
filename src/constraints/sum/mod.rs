@@ -78,8 +78,9 @@ pub mod propagator {
     }
 }
 
+/*
 pub mod new_version {
-    use constraints::{PropagationState, Propagator, VariableError};
+    use constraints::{PropagationState, VariableError};
     use std::marker::PhantomData;
     use variables::{List, Variable, VariableView, ViewIndex};
     use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
@@ -194,3 +195,4 @@ pub mod new_version {
         }
     }
 }
+*/

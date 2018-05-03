@@ -255,7 +255,7 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            use $crate::variables::AllDisjoint;
+                            //use $crate::variables::AllDisjoint;
                             // avoid clone => all disjoint on iter and not into_iter
                             let indexes = vec![$($var.clone().into()),+];
                             /*
@@ -303,7 +303,7 @@ macro_rules! constraint_build {
                     pub fn $fnnew($($var: &$var),+,$($param: $tparam),*)
                         -> Constraint<$($var),+, $($var_type),+>
                         {
-                            use $crate::variables::AllDisjoint;
+                            //use $crate::variables::AllDisjoint;
                             let indexes = vec![$($var.clone().into()),+];
                             /*
                             let valid = indexes.clone()
