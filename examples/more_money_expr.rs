@@ -6,7 +6,7 @@ fn main() {
         model {
             let send = var int (1023 .. 9876);
             let more = var int (1023 .. 9876);
-            let money = var int (10234 .. 98765);
+            let money = var int (10234 .. 20000);
 
             let s = var int (1 .. 9);
             let e = var int (0 .. 9);
