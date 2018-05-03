@@ -14,9 +14,8 @@ pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
     use variables::List;
     use variables::int_var::ValuesIntVar;
-    #[derive(Debug, Clone)]
 
-    // !!!!! COEFS > 0
+    #[derive(Debug, Clone)]
     pub struct AllDifferentPropagator {}
     impl Propagator for AllDifferentPropagator {}
     impl AllDifferentPropagator {

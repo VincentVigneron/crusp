@@ -111,7 +111,7 @@ macro_rules! constraint_build {
     ) => {
         #[allow(non_camel_case_types)]
         #[allow(non_snake_case)]
-        impl<$($var: 'static + Clone + VariableView + Into<ViewIndex>),+,
+        impl<$($var: 'static + VariableView + Into<ViewIndex>),+,
         $($var_type: 'static + Variable + $($var_bound+)+),+,
         H: 'static + Clone + VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+
             > constraints::Constraint<H>

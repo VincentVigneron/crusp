@@ -11,13 +11,24 @@ pub enum VarIndexType {
     FromArray(usize, usize),
 }
 
-#[derive(Copy, Clone, Debug)]
+// CLone and Copy are implemented manually due to phantom data
+#[derive(Debug)]
 pub struct VarView<Var: Variable> {
     id: ProcessUniqueId,
     pub view: VarIndexType,
-    phantom: PhantomData<Var>,
+    phantom: PhantomData<*const Var>,
 }
 
+impl<Var: Variable> Clone for VarView<Var> {
+    fn clone(&self) -> VarView<Var> {
+        VarView {
+            id: self.id,
+            view: self.view,
+            phantom: PhantomData,
+        }
+    }
+}
+impl<Var: Variable> Copy for VarView<Var> {}
 impl<Var: Variable> VariableView for VarView<Var> {}
 
 impl<Var: Variable> VarView<Var> {
@@ -51,12 +62,23 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct ArrayView<Var: Variable> {
     pub id: ProcessUniqueId,
     x: usize,
     phantom: PhantomData<Var>,
 }
+
+impl<Var: Variable> Clone for ArrayView<Var> {
+    fn clone(&self) -> ArrayView<Var> {
+        ArrayView {
+            id: self.id,
+            x: self.x,
+            phantom: PhantomData,
+        }
+    }
+}
+impl<Var: Variable> Copy for ArrayView<Var> {}
 impl<Var: Variable> VariableView for ArrayView<Var> {}
 
 impl<Var: Variable> ArrayView<Var> {
@@ -97,12 +119,22 @@ impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
 
 // Remove Into<ViewIndex>
 // ViewIndex given by variablehandler
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct RefArrayView<Var: Variable> {
     id: ProcessUniqueId,
     x: usize,
     phantom: PhantomData<Var>,
 }
+impl<Var: Variable> Clone for RefArrayView<Var> {
+    fn clone(&self) -> RefArrayView<Var> {
+        RefArrayView {
+            id: self.id,
+            x: self.x,
+            phantom: PhantomData,
+        }
+    }
+}
+impl<Var: Variable> Copy for RefArrayView<Var> {}
 impl<Var: Variable> VariableView for RefArrayView<Var> {}
 
 impl<Var: Variable> RefArrayView<Var> {

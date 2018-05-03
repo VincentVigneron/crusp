@@ -21,7 +21,7 @@ pub enum IndexType {
     FromArrayVar(usize, usize),
 }
 
-pub trait VariableView {}
+pub trait VariableView: Copy {}
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
