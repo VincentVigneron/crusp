@@ -70,6 +70,10 @@ fn main() {
 }
 ```
 
+```
+10652 = 9567 + 1085
+```
+
 ## TODO LIST
 - [~] TOP PRIORITY: List of Vars
 - [ ] Detect identic RefArray one refarray for same views (if possible)
