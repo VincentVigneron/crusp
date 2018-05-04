@@ -1,3 +1,4 @@
+use graph::Subsumed;
 use snowflake::ProcessUniqueId;
 
 pub mod int_var;
@@ -5,16 +6,37 @@ pub mod handlers;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableState {
-    BoundChange,
+    BoundsChange,
     ValuesChange,
+    MaxBoundChange,
+    MinBoundChange,
     NoChange,
 }
+
+impl Subsumed for VariableState {
+    fn is_subsumed_under(&self, val: &Self) -> bool {
+        match *self {
+            VariableState::MaxBoundChange => {
+                *val != VariableState::NoChange && *val != VariableState::MinBoundChange
+            }
+            VariableState::MinBoundChange => {
+                *val != VariableState::NoChange && *val != VariableState::MaxBoundChange
+            }
+            VariableState::BoundsChange => {
+                *val == VariableState::BoundsChange || *val == VariableState::ValuesChange
+            }
+            VariableState::ValuesChange => *val == VariableState::ValuesChange,
+            VariableState::NoChange => true,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableError {
     DomainWipeout,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Hash, Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum IndexType {
     FromVar(usize),
     FromArray(usize),
@@ -23,7 +45,7 @@ pub enum IndexType {
 
 pub trait VariableView: Copy {}
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Hash, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,
     index_type: IndexType,
@@ -179,13 +201,13 @@ impl<Var: Variable> Variable for Array<Var> {
             .iter()
             .map(|var| var.get_state())
             .scan(VariableState::NoChange, |acc, state| {
-                if *acc == VariableState::BoundChange {
+                if *acc == VariableState::BoundsChange {
                     return None;
                 }
                 *acc = if *acc == VariableState::NoChange {
                     state.clone()
-                } else if *state == VariableState::BoundChange {
-                    VariableState::BoundChange
+                } else if *state == VariableState::BoundsChange {
+                    VariableState::BoundsChange
                 } else {
                     acc.clone()
                 };
@@ -248,13 +270,13 @@ impl<Var: Variable> Variable for RefArray<Var> {
         self.iter()
             .map(|var| var.get_state())
             .scan(VariableState::NoChange, |acc, state| {
-                if *acc == VariableState::BoundChange {
+                if *acc == VariableState::BoundsChange {
                     return None;
                 }
                 *acc = if *acc == VariableState::NoChange {
                     state.clone()
-                } else if *state == VariableState::BoundChange {
-                    VariableState::BoundChange
+                } else if *state == VariableState::BoundsChange {
+                    VariableState::BoundsChange
                 } else {
                     acc.clone()
                 };

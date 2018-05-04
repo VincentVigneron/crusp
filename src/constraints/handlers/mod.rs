@@ -1,5 +1,6 @@
 use super::{Constraint, PropagationState};
-use variables::VariableError;
+use graph::TwoNodesGraph;
+use variables::{VariableError, VariableState, ViewIndex};
 use variables::handlers::VariablesHandler;
 
 pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
@@ -10,12 +11,14 @@ pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
 #[derive(Clone)]
 pub struct SequentialConstraintsHandler<H: VariablesHandler> {
     constraints: Vec<Box<Constraint<H>>>,
+    graph: TwoNodesGraph<ViewIndex, usize, VariableState>,
 }
 
 impl<H: VariablesHandler> SequentialConstraintsHandler<H> {
     pub fn new() -> SequentialConstraintsHandler<H> {
         SequentialConstraintsHandler {
             constraints: Vec::new(),
+            graph: TwoNodesGraph::new(),
         }
     }
 }
@@ -65,5 +68,6 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler
 
     fn add(&mut self, constraint: Box<Constraint<H>>) {
         self.constraints.push(constraint);
+        //constraint.variable_bindings();
     }
 }

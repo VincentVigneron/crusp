@@ -28,6 +28,8 @@ pub trait Constraint<H: VariablesHandler> {
     ) -> bool;
     fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool;
     //fn notify_changed_views(&self, view_index: &Vec<ViewIndex>);
+    //// Return the list of views and variablestates that require a new propagation
+    //fn variable_bindings(&self) -> Vec<(ViewIndex, VariableState)>;
 }
 
 impl<H: VariablesHandler> Clone for Box<Constraint<H>> {

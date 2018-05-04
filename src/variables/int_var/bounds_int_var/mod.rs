@@ -129,7 +129,7 @@ impl IntVar {
                     self.domain.truncate(index + 1);
                 }
                 self.max = self.domain[self.domain.len() - 1].1;
-                Ok(VariableState::BoundChange)
+                Ok(VariableState::BoundsChange)
             }
             None => Ok(VariableState::NoChange),
         }
@@ -188,7 +188,7 @@ impl IntVar {
                     self.domain = new_domain;
                 }
                 self.min = self.domain[0].0;
-                Ok(VariableState::BoundChange)
+                Ok(VariableState::BoundsChange)
             }
             None => Ok(VariableState::NoChange),
         }
@@ -276,7 +276,7 @@ impl IntVar {
                     unsafe {
                         self.unsafe_set_value(val);
                     }
-                    Ok(VariableState::BoundChange)
+                    Ok(VariableState::BoundsChange)
                 } else {
                     Err(VariableError::DomainWipeout)
                 }
@@ -325,18 +325,18 @@ impl IntVar {
         let ok_self = if size_self == dom_eq.len() {
             VariableState::NoChange
         } else if min_self != *dom_eq.first().unwrap() {
-            VariableState::BoundChange
+            VariableState::BoundsChange
         } else if max_self != *dom_eq.last().unwrap() {
-            VariableState::BoundChange
+            VariableState::BoundsChange
         } else {
             VariableState::ValuesChange
         };
         let ok_value = if size_value == dom_eq.len() {
             VariableState::NoChange
         } else if min_value != *dom_eq.first().unwrap() {
-            VariableState::BoundChange
+            VariableState::BoundsChange
         } else if max_value != *dom_eq.last().unwrap() {
-            VariableState::BoundChange
+            VariableState::BoundsChange
         } else {
             VariableState::ValuesChange
         };
@@ -596,9 +596,9 @@ mod tests {
             .map(Option::unwrap)
             .collect::<Vec<_>>();
         let results = vec![
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
             Ok(VariableState::NoChange),
             Ok(VariableState::NoChange),
         ];
@@ -721,9 +721,9 @@ mod tests {
     //{
     //VariableState::NoChange
     //} else if domain1.first() != dom_eq.first() {
-    //VariableState::BoundChange
+    //VariableState::BoundsChange
     //} else if domain1.last() != dom_eq.last() {
-    //VariableState::BoundChange
+    //VariableState::BoundsChange
     //} else {
     //VariableState::ValuesChange
     //};
@@ -731,9 +731,9 @@ mod tests {
     //{
     //VariableState::NoChange
     //} else if domain2.first() != dom_eq.first() {
-    //VariableState::BoundChange
+    //VariableState::BoundsChange
     //} else if domain2.last() != dom_eq.last() {
-    //VariableState::BoundChange
+    //VariableState::BoundsChange
     //} else {
     //VariableState::ValuesChange
     //};
@@ -808,18 +808,18 @@ mod tests {
                     let ok1 = if domain1.iter().map(|val| *val).eq(var1.domain_iter()) {
                         VariableState::NoChange
                     } else if domain1.first() != dom_eq.first() {
-                        VariableState::BoundChange
+                        VariableState::BoundsChange
                     } else if domain1.last() != dom_eq.last() {
-                        VariableState::BoundChange
+                        VariableState::BoundsChange
                     } else {
                         VariableState::ValuesChange
                     };
                     let ok2 = if domain2.iter().map(|val| *val).eq(var2.domain_iter()) {
                         VariableState::NoChange
                     } else if domain2.first() != dom_eq.first() {
-                        VariableState::BoundChange
+                        VariableState::BoundsChange
                     } else if domain2.last() != dom_eq.last() {
-                        VariableState::BoundChange
+                        VariableState::BoundsChange
                     } else {
                         VariableState::ValuesChange
                     };
@@ -848,11 +848,11 @@ mod tests {
             vec![1],
         ];
         let expected = vec![
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
-            Ok(VariableState::BoundChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
+            Ok(VariableState::BoundsChange),
             Ok(VariableState::NoChange),
         ];
         let names = vec![

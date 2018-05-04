@@ -35,11 +35,11 @@ impl SetIntVar {
         } else if self.size() == prev_size {
             Ok(VariableState::NoChange)
         } else if self.min() != prev_min {
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         } else if self.max() != prev_max {
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         } else {
             self.update_state(VariableState::ValuesChange);
             Ok(VariableState::ValuesChange)
@@ -49,11 +49,12 @@ impl SetIntVar {
     fn update_state(&mut self, state: VariableState) {
         self.state = match self.state {
             VariableState::NoChange => state,
-            VariableState::BoundChange => VariableState::BoundChange,
+            VariableState::BoundsChange => VariableState::BoundsChange,
             VariableState::ValuesChange => match state {
-                VariableState::BoundChange => VariableState::BoundChange,
+                VariableState::BoundsChange => VariableState::BoundsChange,
                 _ => VariableState::ValuesChange,
             },
+            _ => panic!(),
         }
     }
 }
@@ -127,8 +128,8 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
             self.domain.truncate(index + 1);
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         }
     }
 
@@ -143,8 +144,8 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
             self.domain.truncate(index + 1);
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         }
     }
 
@@ -159,8 +160,8 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().position(|&val| val > lb).unwrap();
             self.domain.drain(0..index);
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         }
     }
 
@@ -175,8 +176,8 @@ impl BoundsIntVar for SetIntVar {
         } else {
             let index = self.domain.iter().position(|&val| val >= lb).unwrap();
             self.domain.drain(0..index);
-            self.update_state(VariableState::BoundChange);
-            Ok(VariableState::BoundChange)
+            self.update_state(VariableState::BoundsChange);
+            Ok(VariableState::BoundsChange)
         }
     }
 }
@@ -212,8 +213,8 @@ impl ValuesIntVar for SetIntVar {
                 match found_value {
                     Ok(_) => {
                         self.domain = vec![value];
-                        self.update_state(VariableState::BoundChange);
-                        Ok(VariableState::BoundChange)
+                        self.update_state(VariableState::BoundsChange);
+                        Ok(VariableState::BoundsChange)
                     }
                     _ => {
                         self.invalidate();
@@ -224,7 +225,7 @@ impl ValuesIntVar for SetIntVar {
         }
     }
 
-    // Distinction between ValuesChange and BoundChange
+    // Distinction between ValuesChange and BoundsChange
     fn equal(
         &mut self,
         value: &mut Self,
@@ -244,11 +245,11 @@ impl ValuesIntVar for SetIntVar {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
-                    var.update_state(VariableState::BoundChange);
-                    VariableState::BoundChange
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
                 } else if var.max() != unwrap_last!(domain) {
-                    var.update_state(VariableState::BoundChange);
-                    VariableState::BoundChange
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
                 } else {
                     var.update_state(VariableState::ValuesChange);
                     VariableState::ValuesChange
@@ -281,11 +282,11 @@ impl ValuesIntVar for SetIntVar {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
-                    var.update_state(VariableState::BoundChange);
-                    VariableState::BoundChange
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
                 } else if var.max() != unwrap_last!(domain) {
-                    var.update_state(VariableState::BoundChange);
-                    VariableState::BoundChange
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
                 } else {
                     var.update_state(VariableState::ValuesChange);
                     VariableState::ValuesChange
@@ -313,11 +314,11 @@ impl ValuesIntVar for SetIntVar {
                 if self.size() == 0 {
                     Err(VariableError::DomainWipeout)
                 } else if self.min() != min {
-                    self.update_state(VariableState::BoundChange);
-                    Ok(VariableState::BoundChange)
+                    self.update_state(VariableState::BoundsChange);
+                    Ok(VariableState::BoundsChange)
                 } else if self.max() != max {
-                    self.update_state(VariableState::BoundChange);
-                    Ok(VariableState::BoundChange)
+                    self.update_state(VariableState::BoundsChange);
+                    Ok(VariableState::BoundsChange)
                 } else {
                     self.update_state(VariableState::ValuesChange);
                     Ok(VariableState::ValuesChange)

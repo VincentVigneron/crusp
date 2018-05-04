@@ -319,7 +319,7 @@ macro_rules! bound_test {
                     let exp_res = if domain == exp_domain {
                         Ok(VariableState::NoChange)
                     } else {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     };
                     check_domain_and_invariants!(
                         var,
@@ -580,9 +580,9 @@ macro_rules! test_int_var{
                     } else if exp_domain == domain {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -633,9 +633,9 @@ macro_rules! test_int_var{
                     } else if exp_domain == domain {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -687,9 +687,9 @@ macro_rules! test_int_var{
                     } else if exp_domain == domain {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -748,9 +748,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_left == *domain_left {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -759,9 +759,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_right == *domain_right {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -867,9 +867,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_left == *domain_left {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -878,9 +878,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_right == *domain_right {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -986,9 +986,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_left == *domain_left {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -997,9 +997,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_right == *domain_right {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -1105,9 +1105,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_left == *domain_left {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_left) != unwrap_first!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_left) != unwrap_last!(exp_domain_left) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -1116,9 +1116,9 @@ macro_rules! test_int_var{
                     } else if exp_domain_right == *domain_right {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain_right) != unwrap_first!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain_right) != unwrap_last!(exp_domain_right) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -1233,18 +1233,18 @@ macro_rules! test_int_var{
                         let ok1 = if domain1.iter().eq(var1.iter()) {
                             VariableState::NoChange
                         } else if domain1.first() != dom_eq.first() {
-                            VariableState::BoundChange
+                            VariableState::BoundsChange
                         } else if domain1.last() != dom_eq.last() {
-                            VariableState::BoundChange
+                            VariableState::BoundsChange
                         } else {
                             VariableState::ValuesChange
                         };
                         let ok2 = if domain2.iter().eq(var2.iter()) {
                             VariableState::NoChange
                         } else if domain2.first() != dom_eq.first() {
-                            VariableState::BoundChange
+                            VariableState::BoundsChange
                         } else if domain2.last() != dom_eq.last() {
-                            VariableState::BoundChange
+                            VariableState::BoundsChange
                         } else {
                             VariableState::ValuesChange
                         };
@@ -1271,11 +1271,11 @@ macro_rules! test_int_var{
                 vec![1],
             ];
             let expected = vec![
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
-                Ok(VariableState::BoundChange),
+                Ok(VariableState::BoundsChange),
+                Ok(VariableState::BoundsChange),
+                Ok(VariableState::BoundsChange),
+                Ok(VariableState::BoundsChange),
+                Ok(VariableState::BoundsChange),
                 Ok(VariableState::NoChange),
             ];
             let names = vec![
@@ -1409,9 +1409,9 @@ macro_rules! test_int_var{
                     } else if exp_domain == domain {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
@@ -1471,9 +1471,9 @@ macro_rules! test_int_var{
                     } else if exp_domain == domain {
                         Ok(VariableState::NoChange)
                     } else if unwrap_first!(domain) != unwrap_first!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else if unwrap_last!(domain) != unwrap_last!(exp_domain) {
-                        Ok(VariableState::BoundChange)
+                        Ok(VariableState::BoundsChange)
                     } else {
                         Ok(VariableState::ValuesChange)
                     };
