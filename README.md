@@ -75,7 +75,8 @@ fn main() {
 ```
 
 ## TODO LIST
-- [~] TOP PRIORITY: List of Vars
+- [ ] Remove ProcessUniqueId dependency.
+- [x] TOP PRIORITY: List of Vars
 - [ ] Detect identic RefArray one refarray for same views (if possible)
 - [ ] Better name for ConstraintHandler Error.
 - [ ] Adding multiple new functions for constraint\_build macro.
