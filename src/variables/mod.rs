@@ -16,16 +16,12 @@ pub enum VariableState {
 impl Subsumed for VariableState {
     fn is_subsumed_under(&self, val: &Self) -> bool {
         match *self {
-            VariableState::MaxBoundChange => {
-                *val != VariableState::NoChange && *val != VariableState::MinBoundChange
-            }
-            VariableState::MinBoundChange => {
-                *val != VariableState::NoChange && *val != VariableState::MaxBoundChange
-            }
+            VariableState::MaxBoundChange => *val != VariableState::MaxBoundChange,
+            VariableState::MinBoundChange => *val != VariableState::MinBoundChange,
             VariableState::BoundsChange => {
-                *val == VariableState::BoundsChange || *val == VariableState::ValuesChange
+                *val != VariableState::ValuesChange && *val != VariableState::NoChange
             }
-            VariableState::ValuesChange => *val == VariableState::ValuesChange,
+            VariableState::ValuesChange => *val != VariableState::NoChange,
             VariableState::NoChange => true,
         }
     }
