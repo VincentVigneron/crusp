@@ -31,7 +31,7 @@ fn main() {
 }
 ```
 
-### More Money (Incomplete: missing all\_different)
+### More Money
 ```rust
 #[macro_use]
 extern crate solver_cp;
