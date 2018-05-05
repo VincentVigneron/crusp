@@ -31,6 +31,10 @@ fn main() {
 }
 ```
 
+```
+3 < 4 < 5
+```
+
 ### More Money
 ```rust
 #[macro_use]
