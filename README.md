@@ -3,6 +3,9 @@
 [![Build Status](https://travis-ci.org/VincentVigneron/crusp.svg?branch=master)](https://travis-ci.org/VincentVigneron/crusp)
 [![codecov](https://codecov.io/gh/VincentVigneron/solver_cp/branch/master/graph/badge.svg)](https://codecov.io/gh/VincentVigneron/crups)
 
+## Documentation
+[API Documentation](https://vincentvigneron.github.io/crusp/)
+
 ## Examples
 
 ### Ordering
