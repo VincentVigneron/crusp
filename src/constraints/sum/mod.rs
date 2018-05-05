@@ -1,18 +1,18 @@
-use variables::List;
+use variables::Array;
 use variables::int_var::BoundsIntVar;
 
 constraint_build!(
     struct Propagator = propagator::SumPropagator;
     fn new(coefs: Vec<i32>);
-    fn propagate(res: VarType, vars: Array)
+    fn propagate(res: VarType, vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars)
         where
             VarType: BoundsIntVar<Type=i32>,
-            Array: List<VarType>;
+            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
-    use variables::List;
+    use variables::Array;
     use variables::int_var::BoundsIntVar;
     #[derive(Debug, Clone)]
 
@@ -29,14 +29,14 @@ pub mod propagator {
         // adding to propagator/constraint information about change view
         // add iter to array and size => len
         // [HarveySchimpf02]
-        pub fn propagate<VarType, Array>(
+        pub fn propagate<VarType, ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars>(
             &self,
             res: &mut VarType,
-            vars: &mut Array,
+            vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
             VarType: BoundsIntVar<Type = i32>,
-            Array: List<VarType>,
+            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use variables::VariableState;
             let mut change = false;
@@ -82,7 +82,7 @@ pub mod propagator {
 pub mod new_version {
     use constraints::{PropagationState, VariableError};
     use std::marker::PhantomData;
-    use variables::{List, Variable, VariableView, ViewIndex};
+    use variables::{Array, Variable, VariableView, ViewIndex};
     use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
                               VariablesHandler};
     use variables::int_var::BoundsIntVar;
@@ -146,14 +146,14 @@ pub mod new_version {
         // adding to propagator/constraint information about change view
         // add iter to array and size => len
         // [HarveySchimpf02]
-        pub fn propagate<VarType, Array>(
+        pub fn propagate<VarType, ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars>(
             &self,
             res: &mut VarType,
-            vars: &mut Array,
+            vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
             VarType: BoundsIntVar<Type = i32>,
-            Array: List<VarType>,
+            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use variables::VariableState;
             //let mut vars = self.variable_views.retrieve_variable

@@ -2,12 +2,12 @@ use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
 use variables::{Variable, VariableView, ViewIndex};
 
-// move Var and ArrayView inside macro => find how to handle extern crate ProcessUniqeId
+// move Var and ArrayOfVarsView inside macro => find how to handle extern crate ProcessUniqeId
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum VarIndexType {
     FromVar(usize),
-    FromArray(usize, usize),
+    FromArrayOfVars(usize, usize),
 }
 
 // CLone and Copy are implemented manually due to phantom data
@@ -42,7 +42,7 @@ impl<Var: Variable> VarView<Var> {
     pub fn new_from_array(id: ProcessUniqueId, x: usize, y: usize) -> VarView<Var> {
         VarView {
             id: id,
-            view: VarIndexType::FromArray(x, y),
+            view: VarIndexType::FromArrayOfVars(x, y),
             phantom: PhantomData,
         }
     }
@@ -56,33 +56,35 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     fn into(self) -> ViewIndex {
         match self.view {
             VarIndexType::FromVar(x) => ViewIndex::new_from_var(self.id, x),
-            VarIndexType::FromArray(x, y) => ViewIndex::new_from_array_var(self.id, x, y),
+            VarIndexType::FromArrayOfVars(x, y) => {
+                ViewIndex::new_from_array_var(self.id, x, y)
+            }
         }
     }
 }
 
 #[derive(Debug)]
-pub struct ArrayView<Var: Variable> {
+pub struct ArrayOfVarsView<Var: Variable> {
     pub id: ProcessUniqueId,
     x: usize,
     phantom: PhantomData<Var>,
 }
 
-impl<Var: Variable> Clone for ArrayView<Var> {
-    fn clone(&self) -> ArrayView<Var> {
-        ArrayView {
+impl<Var: Variable> Clone for ArrayOfVarsView<Var> {
+    fn clone(&self) -> ArrayOfVarsView<Var> {
+        ArrayOfVarsView {
             id: self.id,
             x: self.x,
             phantom: PhantomData,
         }
     }
 }
-impl<Var: Variable> Copy for ArrayView<Var> {}
-impl<Var: Variable> VariableView for ArrayView<Var> {}
+impl<Var: Variable> Copy for ArrayOfVarsView<Var> {}
+impl<Var: Variable> VariableView for ArrayOfVarsView<Var> {}
 
-impl<Var: Variable> ArrayView<Var> {
-    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayView<Var> {
-        ArrayView {
+impl<Var: Variable> ArrayOfVarsView<Var> {
+    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayOfVarsView<Var> {
+        ArrayOfVarsView {
             id: id,
             x: x,
             phantom: PhantomData,
@@ -93,7 +95,7 @@ impl<Var: Variable> ArrayView<Var> {
     pub fn get(&self, y: usize) -> VarView<Var> {
         VarView {
             id: self.id,
-            view: VarIndexType::FromArray(self.x, y),
+            view: VarIndexType::FromArrayOfVars(self.x, y),
             phantom: PhantomData,
         }
     }
@@ -103,14 +105,14 @@ impl<Var: Variable> ArrayView<Var> {
     }
 }
 
-//impl<Var: Variable> Index<usize> for ArrayView<Var> {
+//impl<Var: Variable> Index<usize> for ArrayOfVarsView<Var> {
 //type Output = VarView<Var>;
 //fn index(&self, idx: usize) -> &VarView<Var> {
 //&self.get(idx)
 //}
 //}
 
-impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
+impl<Var: Variable> Into<ViewIndex> for ArrayOfVarsView<Var> {
     fn into(self) -> ViewIndex {
         ViewIndex::new_from_array(self.id, self.x)
     }
@@ -119,26 +121,26 @@ impl<Var: Variable> Into<ViewIndex> for ArrayView<Var> {
 // Remove Into<ViewIndex>
 // ViewIndex given by variablehandler
 #[derive(Debug)]
-pub struct RefArrayView<Var: Variable> {
+pub struct ArrayOfRefsView<Var: Variable> {
     id: ProcessUniqueId,
     x: usize,
     phantom: PhantomData<Var>,
 }
-impl<Var: Variable> Clone for RefArrayView<Var> {
-    fn clone(&self) -> RefArrayView<Var> {
-        RefArrayView {
+impl<Var: Variable> Clone for ArrayOfRefsView<Var> {
+    fn clone(&self) -> ArrayOfRefsView<Var> {
+        ArrayOfRefsView {
             id: self.id,
             x: self.x,
             phantom: PhantomData,
         }
     }
 }
-impl<Var: Variable> Copy for RefArrayView<Var> {}
-impl<Var: Variable> VariableView for RefArrayView<Var> {}
+impl<Var: Variable> Copy for ArrayOfRefsView<Var> {}
+impl<Var: Variable> VariableView for ArrayOfRefsView<Var> {}
 
-impl<Var: Variable> RefArrayView<Var> {
-    pub fn new(id: ProcessUniqueId, x: usize) -> RefArrayView<Var> {
-        RefArrayView {
+impl<Var: Variable> ArrayOfRefsView<Var> {
+    pub fn new(id: ProcessUniqueId, x: usize) -> ArrayOfRefsView<Var> {
+        ArrayOfRefsView {
             id: id,
             x: x,
             phantom: PhantomData,
@@ -150,7 +152,7 @@ impl<Var: Variable> RefArrayView<Var> {
     }
 }
 
-impl<Var: Variable> Into<ViewIndex> for RefArrayView<Var> {
+impl<Var: Variable> Into<ViewIndex> for ArrayOfRefsView<Var> {
     fn into(self) -> ViewIndex {
         ViewIndex::new_from_array(self.id, self.x)
     }
@@ -159,7 +161,7 @@ impl<Var: Variable> Into<ViewIndex> for RefArrayView<Var> {
 // OTHER SYNTAX
 // variables_handler_build!(
 //      IntVar,
-//      Array of IntVar,
+//      ArrayOfVars of IntVar,
 //      BoolVar,
 //  )
 //  Other impl
@@ -172,14 +174,14 @@ macro_rules! variables_handler_build {
         use $crate::variables::Variable;
         use $crate::variables::ViewIndex;
         use $crate::variables::VariableState;
+        use $crate::variables::ArrayOfVars;
+        use $crate::variables::ArrayOfRefs;
         use $crate::variables::Array;
-        use $crate::variables::RefArray;
-        use $crate::variables::List;
         use $crate::variables::handlers::macros::{
             VarView,
-            ArrayView,
+            ArrayOfVarsView,
             VarIndexType,
-            RefArrayView};
+            ArrayOfRefsView};
         use $crate::variables::handlers::{
             VariablesHandlerBuilder,
             SpecificVariablesHandler,
@@ -191,8 +193,8 @@ macro_rules! variables_handler_build {
         struct SpecificTypeHandler<Var: Variable> {
             id: ProcessUniqueId,
             variables: Vec<Var>,
-            variables_array: Vec<Array<Var>>,
-            variables_ref: Vec<RefArray<Var>>,
+            variables_array: Vec<ArrayOfVars<Var>>,
+            variables_ref: Vec<ArrayOfRefs<Var>>,
             variables_ref_view: Vec<Vec<VarView<Var>>>,
         }
 
@@ -224,7 +226,7 @@ macro_rules! variables_handler_build {
         struct SpecificTypeHandlerBuilder<Var: Variable> {
             id: ProcessUniqueId,
             variables: Vec<Var>,
-            variables_array: Vec<Array<Var>>,
+            variables_array: Vec<ArrayOfVars<Var>>,
             variables_ref_view: Vec<Vec<VarView<Var>>>,
         }
 
@@ -243,20 +245,20 @@ macro_rules! variables_handler_build {
                 let mut variables_array = self.variables_array;
                 let variables_ref_view = self.variables_ref_view;
 
-                let variables_ref: Vec<RefArray<Var>> = variables_ref_view.iter()
+                let variables_ref: Vec<ArrayOfRefs<Var>> = variables_ref_view.iter()
                     .map(|ref views| {
                         let ref_array = views.iter().map(|view| {
                             unsafe{match view.view {
                                 VarIndexType::FromVar(x) =>
                                     variables.get_unchecked_mut(x) as *mut _,
-                                VarIndexType::FromArray(x,y) =>
+                                VarIndexType::FromArrayOfVars(x,y) =>
                                     variables_array.get_unchecked_mut(x).variables.get_unchecked_mut(y) as *mut _,
                             }}
                         }).collect::<Vec<_>>();
-                        RefArray::new(ref_array).unwrap()
+                        ArrayOfRefs::new(ref_array).unwrap()
                     })
                     .collect();
-                //let variables_ref = RefArray::new(variables_ref);
+                //let variables_ref = ArrayOfRefs::new(variables_ref);
                 SpecificTypeHandler {
                     id: id,
                     variables: variables,
@@ -378,14 +380,14 @@ macro_rules! variables_handler_build {
                                                         .retrieve_state()
                                                 }
                                             }
-                                            IndexType::FromArray(x) => {
+                                            IndexType::FromArrayOfVars(x) => {
                                                 unsafe {
                                                     self.$type.variables
                                                         .get_unchecked_mut(x)
                                                         .retrieve_state()
                                                 }
                                             }
-                                            IndexType::FromArrayVar(x,y) => {
+                                            IndexType::FromArrayOfVarsVar(x,y) => {
                                                 unsafe {
                                                     self.$type.variables_array
                                                         .get_unchecked_mut(x)
@@ -417,19 +419,19 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl SpecificVariablesHandlerBuilder<Array<$type>, ArrayView<$type>, Handler, Array<$type>>
+            impl SpecificVariablesHandlerBuilder<ArrayOfVars<$type>, ArrayOfVarsView<$type>, Handler, ArrayOfVars<$type>>
             for Builder {
-                fn add(&mut self, x: Array<$type>) -> ArrayView<$type> {
-                    let view = ArrayView::new(self.$type.id, self.$type.variables_array.len());
+                fn add(&mut self, x: ArrayOfVars<$type>) -> ArrayOfVarsView<$type> {
+                    let view = ArrayOfVarsView::new(self.$type.id, self.$type.variables_array.len());
                     self.$type.variables_array.push(x);
                     view
                 }
             }
 
-            impl SpecificVariablesHandlerBuilder<RefArray<$type>, RefArrayView<$type>, Handler, Vec<VarView<$type>>>
+            impl SpecificVariablesHandlerBuilder<ArrayOfRefs<$type>, ArrayOfRefsView<$type>, Handler, Vec<VarView<$type>>>
             for Builder {
-                fn add(&mut self, x: Vec<VarView<$type>>) -> RefArrayView<$type> {
-                    let view = RefArrayView::new(self.$type.id, self.$type.variables_ref_view.len());
+                fn add(&mut self, x: Vec<VarView<$type>>) -> ArrayOfRefsView<$type> {
+                    let view = ArrayOfRefsView::new(self.$type.id, self.$type.variables_ref_view.len());
                     self.$type.variables_ref_view.push(x);
                     view
                 }
@@ -442,7 +444,7 @@ macro_rules! variables_handler_build {
                         VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked_mut(x) }
                         }
-                        VarIndexType::FromArray(x,y) => {
+                        VarIndexType::FromArrayOfVars(x,y) => {
                             unsafe {
                                 self.$type.variables_array
                                     .get_unchecked_mut(x)
@@ -457,7 +459,7 @@ macro_rules! variables_handler_build {
                         VarIndexType::FromVar(x) => {
                             unsafe { self.$type.variables.get_unchecked(x) }
                         }
-                        VarIndexType::FromArray(x,y) => {
+                        VarIndexType::FromArrayOfVars(x,y) => {
                             unsafe {
                                 self.$type.variables_array
                                     .get_unchecked(x)
@@ -510,23 +512,23 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl SpecificVariablesHandler<Array<$type>, ArrayView<$type>> for Handler {
-                fn get_mut(&mut self, view: &ArrayView<$type>) -> &mut Array<$type> {
+            impl SpecificVariablesHandler<ArrayOfVars<$type>, ArrayOfVarsView<$type>> for Handler {
+                fn get_mut(&mut self, view: &ArrayOfVarsView<$type>) -> &mut ArrayOfVars<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked_mut(view.get_idx())
                     }
                 }
-                fn get(&self, view: &ArrayView<$type>) -> & Array<$type> {
+                fn get(&self, view: &ArrayOfVarsView<$type>) -> & ArrayOfVars<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked(view.get_idx())
                     }
                 }
 
-                fn retrieve_state(&mut self, view: &ArrayView<$type>) -> VariableState {
+                fn retrieve_state(&mut self, view: &ArrayOfVarsView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
                 }
 
-                fn into_indexes(&self, view: &ArrayView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                fn into_indexes(&self, view: &ArrayOfVarsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
                     let range = 0..self.$type.variables_array[view.get_idx()].len();
                     Box::new(range
                         .map(|y| VarView::<$type>::new_from_array(view.id, view.get_idx(), y))
@@ -542,7 +544,7 @@ macro_rules! variables_handler_build {
                     views: Views,
                     ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
-                        Views: Iterator<Item = &'a ArrayView<$type>>,
+                        Views: Iterator<Item = &'a ArrayOfVarsView<$type>>,
                     {
                         let mut states: Vec<(ViewIndex, _)> = Vec::new();
                         for view in views {
@@ -595,23 +597,23 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl SpecificVariablesHandler<RefArray<$type>, RefArrayView<$type>> for Handler {
-                fn get_mut(&mut self, view: &RefArrayView<$type>) -> &mut RefArray<$type> {
+            impl SpecificVariablesHandler<ArrayOfRefs<$type>, ArrayOfRefsView<$type>> for Handler {
+                fn get_mut(&mut self, view: &ArrayOfRefsView<$type>) -> &mut ArrayOfRefs<$type> {
                     unsafe {
                         self.$type.variables_ref.get_unchecked_mut(view.get_idx())
                     }
                 }
-                fn get(&self, view: &RefArrayView<$type>) -> & RefArray<$type> {
+                fn get(&self, view: &ArrayOfRefsView<$type>) -> & ArrayOfRefs<$type> {
                     unsafe {
                         self.$type.variables_ref.get_unchecked(view.get_idx())
                     }
                 }
 
-                fn retrieve_state(&mut self, view: &RefArrayView<$type>) -> VariableState {
+                fn retrieve_state(&mut self, view: &ArrayOfRefsView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
                 }
 
-                fn into_indexes(&self, view: &RefArrayView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                fn into_indexes(&self, view: &ArrayOfRefsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
                     Box::new(self.$type.variables_ref_view[view.get_idx()].iter()
                         .cloned()
                         .map(Into::<ViewIndex>::into)
@@ -626,7 +628,7 @@ macro_rules! variables_handler_build {
                     _views: Views,
                     ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
                     where
-                        Views: Iterator<Item = &'a RefArrayView<$type>>,
+                        Views: Iterator<Item = &'a ArrayOfRefsView<$type>>,
                     {
                         unimplemented!()
                         //let mut states: Vec<(ViewIndex, _)> = Vec::new();

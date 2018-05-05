@@ -8,7 +8,7 @@ use solver_cp::branchers::variables_selector::SequentialVariableSelector;
 use solver_cp::constraints::handlers::*;
 use solver_cp::search::Solver;
 use solver_cp::spaces::Space;
-use solver_cp::variables::Array;
+use solver_cp::variables::ArrayOfVars;
 use solver_cp::variables::handlers::*;
 use solver_cp::variables::int_var::IntVar;
 use solver_cp::variables::int_var::values_int_var::*;

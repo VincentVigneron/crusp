@@ -35,8 +35,8 @@ pub enum VariableError {
 #[derive(Hash, Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum IndexType {
     FromVar(usize),
-    FromArray(usize),
-    FromArrayVar(usize, usize),
+    FromArrayOfVars(usize),
+    FromArrayOfVarsVar(usize, usize),
 }
 
 pub trait VariableView: Copy {}
@@ -58,14 +58,14 @@ impl ViewIndex {
     pub fn new_from_array(id: ProcessUniqueId, x: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            index_type: IndexType::FromArray(x),
+            index_type: IndexType::FromArrayOfVars(x),
         }
     }
 
     pub fn new_from_array_var(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
         ViewIndex {
             id: id,
-            index_type: IndexType::FromArrayVar(x, y),
+            index_type: IndexType::FromArrayOfVarsVar(x, y),
         }
     }
     // x sub_view_of x
@@ -75,13 +75,13 @@ impl ViewIndex {
             return false;
         }
         match self.index_type {
-            IndexType::FromArrayVar(x, y) => match idx.index_type {
-                IndexType::FromArray(x_) => x == x_,
-                IndexType::FromArrayVar(x_, y_) => x == x_ && y == y_,
+            IndexType::FromArrayOfVarsVar(x, y) => match idx.index_type {
+                IndexType::FromArrayOfVars(x_) => x == x_,
+                IndexType::FromArrayOfVarsVar(x_, y_) => x == x_ && y == y_,
                 _ => false,
             },
-            IndexType::FromArray(x) => match idx.index_type {
-                IndexType::FromArray(x_) => x == x_,
+            IndexType::FromArrayOfVars(x) => match idx.index_type {
+                IndexType::FromArrayOfVars(x_) => x == x_,
                 _ => false,
             },
             IndexType::FromVar(x) => match idx.index_type {
@@ -139,7 +139,7 @@ pub trait Variable: Clone {
     fn retrieve_state(&mut self) -> VariableState;
 }
 
-pub trait List<Var: Variable>: Variable {
+pub trait Array<Var: Variable>: Variable {
     fn get_mut(&mut self, idx: usize) -> &mut Var;
     fn get(&self, idx: usize) -> &Var;
     fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a>;
@@ -148,15 +148,15 @@ pub trait List<Var: Variable>: Variable {
 }
 
 #[derive(Debug, Clone)]
-pub struct Array<Var: Variable> {
+pub struct ArrayOfVars<Var: Variable> {
     pub variables: Vec<Var>,
     state: VariableState,
     //states: Vec<VariableState>,
 }
 
-impl<Var: Variable> Array<Var> {
+impl<Var: Variable> ArrayOfVars<Var> {
     pub fn new(len: usize, var: Var) -> Option<Self> {
-        Some(Array {
+        Some(ArrayOfVars {
             variables: vec![var.clone(); len],
             state: VariableState::NoChange,
             //states: vec![VariableState::NoChange; len],
@@ -164,7 +164,7 @@ impl<Var: Variable> Array<Var> {
     }
 }
 
-impl<Var: Variable> List<Var> for Array<Var> {
+impl<Var: Variable> Array<Var> for ArrayOfVars<Var> {
     fn get_mut(&mut self, idx: usize) -> &mut Var {
         unsafe { &mut *(self.variables.get_unchecked_mut(idx) as *mut _) }
     }
@@ -185,7 +185,7 @@ impl<Var: Variable> List<Var> for Array<Var> {
         self.variables.len()
     }
 }
-impl<Var: Variable> Variable for Array<Var> {
+impl<Var: Variable> Variable for ArrayOfVars<Var> {
     fn is_fixed(&self) -> bool {
         unimplemented!()
     }
@@ -216,16 +216,16 @@ impl<Var: Variable> Variable for Array<Var> {
 }
 
 #[derive(Debug, Clone)]
-pub struct RefArray<Var: Variable> {
+pub struct ArrayOfRefs<Var: Variable> {
     pub variables: Vec<*mut Var>,
     state: VariableState,
     //states: Vec<VariableState>,
 }
 
 // REF ARRAY BUILDER
-impl<Var: Variable> RefArray<Var> {
+impl<Var: Variable> ArrayOfRefs<Var> {
     pub fn new(variables: Vec<*mut Var>) -> Option<Self> {
-        Some(RefArray {
+        Some(ArrayOfRefs {
             variables: variables,
             state: VariableState::NoChange,
             //states: vec![VariableState::NoChange; len],
@@ -233,7 +233,7 @@ impl<Var: Variable> RefArray<Var> {
     }
 }
 
-impl<Var: Variable> List<Var> for RefArray<Var> {
+impl<Var: Variable> Array<Var> for ArrayOfRefs<Var> {
     fn get_mut(&mut self, idx: usize) -> &mut Var {
         unsafe { &mut (**self.variables.get_unchecked_mut(idx)) }
     }
@@ -255,7 +255,7 @@ impl<Var: Variable> List<Var> for RefArray<Var> {
     }
 }
 
-impl<Var: Variable> Variable for RefArray<Var> {
+impl<Var: Variable> Variable for ArrayOfRefs<Var> {
     fn is_fixed(&self) -> bool {
         unimplemented!()
     }

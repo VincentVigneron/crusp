@@ -76,8 +76,8 @@ fn main() {
 
 ## TODO LIST
 - [ ] Remove ProcessUniqueId dependency.
-- [x] TOP PRIORITY: List of Vars
-- [ ] Detect identic RefArray one refarray for same views (if possible)
+- [x] TOP PRIORITY: Array of Vars
+- [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)
 - [ ] Better name for ConstraintHandler Error.
 - [ ] Adding multiple new functions for constraint\_build macro.
 - [ ] Use where clause for generics instead of inline constraints in constraint\_build macro.
@@ -96,7 +96,7 @@ fn main() {
 - [ ] Refactoring ViewIndex (maybe some unecessary information).
 - [ ] Adding documentation.
 - [ ] Precise the list of structs which have to be cloneable (Constraint, Propagator, Variable, View, ...) even if the traits do not require Clone because they are used as trait objects somewhere.
-- [ ] Remove the pub behind variables in struct variables::Array.
+- [ ] Remove the pub behind variables in struct variables::ArrayOfVars.
 - [ ] Renaming SetIntVar (not a suitable name and confusing).
 - [ ] Optimize SetIntVar (adding cut, ...)
 - [ ] Renaming trait bounds for int\_var.
@@ -107,7 +107,7 @@ fn main() {
 - [ ] Unit test for equal\_bounds.
 - [ ] Fix equal\_bounds.
 - [ ] Fix BoundsIntVar.
-- [ ] Add an ArrayViewTrait and a VariableViewTrait that are mutually incompatible.
+- [ ] Add an ArrayOfVarsViewTrait and a VariableViewTrait that are mutually incompatible.
 - [ ] Refactoring variables\_handler\_builder (remove duplicated code).
 - [ ] Consistance between generic parameters order.
 - [ ] Rewritting branching.

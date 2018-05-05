@@ -1,18 +1,18 @@
-use variables::List;
+use variables::Array;
 use variables::int_var::ValuesIntVar;
 
 constraint_build!(
     struct Propagator = propagator::AllDifferentPropagator;
     fn new();
-    fn propagate(vars: Array)
+    fn propagate(vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVars)
         where
             VarType: ValuesIntVar<Type=i32>,
-            Array: List<VarType>;
+            ArrayOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
-    use variables::List;
+    use variables::Array;
     use variables::int_var::ValuesIntVar;
 
     #[derive(Debug, Clone)]
@@ -23,13 +23,13 @@ pub mod propagator {
             AllDifferentPropagator {}
         }
 
-        pub fn propagate<VarType, Array>(
+        pub fn propagate<VarType, ArrayOfVarsOfVarsOfVarsOfVarsOfVars>(
             &self,
-            vars: &mut Array,
+            vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
             VarType: ValuesIntVar<Type = i32>,
-            Array: List<VarType>,
+            ArrayOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use std::collections::BTreeSet;
             use variables::VariableState;
