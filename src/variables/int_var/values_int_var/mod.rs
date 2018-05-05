@@ -60,7 +60,7 @@ impl SetIntVar {
 }
 
 impl Variable for SetIntVar {
-    fn is_fixed(&self) -> bool {
+    fn is_affected(&self) -> bool {
         self.domain.len() == 1
     }
 

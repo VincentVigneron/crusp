@@ -48,7 +48,7 @@ pub mod propagator {
             }
 
             for i in unaffected.into_iter() {
-                let var = vars.get_mut(i);
+                let var = vars.get_unchecked_mut(i);
                 match var.remove_if(|val| affected.contains(&val))? {
                     VariableState::NoChange => {}
                     _ => {

@@ -133,17 +133,41 @@ where
     }
 }
 
+/// Trait for types that represent decision variables.
+/// A decision variable is variable along side with its domain of allowed values.
+/// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
-    fn is_fixed(&self) -> bool;
+    /// Returns if a variable is affected.
+    /// A variable is affected if and only if its a domain is a singleton.
+    fn is_affected(&self) -> bool;
+    /// Returns the state of a variable without reinitialising it.
+    /// The state of a variable describes if and how the domain of the variable has
+    /// been updated.
     fn get_state(&self) -> &VariableState;
+    /// Returns the state of a variable and reinitialises the state of the
+    /// variable. The state of a variable describes if and how the domain of the variable
+    /// has been updated.
     fn retrieve_state(&mut self) -> VariableState;
 }
 
+/// This trait describes an array of variables. There is two types of array:
+/// array of variables and array of references to variables. Both types are manipulated with the
+/// same trait. When writting constraints over an array of variables, you should use the Array
+/// trait instead of the specific types ArrayOfVars or ArrayOfRefs.
 pub trait Array<Var: Variable>: Variable {
-    fn get_mut(&mut self, idx: usize) -> &mut Var;
-    fn get(&self, idx: usize) -> &Var;
-    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a>;
-    fn iter_mut<'a>(&'a mut self) -> Box<Iterator<Item = &mut Var> + 'a>;
+    /// Returns a mutable reference to the variable at that position or None if out of bounds.
+    fn get_mut(&mut self, position: usize) -> Option<&mut Var>;
+    /// Returns a reference to the variable at that position or None if out of bounds.
+    fn get(&self, position: usize) -> Option<&Var>;
+    /// Returns a mutable reference to the variable at that position without doing bounds check.
+    fn get_unchecked_mut(&mut self, position: usize) -> &mut Var;
+    /// Returns a reference to the variable at that position without doing bounds check.
+    fn get_unchecked(&self, position: usize) -> &Var;
+    /// Returns an iterator over the variables.
+    fn iter<'array>(&'array self) -> Box<Iterator<Item = &Var> + 'array>;
+    /// Returns an iterator that allows modifying each variable.
+    fn iter_mut<'array>(&'array mut self) -> Box<Iterator<Item = &mut Var> + 'array>;
+    /// Returns the number of variables.
     fn len(&self) -> usize;
 }
 
@@ -151,7 +175,6 @@ pub trait Array<Var: Variable>: Variable {
 pub struct ArrayOfVars<Var: Variable> {
     pub variables: Vec<Var>,
     state: VariableState,
-    //states: Vec<VariableState>,
 }
 
 impl<Var: Variable> ArrayOfVars<Var> {
@@ -159,18 +182,25 @@ impl<Var: Variable> ArrayOfVars<Var> {
         Some(ArrayOfVars {
             variables: vec![var.clone(); len],
             state: VariableState::NoChange,
-            //states: vec![VariableState::NoChange; len],
         })
     }
 }
 
 impl<Var: Variable> Array<Var> for ArrayOfVars<Var> {
-    fn get_mut(&mut self, idx: usize) -> &mut Var {
-        unsafe { &mut *(self.variables.get_unchecked_mut(idx) as *mut _) }
+    fn get_mut(&mut self, position: usize) -> Option<&mut Var> {
+        self.variables.get_mut(position)
     }
 
-    fn get(&self, idx: usize) -> &Var {
-        unsafe { self.variables.get_unchecked(idx) }
+    fn get(&self, position: usize) -> Option<&Var> {
+        self.variables.get(position)
+    }
+
+    fn get_unchecked_mut(&mut self, position: usize) -> &mut Var {
+        unsafe { &mut *(self.variables.get_unchecked_mut(position) as *mut _) }
+    }
+
+    fn get_unchecked(&self, position: usize) -> &Var {
+        unsafe { self.variables.get_unchecked(position) }
     }
 
     fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
@@ -186,7 +216,7 @@ impl<Var: Variable> Array<Var> for ArrayOfVars<Var> {
     }
 }
 impl<Var: Variable> Variable for ArrayOfVars<Var> {
-    fn is_fixed(&self) -> bool {
+    fn is_affected(&self) -> bool {
         unimplemented!()
     }
     fn get_state(&self) -> &VariableState {
@@ -219,7 +249,6 @@ impl<Var: Variable> Variable for ArrayOfVars<Var> {
 pub struct ArrayOfRefs<Var: Variable> {
     pub variables: Vec<*mut Var>,
     state: VariableState,
-    //states: Vec<VariableState>,
 }
 
 // REF ARRAY BUILDER
@@ -228,18 +257,25 @@ impl<Var: Variable> ArrayOfRefs<Var> {
         Some(ArrayOfRefs {
             variables: variables,
             state: VariableState::NoChange,
-            //states: vec![VariableState::NoChange; len],
         })
     }
 }
 
 impl<Var: Variable> Array<Var> for ArrayOfRefs<Var> {
-    fn get_mut(&mut self, idx: usize) -> &mut Var {
-        unsafe { &mut (**self.variables.get_unchecked_mut(idx)) }
+    fn get_mut(&mut self, position: usize) -> Option<&mut Var> {
+        unsafe { self.variables.get_mut(position).map(|var| &mut (**var)) }
     }
 
-    fn get(&self, idx: usize) -> &Var {
-        unsafe { &(**self.variables.get_unchecked(idx)) }
+    fn get(&self, position: usize) -> Option<&Var> {
+        unsafe { self.variables.get(position).map(|var| &(**var)) }
+    }
+
+    fn get_unchecked_mut(&mut self, position: usize) -> &mut Var {
+        unsafe { &mut (**self.variables.get_unchecked_mut(position)) }
+    }
+
+    fn get_unchecked(&self, position: usize) -> &Var {
+        unsafe { &(**self.variables.get_unchecked(position)) }
     }
 
     fn iter<'a>(&'a self) -> Box<Iterator<Item = &Var> + 'a> {
@@ -256,7 +292,7 @@ impl<Var: Variable> Array<Var> for ArrayOfRefs<Var> {
 }
 
 impl<Var: Variable> Variable for ArrayOfRefs<Var> {
-    fn is_fixed(&self) -> bool {
+    fn is_affected(&self) -> bool {
         unimplemented!()
     }
     fn get_state(&self) -> &VariableState {

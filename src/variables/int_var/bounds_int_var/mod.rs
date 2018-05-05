@@ -13,13 +13,13 @@ pub struct IntVar {
 }
 
 impl Variable for IntVar {
-    fn is_fixed(&self) -> bool {
+    fn is_affected(&self) -> bool {
         return self.min == self.max;
     }
 }
 
 impl IntVar {
-    pub fn is_fixed(&self) -> bool {
+    pub fn is_affected(&self) -> bool {
         return self.min == self.max;
     }
 

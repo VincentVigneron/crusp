@@ -32,6 +32,6 @@ macro_rules! variables {
 #[macro_export]
 macro_rules! array_get_mut {
     ($array: ident[$idx: expr]) => {
-        &mut *($array.get_mut($idx) as *mut _)
+        &mut *($array.get_unchecked_mut($idx) as *mut _)
     }
 }

@@ -36,7 +36,7 @@ where
             .iter()
             .filter(|&view| {
                 let var = get_from_handler(handler, view);
-                !var.is_fixed()
+                !var.is_affected()
             })
             .cloned()
             .next()
