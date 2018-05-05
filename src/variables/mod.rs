@@ -4,16 +4,26 @@ use snowflake::ProcessUniqueId;
 pub mod int_var;
 pub mod handlers;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Describes the state of a variable after its domain is updated.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum VariableState {
-    BoundsChange,
-    ValuesChange,
+    /// If only the maximal bound of the variable has been updated.
     MaxBoundChange,
+    /// If only the minimal bound of the variable has been updated.
     MinBoundChange,
+    /// If both bounds of the variable has been updated.
+    BoundsChange,
+    /// If the domain has been change but not its bounds.
+    ValuesChange,
+    /// If no change occured.
     NoChange,
 }
 
 impl Subsumed for VariableState {
+    /// * `MaxBoundChange` subsumed `BoundsChange`
+    /// * `MinBoundChange` subsumed `BoundsChange`
+    /// * `BoundsChange` subsumed `ValuesChange`
+    /// * `ValuesChange` subsumed `NoChange`
     fn is_subsumed_under(&self, val: &Self) -> bool {
         match *self {
             VariableState::MaxBoundChange => *val == VariableState::MaxBoundChange,
@@ -27,8 +37,10 @@ impl Subsumed for VariableState {
     }
 }
 
+/// Represents an error that occured during variable domain update.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VariableError {
+    /// The domain of the variable is empty.
     DomainWipeout,
 }
 
@@ -137,14 +149,14 @@ where
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
-    /// Returns if a variable is affected.
+    /// Returns if the variable is affected.
     /// A variable is affected if and only if its a domain is a singleton.
     fn is_affected(&self) -> bool;
-    /// Returns the state of a variable without reinitialising it.
+    /// Returns the state of the variable without reinitialising it.
     /// The state of a variable describes if and how the domain of the variable has
     /// been updated.
     fn get_state(&self) -> &VariableState;
-    /// Returns the state of a variable and reinitialises the state of the
+    /// Returns the state of the variable and reinitialises the state of the
     /// variable. The state of a variable describes if and how the domain of the variable
     /// has been updated.
     fn retrieve_state(&mut self) -> VariableState;
@@ -152,8 +164,8 @@ pub trait Variable: Clone {
 
 /// This trait describes an array of variables. There is two types of array:
 /// array of variables and array of references to variables. Both types are manipulated with the
-/// same trait. When writting constraints over an array of variables, you should use the Array
-/// trait instead of the specific types ArrayOfVars or ArrayOfRefs.
+/// same trait. When writting constraints over an array of variables, you should use the `Array`
+/// trait instead of the specific types `ArrayOfVars` or `ArrayOfRefs`.
 pub trait Array<Var: Variable>: Variable {
     /// Returns a mutable reference to the variable at that position or None if out of bounds.
     fn get_mut(&mut self, position: usize) -> Option<&mut Var>;
@@ -171,17 +183,21 @@ pub trait Array<Var: Variable>: Variable {
     fn len(&self) -> usize;
 }
 
+/// Represents an array of `Variable`.
 #[derive(Debug, Clone)]
 pub struct ArrayOfVars<Var: Variable> {
-    pub variables: Vec<Var>,
-    state: VariableState,
+    /// The array of `Variable`.
+    variables: Vec<Var>,
 }
 
 impl<Var: Variable> ArrayOfVars<Var> {
+    /// Creates a new `ArrayOfVars` or None if the number of variables is null.
+    ///
+    /// *`len` - The number of variables.
+    /// *`var` - The prototype of variable used to fill the array.
     pub fn new(len: usize, var: Var) -> Option<Self> {
         Some(ArrayOfVars {
             variables: vec![var.clone(); len],
-            state: VariableState::NoChange,
         })
     }
 }
@@ -220,7 +236,8 @@ impl<Var: Variable> Variable for ArrayOfVars<Var> {
         unimplemented!()
     }
     fn get_state(&self) -> &VariableState {
-        &self.state
+        //&self.state
+        unimplemented!()
     }
     fn retrieve_state(&mut self) -> VariableState {
         self.variables
@@ -245,18 +262,21 @@ impl<Var: Variable> Variable for ArrayOfVars<Var> {
     }
 }
 
+/// Represents an array of references to `Variable`.
 #[derive(Debug, Clone)]
 pub struct ArrayOfRefs<Var: Variable> {
-    pub variables: Vec<*mut Var>,
-    state: VariableState,
+    /// The array of references to `Variable`.
+    variables: Vec<*mut Var>,
 }
 
 // REF ARRAY BUILDER
 impl<Var: Variable> ArrayOfRefs<Var> {
-    pub fn new(variables: Vec<*mut Var>) -> Option<Self> {
+    /// Creates a new `ArrayOfVars` or None if the number of variables is null.
+    ///
+    /// *`variables` - Vector of references to variables.
+    fn new(variables: Vec<*mut Var>) -> Option<Self> {
         Some(ArrayOfRefs {
             variables: variables,
-            state: VariableState::NoChange,
         })
     }
 }
@@ -296,7 +316,8 @@ impl<Var: Variable> Variable for ArrayOfRefs<Var> {
         unimplemented!()
     }
     fn get_state(&self) -> &VariableState {
-        &self.state
+        //&self.state
+        unimplemented!()
     }
     fn retrieve_state(&mut self) -> VariableState {
         self.iter()

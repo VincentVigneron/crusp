@@ -1,6 +1,9 @@
 use super::{Variable, VariableState, ViewIndex};
 
-// ViewIndex or ViewIndexIndex
+/// Represents a variables handler. Variable handlers can manage many type of variables
+/// and give acces to statistics about each variables. A `VariablesHandler` does not
+/// provide acces to variable, that's why each structure that implements a `VariableHandler`
+/// should at least implements one `SpecificVariablesHandler`.
 pub trait VariablesHandler: Clone {
     fn retrieve_all_changed_states(
         &mut self,
@@ -28,6 +31,16 @@ where
     fn add(&mut self, Param) -> View;
 }
 
+/// Gives immutable and mutable acces to owned variables. A `SpecificVariablesHandler`
+/// gives access to only one type of variable.
+/// The acces to a variable is done via a `View`. It's highly recommended to use one view for one
+/// type of `Variable`. When a structure implements the `SpecificVariablesHandler` for
+/// for a specific `Variable` `Var`, it should also implements the `SpecificVariablesHandler` trait for
+/// an `ArrayOfVars<Var>` and an `ArrayOfRefs<Var>` (each of these three `SpecificVariablesHandler`
+/// should have its own view).
+///
+/// * `Var` - The type of variable handled.
+/// * `View` - The associated view for the variable.
 pub trait SpecificVariablesHandler<Var, View>: VariablesHandler
 where
     Var: Variable,
