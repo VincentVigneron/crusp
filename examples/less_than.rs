@@ -1,16 +1,16 @@
 #[macro_use]
-extern crate solver_cp;
+extern crate crusp;
 
-use solver_cp::branchers::BranchersHandler;
-use solver_cp::branchers::brancher::DefaultBrancher;
-use solver_cp::branchers::values_selector::MinValueSelector;
-use solver_cp::branchers::variables_selector::SequentialVariableSelector;
-use solver_cp::constraints::handlers::*;
-use solver_cp::search::Solver;
-use solver_cp::spaces::Space;
-use solver_cp::variables::handlers::*;
-use solver_cp::variables::int_var::IntVar;
-use solver_cp::variables::int_var::values_int_var::*;
+use crusp::branchers::BranchersHandler;
+use crusp::branchers::brancher::DefaultBrancher;
+use crusp::branchers::values_selector::MinValueSelector;
+use crusp::branchers::variables_selector::SequentialVariableSelector;
+use crusp::constraints::handlers::*;
+use crusp::search::Solver;
+use crusp::spaces::Space;
+use crusp::variables::handlers::*;
+use crusp::variables::int_var::IntVar;
+use crusp::variables::int_var::values_int_var::*;
 
 fn main() {
     let mut variables_handler = default_handler::Builder::new();

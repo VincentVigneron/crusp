@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate solver_cp;
+extern crate crusp;
 
 fn main() {
     let coefs = vec![1, 1, 1, 1, 1, 1, 1, 1, 1, 1];

@@ -1,7 +1,7 @@
 # CRUSP (Constraint Rust Programming)
 
 [![Build Status](https://travis-ci.org/VincentVigneron/crusp.svg?branch=master)](https://travis-ci.org/VincentVigneron/crusp)
-[![codecov](https://codecov.io/gh/VincentVigneron/solver_cp/branch/master/graph/badge.svg)](https://codecov.io/gh/VincentVigneron/crups)
+[![codecov](https://codecov.io/gh/VincentVigneron/crusp/branch/master/graph/badge.svg)](https://codecov.io/gh/VincentVigneron/crups)
 
 ## Documentation
 [API Documentation](https://vincentvigneron.github.io/crusp/)
@@ -11,7 +11,7 @@
 ### Ordering
 ```rust
 #[macro_use]
-extern crate solver_cp;
+extern crate crusp;
 
 fn main() {
     let result = cp_model!(
@@ -41,7 +41,7 @@ fn main() {
 ### More Money
 ```rust
 #[macro_use]
-extern crate solver_cp;
+extern crate crusp;
 
 fn main() {
     let result = cp_model!(
