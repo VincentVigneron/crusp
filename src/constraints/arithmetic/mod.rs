@@ -1,6 +1,6 @@
 use super::{PropagationState, Propagator};
 use variables::{VariableError, VariableState};
-use variables::int_var::{BoundsIntVar, ValuesIntVar};
+use variables::domains::{OrderedDomain, PrunableDomain};
 
 // using macro
 #[derive(Debug, Clone)]
@@ -11,7 +11,7 @@ impl ArithmeticComparatorPropagator {
         ArithmeticComparatorPropagator {}
     }
 
-    pub fn equal<VarType: ValuesIntVar<Type = i32>>(
+    pub fn equal<VarType: PrunableDomain<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
@@ -28,8 +28,8 @@ impl ArithmeticComparatorPropagator {
     }
 
     pub fn equal_on_bounds<
-        Left: BoundsIntVar<Type = i32>,
-        Right: BoundsIntVar<Type = i32>,
+        Left: OrderedDomain<Type = i32>,
+        Right: OrderedDomain<Type = i32>,
     >(
         &self,
         lhs: &mut Left,
@@ -51,7 +51,7 @@ impl ArithmeticComparatorPropagator {
         }
     }
 
-    pub fn less_than<VarType: BoundsIntVar<Type = i32>>(
+    pub fn less_than<VarType: OrderedDomain<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
@@ -71,7 +71,7 @@ impl ArithmeticComparatorPropagator {
         }
     }
 
-    pub fn less_or_equal_than<VarType: BoundsIntVar<Type = i32>>(
+    pub fn less_or_equal_than<VarType: OrderedDomain<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
@@ -91,7 +91,7 @@ impl ArithmeticComparatorPropagator {
         }
     }
 
-    pub fn greater_than<VarType: BoundsIntVar<Type = i32>>(
+    pub fn greater_than<VarType: OrderedDomain<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
@@ -111,7 +111,7 @@ impl ArithmeticComparatorPropagator {
         }
     }
 
-    pub fn greater_or_equal_than<VarType: BoundsIntVar<Type = i32>>(
+    pub fn greater_or_equal_than<VarType: OrderedDomain<Type = i32>>(
         &self,
         lhs: &mut VarType,
         rhs: &mut VarType,
@@ -133,73 +133,72 @@ impl ArithmeticComparatorPropagator {
 }
 
 pub mod less_than {
-    use variables::int_var::BoundsIntVar;
-    use variables::int_var::IntVar;
+    use variables::domains::OrderedDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn less_than(x: VarType, y: VarType)
-        where VarType: BoundsIntVar<Type=i32> | IntVar<Type=i32>;
+        where VarType: OrderedDomain<Type=i32>;
         );
 
 }
 
 pub mod less_or_equal_than {
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn less_or_equal_than(x: VarType, y: VarType)
-        where VarType: BoundsIntVar<Type=i32>;
+        where VarType: OrderedDomain<Type=i32>;
         );
 
 }
 
 pub mod greater_than {
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn greater_than(x: VarType, y: VarType)
-        where VarType: BoundsIntVar<Type=i32>;
+        where VarType: OrderedDomain<Type=i32>;
         );
 
 }
 
 pub mod greater_or_equal_than {
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn greater_or_equal_than(x: VarType, y: VarType)
-        where VarType: BoundsIntVar<Type=i32>;
+        where VarType: OrderedDomain<Type=i32>;
         );
 }
 
 pub mod equal {
-    use variables::int_var::ValuesIntVar;
+    use variables::domains::PrunableDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn equal(x: VarType, y: VarType)
-        where VarType: ValuesIntVar<Type=i32>;
+        where VarType: PrunableDomain<Type=i32>;
         );
 }
 
 pub mod equal_on_bounds {
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
 
     constraint_build!(
         struct Propagator = super::ArithmeticComparatorPropagator;
         fn new();
         fn equal_on_bounds(x: Left, y: Right)
         where
-        Left: BoundsIntVar<Type = i32>,
-        Right: BoundsIntVar<Type = i32>;
+        Left: OrderedDomain<Type = i32>,
+        Right: OrderedDomain<Type = i32>;
         );
 }

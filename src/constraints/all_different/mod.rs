@@ -1,19 +1,19 @@
 use variables::Array;
-use variables::int_var::ValuesIntVar;
+use variables::domains::PrunableDomain;
 
 constraint_build!(
     struct Propagator = propagator::AllDifferentPropagator;
     fn new();
     fn propagate(vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVars)
         where
-            VarType: ValuesIntVar<Type=i32>,
+            VarType:  PrunableDomain<Type = i32>,
             ArrayOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
     use variables::Array;
-    use variables::int_var::ValuesIntVar;
+    use variables::domains::PrunableDomain;
 
     #[derive(Debug, Clone)]
     pub struct AllDifferentPropagator {}
@@ -28,7 +28,7 @@ pub mod propagator {
             vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
-            VarType: ValuesIntVar<Type = i32>,
+            VarType: PrunableDomain<Type = i32>,
             ArrayOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use std::collections::BTreeSet;

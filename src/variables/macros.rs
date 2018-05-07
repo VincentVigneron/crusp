@@ -7,7 +7,7 @@ macro_rules! variables {
         let $x: ident = var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = $handler.add(SetIntVar::new($min, $max).unwrap());
+        let $x = $handler.add(IntVarValues::new($min, $max).unwrap());
             variables!(handler = $handler; $($tail)*);
     };
     (
@@ -15,7 +15,7 @@ macro_rules! variables {
         let $x: ident = array[$len: tt] of var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-            let $x = ArrayOfVars::new(10, SetIntVar::new($min, $max).unwrap()).unwrap();
+            let $x = ArrayOfVars::new(10, IntVarValues::new($min, $max).unwrap()).unwrap();
             let $x = $handler.add($x);
             variables!(handler = $handler; $($tail)*);
     };

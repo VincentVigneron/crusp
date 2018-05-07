@@ -8,9 +8,9 @@ use crusp::branchers::variables_selector::SequentialVariableSelector;
 use crusp::constraints::handlers::*;
 use crusp::search::Solver;
 use crusp::spaces::Space;
+use crusp::variables::domains::*;
 use crusp::variables::handlers::*;
-use crusp::variables::int_var::IntVar;
-use crusp::variables::int_var::values_int_var::*;
+use crusp::variables::int_var::values::IntVarValues;
 
 fn main() {
     let mut variables_handler = default_handler::Builder::new();

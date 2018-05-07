@@ -1,6 +1,8 @@
 use graph::Subsumed;
 use snowflake::ProcessUniqueId;
 
+pub mod domains;
+pub mod bool_var;
 pub mod int_var;
 pub mod handlers;
 

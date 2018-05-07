@@ -1,19 +1,19 @@
 use variables::Array;
-use variables::int_var::BoundsIntVar;
+use variables::domains::OrderedDomain;
 
 constraint_build!(
     struct Propagator = propagator::SumPropagator;
     fn new(coefs: Vec<i32>);
     fn propagate(res: VarType, vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars)
         where
-            VarType: BoundsIntVar<Type=i32>,
+            VarType: OrderedDomain<Type=i32>,
             ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
     use variables::Array;
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
     #[derive(Debug, Clone)]
 
     // !!!!! COEFS > 0
@@ -35,7 +35,7 @@ pub mod propagator {
             vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
-            VarType: BoundsIntVar<Type = i32>,
+            VarType: OrderedDomain<Type = i32>,
             ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use variables::VariableState;
@@ -85,7 +85,7 @@ pub mod new_version {
     use variables::{Array, Variable, VariableView, ViewIndex};
     use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
                               VariablesHandler};
-    use variables::int_var::BoundsIntVar;
+    use variables::domains::OrderedDomain;
 
     #[allow(non_snake_case)]
     struct Variables<'a, Var: 'a + Variable> {
@@ -152,7 +152,7 @@ pub mod new_version {
             vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
         ) -> Result<PropagationState, VariableError>
         where
-            VarType: BoundsIntVar<Type = i32>,
+            VarType: OrderedDomain<Type = i32>,
             ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
         {
             use variables::VariableState;

@@ -39,9 +39,11 @@ macro_rules! cp_model {
         #[allow(unused_imports)]
         use $crate::variables::handlers::*;
         #[allow(unused_imports)]
+        use $crate::variables::domains::*;
+        #[allow(unused_imports)]
         use $crate::variables::int_var::*;
         #[allow(unused_imports)]
-        use $crate::variables::int_var::values_int_var::*;
+        use $crate::variables::int_var::values::*;
 
         let mut variables_handler = default_handler::Builder::new();
         let mut constraints_handler = SequentialConstraintsHandler::new();
@@ -77,7 +79,7 @@ macro_rules! cp_model {
         let $x: ident = var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = $variables.add(SetIntVar::new($min, $max).unwrap());
+        let $x = $variables.add(IntVarValues::new($min, $max).unwrap());
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
     (
@@ -85,7 +87,7 @@ macro_rules! cp_model {
         let $x: ident = array[$len: tt] of var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = ArrayOfVars::new($len, SetIntVar::new($min, $max).unwrap()).unwrap();
+        let $x = ArrayOfVars::new($len, IntVarValues::new($min, $max).unwrap()).unwrap();
         let $x = $variables.add($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);

@@ -1,18 +1,19 @@
 use variables::{Variable, VariableError, VariableState};
-use variables::int_var::{BoundsIntVar, IntVar, ValuesIntVar};
+use variables::domains::{AssignableDomain, FiniteDomain, FromRangeDomain,
+                         FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SetIntVar {
+pub struct IntVarValues {
     domain: Vec<i32>,
     state: VariableState,
 }
 
-impl SetIntVar {
-    pub fn new(min: i32, max: i32) -> Option<SetIntVar> {
+impl IntVarValues {
+    pub fn new(min: i32, max: i32) -> Option<IntVarValues> {
         if min > max {
             None
         } else {
-            Some(SetIntVar {
+            Some(IntVarValues {
                 domain: (min..(max + 1)).collect(),
                 state: VariableState::NoChange,
             })
@@ -59,7 +60,73 @@ impl SetIntVar {
     }
 }
 
-impl Variable for SetIntVar {
+impl IterableDomain for IntVarValues {
+    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Self::Type> + 'a> {
+        Box::new(self.domain.iter())
+    }
+}
+
+impl FromRangeDomain for IntVarValues {
+    fn new_from_range(min: Self::Type, max: Self::Type) -> Option<IntVarValues> {
+        if min > max {
+            None
+        } else {
+            Some(IntVarValues {
+                domain: (min..(max + 1)).collect(),
+                state: VariableState::NoChange,
+            })
+        }
+    }
+}
+
+impl FromValuesDomain for IntVarValues {
+    fn new_from_values<Values>(values: Values) -> Option<IntVarValues>
+    where
+        Values: IntoIterator<Item = Self::Type>,
+    {
+        let mut domain = values.into_iter().collect::<Vec<_>>();
+        domain.sort();
+        domain.dedup();
+        let domain = domain;
+        if domain.is_empty() {
+            None
+        } else {
+            Some(IntVarValues {
+                domain: domain,
+                state: VariableState::NoChange,
+            })
+        }
+    }
+}
+
+impl AssignableDomain for IntVarValues {
+    fn set_value(&mut self, value: Self::Type) -> Result<VariableState, VariableError> {
+        if self.min() > value || self.max() < value {
+            self.invalidate();
+            return Err(VariableError::DomainWipeout);
+        }
+        let var_value = self.value();
+        match var_value {
+            Some(var_value) if var_value == value => Ok(VariableState::NoChange),
+            _ => {
+                let found_value = self.domain.binary_search(&value);
+                match found_value {
+                    Ok(_) => {
+                        self.domain = vec![value];
+                        self.update_state(VariableState::BoundsChange);
+                        Ok(VariableState::BoundsChange)
+                    }
+                    _ => {
+                        self.invalidate();
+                        Err(VariableError::DomainWipeout)
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Variable for IntVarValues {
     fn is_affected(&self) -> bool {
         self.domain.len() == 1
     }
@@ -76,18 +143,10 @@ impl Variable for SetIntVar {
     }
 }
 
-impl IntVar for SetIntVar {
+impl FiniteDomain for IntVarValues {
     type Type = i32;
     fn size(&self) -> usize {
         self.domain.len()
-    }
-
-    fn min(&self) -> Self::Type {
-        *self.domain.first().unwrap()
-    }
-
-    fn max(&self) -> Self::Type {
-        *self.domain.last().unwrap()
     }
 
     fn value(&self) -> Option<Self::Type> {
@@ -99,22 +158,14 @@ impl IntVar for SetIntVar {
             None
         }
     }
-
-    fn iter<'a>(&'a self) -> Box<Iterator<Item = &Self::Type> + 'a> {
-        Box::new(self.domain.iter())
-    }
 }
 
-impl BoundsIntVar for SetIntVar {
-    fn new_from_range(min: Self::Type, max: Self::Type) -> Option<SetIntVar> {
-        if min > max {
-            None
-        } else {
-            Some(SetIntVar {
-                domain: (min..(max + 1)).collect(),
-                state: VariableState::NoChange,
-            })
-        }
+impl OrderedDomain for IntVarValues {
+    fn min(&self) -> Self::Type {
+        *self.domain.first().unwrap()
+    }
+    fn max(&self) -> Self::Type {
+        *self.domain.last().unwrap()
     }
 
     fn strict_upperbound(
@@ -182,49 +233,7 @@ impl BoundsIntVar for SetIntVar {
     }
 }
 
-impl ValuesIntVar for SetIntVar {
-    fn new_from_values<Values: Iterator<Item = Self::Type>>(
-        values: Values,
-    ) -> Option<SetIntVar> {
-        let mut domain = values.collect::<Vec<_>>();
-        domain.sort();
-        domain.dedup();
-        let domain = domain;
-        if domain.is_empty() {
-            None
-        } else {
-            Some(SetIntVar {
-                domain: domain,
-                state: VariableState::NoChange,
-            })
-        }
-    }
-
-    fn set_value(&mut self, value: Self::Type) -> Result<VariableState, VariableError> {
-        if self.min() > value || self.max() < value {
-            self.invalidate();
-            return Err(VariableError::DomainWipeout);
-        }
-        let var_value = self.value();
-        match var_value {
-            Some(var_value) if var_value == value => Ok(VariableState::NoChange),
-            _ => {
-                let found_value = self.domain.binary_search(&value);
-                match found_value {
-                    Ok(_) => {
-                        self.domain = vec![value];
-                        self.update_state(VariableState::BoundsChange);
-                        Ok(VariableState::BoundsChange)
-                    }
-                    _ => {
-                        self.invalidate();
-                        Err(VariableError::DomainWipeout)
-                    }
-                }
-            }
-        }
-    }
-
+impl PrunableDomain for IntVarValues {
     // Distinction between ValuesChange and BoundsChange
     fn equal(
         &mut self,
@@ -241,7 +250,7 @@ impl ValuesIntVar for SetIntVar {
             return Err(VariableError::DomainWipeout);
         }
         let (ok_self, ok_value) = {
-            let check_change = |var: &mut SetIntVar| {
+            let check_change = |var: &mut IntVarValues| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
@@ -264,13 +273,16 @@ impl ValuesIntVar for SetIntVar {
     }
 
     // Change to non-naive implementation
-    fn in_sorted_values<Values: Iterator<Item = Self::Type>>(
+    fn in_sorted_values<Values>(
         &mut self,
         values: Values,
-    ) -> Result<VariableState, VariableError> {
+    ) -> Result<VariableState, VariableError>
+    where
+        Values: IntoIterator<Item = Self::Type>,
+    {
         use std::collections::BTreeSet;
         let s1: BTreeSet<_> = self.iter().map(|&v| v).collect();
-        let s2: BTreeSet<_> = values.collect();
+        let s2: BTreeSet<_> = values.into_iter().collect();
         let domain: Vec<_> = s1.intersection(&s2).map(|val| *val).collect();
 
         if domain.is_empty() {
@@ -278,7 +290,7 @@ impl ValuesIntVar for SetIntVar {
             return Err(VariableError::DomainWipeout);
         }
         let ok_self = {
-            let check_change = |var: &mut SetIntVar| {
+            let check_change = |var: &mut IntVarValues| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
                 } else if var.min() != unwrap_first!(domain) {
@@ -354,7 +366,7 @@ impl ValuesIntVar for SetIntVar {
 
     fn not_equal(
         &mut self,
-        value: &mut SetIntVar,
+        value: &mut IntVarValues,
     ) -> Result<(VariableState, VariableState), VariableError> {
         match self.value() {
             Some(val) => {
@@ -370,14 +382,9 @@ impl ValuesIntVar for SetIntVar {
             },
         }
     }
-
-    //fn into_iter(Self) -> Box<Iterator<Item = Self::Type>> {
-    //Box::new(self.domain.into_iter())
-    //unimplemented!()
-    //}
 }
 
 #[cfg(test)]
 mod tests {
-    test_int_var!(SetIntVar);
+    test_int_var!(IntVarValues);
 }

@@ -1,8 +1,8 @@
 use super::ValuesSelector;
-use variables::{VariableView, ViewIndex};
+use variables::{Variable, VariableView, ViewIndex};
+use variables::domains::{AssignableDomain, IterableDomain};
 use variables::handlers::{get_from_handler, get_mut_from_handler,
                           SpecificVariablesHandler, VariablesHandler};
-use variables::int_var::ValuesIntVar;
 
 #[derive(Clone, Debug)]
 pub struct MinValueSelector {}
@@ -18,7 +18,7 @@ impl MinValueSelector {
 impl<Handler, Var, View> ValuesSelector<Handler, Var, View> for MinValueSelector
 where
     Handler: VariablesHandler + SpecificVariablesHandler<Var, View> + 'static,
-    Var: ValuesIntVar + 'static,
+    Var: Variable + AssignableDomain + IterableDomain + 'static,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
 {
     // Error if no value

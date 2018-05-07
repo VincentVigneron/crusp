@@ -1,17 +1,17 @@
 use variables::ArrayOfVars;
-use variables::int_var::ValuesIntVar;
+use variables::domains::PrunableDomain;
 
 constraint_build!(
     struct Propagator = propagator::RegularPropagator;
     fn new();
     fn propagate(x: ArrayOfVars<VarType>) -> Option<propagator::RegularState>
-        where VarType: ValuesIntVar;
+        where VarType: PrunableDomain<Type = i32>;
     );
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator};
     use variables::{ArrayOfVars, VariableError};
-    use variables::int_var::ValuesIntVar;
+    use variables::domains::PrunableDomain;
 
     #[derive(Debug, Clone)]
     pub struct RegularState {}
@@ -42,7 +42,7 @@ pub mod propagator {
             state
         }
 
-        pub fn propagate<VarType: ValuesIntVar>(
+        pub fn propagate<VarType: PrunableDomain<Type = i32>>(
             &self,
             _array: &mut ArrayOfVars<VarType>,
             state: &mut Option<RegularState>,
