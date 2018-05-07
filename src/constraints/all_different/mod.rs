@@ -4,10 +4,10 @@ use variables::domains::PrunableDomain;
 constraint_build!(
     struct Propagator = propagator::AllDifferentPropagator;
     fn new();
-    fn propagate(vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVars)
+    fn propagate(vars: ArrayOfVars)
         where
             VarType:  PrunableDomain<Type = i32>,
-            ArrayOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
+            ArrayOfVars: Array<VarType>;
     );
 
 pub mod propagator {
