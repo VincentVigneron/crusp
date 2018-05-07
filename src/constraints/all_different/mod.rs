@@ -9,6 +9,7 @@ constraint_build!(
             VarType:  PrunableDomain<Type = i32>,
             ArrayOfVars: Array<VarType>;
     );
+//VarType::Type: Ord + Eq,
 
 pub mod propagator {
     use constraints::{PropagationState, Propagator, VariableError};
