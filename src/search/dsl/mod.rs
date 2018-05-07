@@ -42,8 +42,6 @@ macro_rules! cp_model {
         use $crate::variables::domains::*;
         #[allow(unused_imports)]
         use $crate::variables::int_var::*;
-        #[allow(unused_imports)]
-        use $crate::variables::int_var::values::*;
 
         let mut variables_handler = default_handler::Builder::new();
         let mut constraints_handler = SequentialConstraintsHandler::new();

@@ -2,6 +2,7 @@
 
 // prefix with unsafe for n checking already invalid var
 //
+pub struct IntVarIntervals {}
 
 /*
 #[derive(Debug, Clone, PartialEq, Eq)]

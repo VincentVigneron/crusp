@@ -10,7 +10,7 @@ use crusp::search::Solver;
 use crusp::spaces::Space;
 use crusp::variables::{ArrayOfVars, Variable};
 use crusp::variables::handlers::*;
-use crusp::variables::int_var::values::IntVarValues;
+use crusp::variables::int_var::*;
 
 fn main() {
     let mut variables_handler = default_handler::Builder::new();

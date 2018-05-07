@@ -1,3 +1,3 @@
-use variables::int_var::values::IntVarValues;
+use variables::int_var::IntVarValues;
 
 variables_handler_build!(IntVarValues);
