@@ -8,7 +8,7 @@ use crusp::branchers::variables_selector::SequentialVariableSelector;
 use crusp::constraints::handlers::*;
 use crusp::search::Solver;
 use crusp::spaces::Space;
-use crusp::variables::domains::*;
+use crusp::variables::Variable;
 use crusp::variables::handlers::*;
 use crusp::variables::int_var::values::IntVarValues;
 

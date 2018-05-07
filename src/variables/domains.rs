@@ -216,7 +216,8 @@ where
     where
         Values: IntoIterator<Item = Self::Type>,
     {
-        let mut values: Vec<_> = values.into_iter().collect();
+        let values: Vec<_> = values.into_iter().collect();
+        //let mut values: Vec<_> = values.into_iter().collect();
         //values.sort();
         self.in_sorted_values(values.into_iter())
     }

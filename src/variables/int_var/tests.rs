@@ -328,7 +328,7 @@ macro_rules! test_int_var{
 
         #[test]
         fn new_from_values_error() {
-            let domain: Vec<<$var as FiniteDomain>::Type> = Vec::new();
+            let domain: Vec<<$var as Variable>::Type> = Vec::new();
             assert!(
                 <$var>::new_from_values(domain.into_iter()).is_none(),
                 "Expected for building from an empty iterator"
