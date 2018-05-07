@@ -22,6 +22,7 @@ pub enum VariableState {
 }
 
 impl Subsumed for VariableState {
+    /// # Subsomption relations
     /// * `MaxBoundChange` subsumed `BoundsChange`
     /// * `MinBoundChange` subsumed `BoundsChange`
     /// * `BoundsChange` subsumed `ValuesChange`
@@ -151,9 +152,14 @@ where
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
+    /// The underlying type holded by the `Variable`.
+    type Type: Clone;
     /// Returns if the variable is affected.
     /// A variable is affected if and only if its a domain is a singleton.
     fn is_affected(&self) -> bool;
+    /// Returns the value of the variable or `None` if the variable is not
+    /// affected.
+    fn value(&self) -> Option<Self::Type>;
     /// Returns the state of the variable without reinitialising it.
     /// The state of a variable describes if and how the domain of the variable has
     /// been updated.
@@ -195,6 +201,7 @@ pub struct ArrayOfVars<Var: Variable> {
 impl<Var: Variable> ArrayOfVars<Var> {
     /// Creates a new `ArrayOfVars` or None if the number of variables is null.
     ///
+    /// # Arguments
     /// *`len` - The number of variables.
     /// *`var` - The prototype of variable used to fill the array.
     pub fn new(len: usize, var: Var) -> Option<Self> {
@@ -234,6 +241,10 @@ impl<Var: Variable> Array<Var> for ArrayOfVars<Var> {
     }
 }
 impl<Var: Variable> Variable for ArrayOfVars<Var> {
+    type Type = Var::Type;
+    fn value(&self) -> Option<Self::Type> {
+        unimplemented!()
+    }
     fn is_affected(&self) -> bool {
         unimplemented!()
     }
@@ -275,6 +286,7 @@ pub struct ArrayOfRefs<Var: Variable> {
 impl<Var: Variable> ArrayOfRefs<Var> {
     /// Creates a new `ArrayOfVars` or None if the number of variables is null.
     ///
+    /// # Argument
     /// *`variables` - Vector of references to variables.
     fn new(variables: Vec<*mut Var>) -> Option<Self> {
         Some(ArrayOfRefs {
@@ -314,6 +326,10 @@ impl<Var: Variable> Array<Var> for ArrayOfRefs<Var> {
 }
 
 impl<Var: Variable> Variable for ArrayOfRefs<Var> {
+    type Type = Var::Type;
+    fn value(&self) -> Option<Self::Type> {
+        unimplemented!()
+    }
     fn is_affected(&self) -> bool {
         unimplemented!()
     }

@@ -85,6 +85,8 @@ fn main() {
 - [ ] Top Priority Constraints (maybe remove macros as it is now)
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
+- [ ] Priority OrderedDomain min and max should return an Option.
+- [ ] Change in\_sorted\_values from PrunbalDomain.
 - [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)
 - [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)
 - [ ] Better imports inside macros (i.e. avoid conflicts with imports).

@@ -127,6 +127,7 @@ impl AssignableDomain for IntVarValues {
 }
 
 impl Variable for IntVarValues {
+    type Type = i32;
     fn is_affected(&self) -> bool {
         self.domain.len() == 1
     }
@@ -141,13 +142,6 @@ impl Variable for IntVarValues {
         mem::swap(&mut self.state, &mut state);
         state
     }
-}
-
-impl FiniteDomain for IntVarValues {
-    type Type = i32;
-    fn size(&self) -> usize {
-        self.domain.len()
-    }
 
     fn value(&self) -> Option<Self::Type> {
         if self.domain.is_empty() {
@@ -157,6 +151,12 @@ impl FiniteDomain for IntVarValues {
         } else {
             None
         }
+    }
+}
+
+impl FiniteDomain for IntVarValues {
+    fn size(&self) -> usize {
+        self.domain.len()
     }
 }
 
