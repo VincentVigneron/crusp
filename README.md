@@ -86,6 +86,7 @@ fn main() {
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
 - [ ] Priority OrderedDomain min and max should return an Option.
+- [ ] Priority Split VariableView into: VariableView and ArrayView (trait ArrayView {type Array: Array..; type Variable: Variable;}).
 - [ ] Change in\_sorted\_values from PrunbalDomain.
 - [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)
 - [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)
