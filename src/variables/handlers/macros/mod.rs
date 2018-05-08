@@ -476,6 +476,11 @@ macro_rules! variables_handler_build {
                     }
                 }
 
+                fn get_unique_ids(&self, view: &VarView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    let view_index: ViewIndex = view.clone().into();
+                    Box::new(vec![view_index].into_iter())
+                }
+
                 fn into_indexes(&self, view: &VarView<$type>) -> Box<Iterator<Item = ViewIndex>> {
                     let view_index: ViewIndex = view.clone().into();
                     Box::new(vec![view_index].into_iter())
@@ -532,6 +537,15 @@ macro_rules! variables_handler_build {
 
                 fn retrieve_state(&mut self, view: &ArrayOfVarsView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
+                }
+                fn get_unique_ids(&self, view: &ArrayOfVarsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    let range = 0..self.$type.variables_array[view.get_idx()].len();
+                    Box::new(range
+                        .map(|y| VarView::<$type>::new_from_array(view.id, view.get_idx(), y))
+                        .map(Into::<ViewIndex>::into)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                    )
                 }
 
                 fn into_indexes(&self, view: &ArrayOfVarsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
@@ -617,6 +631,15 @@ macro_rules! variables_handler_build {
 
                 fn retrieve_state(&mut self, view: &ArrayOfRefsView<$type>) -> VariableState {
                     self.get_mut(view).retrieve_state()
+                }
+
+                fn get_unique_ids(&self, view: &ArrayOfRefsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                    Box::new(self.$type.variables_ref_view[view.get_idx()].iter()
+                        .cloned()
+                        .map(Into::<ViewIndex>::into)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                    )
                 }
 
                 fn into_indexes(&self, view: &ArrayOfRefsView<$type>) -> Box<Iterator<Item = ViewIndex>> {

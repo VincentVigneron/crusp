@@ -46,6 +46,7 @@ where
 {
     fn get_mut(&mut self, &View) -> &mut View::Variable;
     fn get(&self, &View) -> &View::Variable;
+    fn get_unique_ids(&self, &View) -> Box<Iterator<Item = ViewIndex>>;
     fn retrieve_state(&mut self, view: &View) -> VariableState;
     // Retrieve state of the view but also of the subiview
     fn retrieve_states<'a, Views: Iterator<Item = &'a View>>(

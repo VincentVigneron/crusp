@@ -1,11 +1,19 @@
 use constraints::Constraint;
 use constraints::PropagationState;
+use std::collections::HashMap;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
+use std::rc::Rc;
 use variables::{Array, VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::OrderedDomain;
 use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
                           VariablesHandler};
+
+#[derive(Clone)]
+enum Type {
+    Result,
+    Variable(usize),
+}
 
 #[derive(Clone)]
 pub struct SumConstraint<Var, View, ArrayView>
@@ -20,6 +28,9 @@ where
     res: View,
     variables: ArrayView,
     coefs: Vec<Var>,
+    indexes: Rc<HashMap<ViewIndex, Type>>,
+    input: Option<Vec<(ViewIndex, VariableState)>>,
+    output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
 impl<Var, View, ArrayView> SumConstraint<Var, View, ArrayView>
@@ -43,6 +54,9 @@ where
             res: res,
             variables: variables,
             coefs: coefs.into_iter().collect(),
+            indexes: Rc::new(HashMap::new()),
+            input: None,
+            output: None,
         }
     }
 }
@@ -83,8 +97,31 @@ where
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
+        use std::mem;
         use variables::VariableState;
         let mut change = false;
+
+        let mut input = None;
+        mem::swap(&mut input, &mut self.input);
+
+        match input {
+            None => {
+                // first call
+            }
+            Some(changes) => {
+                for (idx, state) in changes.into_iter() {
+                    match *self.indexes.get(&idx).unwrap() {
+                        Type::Result => {
+                            // DO stuff
+                            // break
+                        }
+                        Type::Variable(pos) => {
+                            // Incremental update
+                        }
+                    }
+                }
+            }
+        }
 
         let vars: &mut ArrayView::Variable = unsafe {
             unsafe_from_raw_point!(get_mut_from_handler(
@@ -113,6 +150,11 @@ where
         change = change || (r != VariableState::NoChange);
         let r = res.weak_lowerbound(min.clone())?;
         change = change || (r != VariableState::NoChange);
+        let mut output = vec![];
+        output.push((
+            variables_handler.get_unique_ids(&self.res).next().unwrap(),
+            r,
+        ));
 
         let f = res.max() - min;
         //if f < 0 {
@@ -131,18 +173,38 @@ where
             Ok(PropagationState::NoChange)
         }
     }
-    #[allow(unused)]
     fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
-        unimplemented!()
+        self.input = Some(states.collect());
     }
     fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+        use std::mem;
+        let mut res = None;
+        mem::swap(&mut self.output, &mut res);
+        match res {
+            None => Box::new(vec![].into_iter()),
+            Some(changes) => Box::new(changes.into_iter()),
+        }
     }
     fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+        let deps: Vec<_> = self.indexes
+            .keys()
+            .cloned()
+            .map(|id| (id, VariableState::MaxBoundChange))
+            .collect();
+        Box::new(deps.into_iter())
     }
-    #[allow(unused)]
     fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
-        unimplemented!()
+        let indexes = Rc::get_mut(&mut self.indexes).unwrap();
+        let res_id = variables_handler.get_unique_ids(&self.res).next().unwrap();
+        indexes.insert(res_id, Type::Result);
+        for (pos, id) in variables_handler
+            .get_unique_ids(&self.variables)
+            .enumerate()
+        {
+            if indexes.insert(id, Type::Variable(pos)).is_some() {
+                return Err(());
+            }
+        }
+        Ok(())
     }
 }
