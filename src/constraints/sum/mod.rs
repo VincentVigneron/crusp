@@ -1,198 +1,148 @@
-use variables::Array;
+use constraints::Constraint;
+use constraints::PropagationState;
+use std::iter::Sum;
+use std::ops::{Add, Div, Mul, Sub};
+use variables::{Array, VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::OrderedDomain;
+use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
+                          VariablesHandler};
 
-constraint_build!(
-    struct Propagator = propagator::SumPropagator;
-    fn new(coefs: Vec<i32>);
-    fn propagate(res: VarType, vars: ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars)
-        where
-            VarType: OrderedDomain<Type=i32>,
-            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>;
-    );
-
-pub mod propagator {
-    use constraints::{PropagationState, Propagator, VariableError};
-    use variables::Array;
-    use variables::domains::OrderedDomain;
-    #[derive(Debug, Clone)]
-
-    // !!!!! COEFS > 0
-    pub struct SumPropagator {
-        coefs: Vec<i32>,
-    }
-    impl Propagator for SumPropagator {}
-    impl SumPropagator {
-        pub fn new(coefs: Vec<i32>) -> SumPropagator {
-            SumPropagator { coefs: coefs }
-        }
-
-        // adding to propagator/constraint information about change view
-        // add iter to array and size => len
-        // [HarveySchimpf02]
-        pub fn propagate<VarType, ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars>(
-            &self,
-            res: &mut VarType,
-            vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
-        ) -> Result<PropagationState, VariableError>
-        where
-            VarType: OrderedDomain<Type = i32>,
-            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
-        {
-            use variables::VariableState;
-            let mut change = false;
-            let _contributions: Vec<_> = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * (var.max() - var.min()))
-                .collect();
-            let min: i32 = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * var.min())
-                .sum();
-            let max: i32 = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * var.max())
-                .sum();
-            let r = res.weak_upperbound(max)?;
-
-            change = change || (r != VariableState::NoChange);
-            let r = res.weak_lowerbound(min)?;
-            change = change || (r != VariableState::NoChange);
-
-            let f = res.max() - min;
-            //if f < 0 {
-            //return Err(VariableError::DomainWipeout);
-            //}
-            let vars = vars.iter_mut().zip(self.coefs.iter());
-            for (var, coef) in vars {
-                let bound = (f / coef) + var.min();
-                let r = var.weak_upperbound(bound)?;
-                change = change || (r != VariableState::NoChange);
-            }
-
-            if change {
-                Ok(PropagationState::FixPoint)
-            } else {
-                Ok(PropagationState::NoChange)
-            }
-        }
-    }
+#[derive(Clone)]
+pub struct SumConstraint<Var, View, ArrayView>
+where
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    ArrayView: VariableView,
+    ArrayView::Variable: Array,
+    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Var: Ord + Eq + Clone,
+{
+    res: View,
+    variables: ArrayView,
+    coefs: Vec<Var>,
 }
 
-/*
-pub mod new_version {
-    use constraints::{PropagationState, VariableError};
-    use std::marker::PhantomData;
-    use variables::{Array, Variable, VariableView, ViewIndex};
-    use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
-                              VariablesHandler};
-    use variables::domains::OrderedDomain;
-
-    #[allow(non_snake_case)]
-    struct Variables<'a, Var: 'a + Variable> {
-        x: &'a mut Var,
-        Var: PhantomData<Var>,
-    }
-
-    #[derive(Debug, Clone)]
-    #[allow(non_snake_case)]
-    struct VariableViews<x: VariableView + Into<ViewIndex> + 'static> {
-        x: x,
-    }
-
-    #[allow(non_snake_case)]
-    #[allow(non_camel_case_types)]
-    impl<x> VariableViews<x>
+impl<Var, View, ArrayView> SumConstraint<Var, View, ArrayView>
+where
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    ArrayView: VariableView,
+    ArrayView::Variable: Array,
+    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Var: Ord + Eq + Clone,
+{
+    pub fn new<Coefs>(
+        res: View,
+        variables: ArrayView,
+        coefs: Coefs,
+    ) -> SumConstraint<Var, View, ArrayView>
     where
-        x: VariableView + Into<ViewIndex>,
+        Coefs: IntoIterator<Item = Var>,
     {
-        pub fn new(x: x) -> Self {
-            VariableViews { x: x }
-        }
-        #[allow(non_snake_case)]
-        #[allow(non_camel_case_types)]
-        pub fn retrieve_variables<'a, Var, Handler>(
-            &self,
-            variables_handler: &'a mut Handler,
-        ) -> Variables<'a, Var>
-        where
-            Var: 'a + Variable,
-            Handler: VariablesHandler + SpecificVariablesHandler<Var, x>,
-        {
-            unsafe {
-                Variables {
-                    x: get_mut_from_handler(&mut *(variables_handler as *mut _), &self.x),
-                    Var: PhantomData,
-                }
-            }
-        }
-    }
-
-    // !!!!! COEFS > 0
-    #[derive(Debug, Clone)]
-    pub struct SumPropagator<View: VariableView + Into<ViewIndex> + 'static> {
-        coefs: Vec<i32>,
-        variable_views: VariableViews<View>,
-    }
-
-    //impl Propagator for SumPropagator {}
-    impl<View: VariableView + Into<ViewIndex> + 'static> SumPropagator<View> {
-        pub fn new(coefs: Vec<i32>, x: View) -> SumPropagator<View> {
-            SumPropagator {
-                coefs: coefs,
-                variable_views: VariableViews::new(x),
-            }
-        }
-
-        // adding to propagator/constraint information about change view
-        // add iter to array and size => len
-        // [HarveySchimpf02]
-        pub fn propagate<VarType, ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars>(
-            &self,
-            res: &mut VarType,
-            vars: &mut ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars,
-        ) -> Result<PropagationState, VariableError>
-        where
-            VarType: OrderedDomain<Type = i32>,
-            ArrayOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVarsOfVars: Array<VarType>,
-        {
-            use variables::VariableState;
-            //let mut vars = self.variable_views.retrieve_variable
-            let mut change = false;
-            let _contributions: Vec<_> = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * (var.max() - var.min()))
-                .collect();
-            let min: i32 = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * var.min())
-                .sum();
-            let max: i32 = vars.iter()
-                .zip(self.coefs.iter())
-                .map(|(var, coef)| coef * var.max())
-                .sum();
-            let r = res.weak_upperbound(max)?;
-
-            change = change || (r != VariableState::NoChange);
-            let r = res.weak_lowerbound(min)?;
-            change = change || (r != VariableState::NoChange);
-
-            let f = res.max() - min;
-            //if f < 0 {
-            //return Err(VariableError::DomainWipeout);
-            //}
-            let vars = vars.iter_mut().zip(self.coefs.iter());
-            for (var, coef) in vars {
-                let bound = (f / coef) + var.min();
-                let r = var.weak_upperbound(bound)?;
-                change = change || (r != VariableState::NoChange);
-            }
-
-            if change {
-                Ok(PropagationState::FixPoint)
-            } else {
-                Ok(PropagationState::NoChange)
-            }
+        SumConstraint {
+            res: res,
+            variables: variables,
+            coefs: coefs.into_iter().collect(),
         }
     }
 }
-*/
+
+impl<Var, View, ArrayView, Handler> Constraint<Handler>
+    for SumConstraint<Var, View, ArrayView>
+where
+    Handler: VariablesHandler
+        + SpecificVariablesHandler<View>
+        + SpecificVariablesHandler<ArrayView>,
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    ArrayView: VariableView + Into<ViewIndex> + 'static,
+    ArrayView::Variable: Array,
+    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Var: Ord
+        + Eq
+        + Add<Output = Var>
+        + Sub<Output = Var>
+        + Mul<Output = Var>
+        + Div<Output = Var>
+        + Sum<Var>
+        + Clone
+        + 'static,
+{
+    fn box_clone(&self) -> Box<Constraint<Handler>> {
+        let ref_self: &SumConstraint<Var, View, ArrayView> = &self;
+        let cloned: SumConstraint<Var, View, ArrayView> =
+            <SumConstraint<Var, View, ArrayView> as Clone>::clone(ref_self);
+
+        Box::new(cloned) as Box<Constraint<Handler>>
+    }
+
+    // adding to propagator/constraint information about change view
+    // add iter to array and size => len
+    // [HarveySchimpf02]
+    fn propagate(
+        &mut self,
+        variables_handler: &mut Handler,
+    ) -> Result<PropagationState, VariableError> {
+        use variables::VariableState;
+        let mut change = false;
+
+        let vars: &mut ArrayView::Variable = unsafe {
+            unsafe_from_raw_point!(get_mut_from_handler(
+                variables_handler,
+                &self.variables
+            ))
+        };
+        let res: &mut View::Variable = unsafe {
+            unsafe_from_raw_point!(get_mut_from_handler(variables_handler, &self.res))
+        };
+
+        let _contributions: Vec<_> = vars.iter()
+            .zip(self.coefs.iter().cloned())
+            .map(|(var, coef)| coef * (var.max() - var.min()))
+            .collect();
+        let min: Var = vars.iter()
+            .zip(self.coefs.iter().cloned())
+            .map(|(var, coef)| coef * var.min())
+            .sum();
+        let max: Var = vars.iter()
+            .zip(self.coefs.iter().cloned())
+            .map(|(var, coef)| coef * var.max())
+            .sum();
+        let r = res.weak_upperbound(max)?;
+
+        change = change || (r != VariableState::NoChange);
+        let r = res.weak_lowerbound(min.clone())?;
+        change = change || (r != VariableState::NoChange);
+
+        let f = res.max() - min;
+        //if f < 0 {
+        //return Err(VariableError::DomainWipeout);
+        //}
+        let vars = vars.iter_mut().zip(self.coefs.iter());
+        for (var, coef) in vars {
+            let bound = (f.clone() / coef.clone()) + var.min();
+            let r = var.weak_upperbound(bound)?;
+            change = change || (r != VariableState::NoChange);
+        }
+
+        if change {
+            Ok(PropagationState::FixPoint)
+        } else {
+            Ok(PropagationState::NoChange)
+        }
+    }
+    #[allow(unused)]
+    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
+        unimplemented!()
+    }
+    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+        unimplemented!()
+    }
+    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+        unimplemented!()
+    }
+    #[allow(unused)]
+    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
+        unimplemented!()
+    }
+}

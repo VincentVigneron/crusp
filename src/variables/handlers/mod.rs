@@ -1,4 +1,4 @@
-use super::{Variable, VariableState, ViewIndex};
+use super::{VariableState, VariableView, ViewIndex};
 
 /// Represents a variables handler. Variable handlers can manage many type of variables
 /// and give acces to statistics about each variables. A `VariablesHandler` does not
@@ -21,12 +21,11 @@ pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
     fn finalize(self) -> VarHandler;
 }
 
-pub trait SpecificVariablesHandlerBuilder<Var, View, VarHandler, Param>
+pub trait SpecificVariablesHandlerBuilder<View, VarHandler, Param>
     : VariablesHandlerBuilder<VarHandler>
 where
-    Var: Variable,
-    View: Into<ViewIndex> + 'static,
-    VarHandler: SpecificVariablesHandler<Var, View>,
+    View: VariableView + Into<ViewIndex> + 'static,
+    VarHandler: SpecificVariablesHandler<View>,
 {
     fn add(&mut self, Param) -> View;
 }
@@ -41,13 +40,12 @@ where
 ///
 /// * `Var` - The type of variable handled.
 /// * `View` - The associated view for the variable.
-pub trait SpecificVariablesHandler<Var, View>: VariablesHandler
+pub trait SpecificVariablesHandler<View>: VariablesHandler
 where
-    Var: Variable,
-    View: Into<ViewIndex> + 'static,
+    View: VariableView + Into<ViewIndex> + 'static,
 {
-    fn get_mut(&mut self, &View) -> &mut Var;
-    fn get(&self, &View) -> &Var;
+    fn get_mut(&mut self, &View) -> &mut View::Variable;
+    fn get(&self, &View) -> &View::Variable;
     fn retrieve_state(&mut self, view: &View) -> VariableState;
     // Retrieve state of the view but also of the subiview
     fn retrieve_states<'a, Views: Iterator<Item = &'a View>>(
@@ -62,22 +60,29 @@ where
     // fn iter(&self) -> &mut Variable;
 }
 
-pub fn get_mut_from_handler<'a, Handler, Var, View>(
+#[macro_export]
+macro_rules! unsafe_get_mut_from_handler {
+    ($variables: expr, $view: expr) => {
+        &mut *(get_mut_from_handler($variables,&$view) as *mut _)
+    }
+}
+pub fn get_mut_from_handler<'a, Handler, View>(
     vars: &'a mut Handler,
     view: &View,
-) -> &'a mut Var
+) -> &'a mut View::Variable
 where
-    Handler: SpecificVariablesHandler<Var, View>,
-    Var: Variable,
-    View: Into<ViewIndex> + 'static,
+    Handler: SpecificVariablesHandler<View>,
+    View: VariableView + Into<ViewIndex> + 'static,
 {
     vars.get_mut(&view)
 }
-pub fn get_from_handler<'a, Handler, Var, View>(vars: &'a Handler, view: &View) -> &'a Var
+pub fn get_from_handler<'a, Handler, View>(
+    vars: &'a Handler,
+    view: &View,
+) -> &'a View::Variable
 where
-    Handler: SpecificVariablesHandler<Var, View>,
-    Var: Variable,
-    View: Into<ViewIndex> + 'static,
+    Handler: SpecificVariablesHandler<View>,
+    View: VariableView + Into<ViewIndex> + 'static,
 {
     vars.get(&view)
 }

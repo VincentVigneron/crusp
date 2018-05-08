@@ -131,7 +131,7 @@ macro_rules! cp_model {
     };
     (variables = $variables: ident; constraints = $constraints: ident; constraint increasing($x:ident); $($tail:tt)*) => {
         {
-            $constraints.add(Box::new($crate::constraints::increasing::new(&$x)));
+            $constraints.add(Box::new($crate::constraints::Increasing::new($x)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -140,7 +140,7 @@ macro_rules! cp_model {
         {
             {
                 let list = cp_model!(@List in $variables; $($x),*);
-                $constraints.add(Box::new($crate::constraints::increasing::new(&list)));
+                $constraints.add(Box::new($crate::constraints::Increasing::new(list)));
             }
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -148,7 +148,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident < $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::less_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::LessThan::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -156,7 +156,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident <= $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::less_or_equal_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::LessOrEqualThan::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -164,7 +164,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident > $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::greater_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::GreaterThan::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -172,7 +172,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident >= $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::greater_or_equal_than::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::GreaterOrEqualThan::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -180,7 +180,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident == $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::equal::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::Equal::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -188,7 +188,7 @@ macro_rules! cp_model {
     (variables = $variables: ident; constraints = $constraints: ident; constraint $x:ident |==| $y: ident; $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::arithmetic::equal_on_bounds::new(&$x, &$y)));
+                    $crate::constraints::arithmetic::EqualBounds::new($x, $y)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -199,7 +199,7 @@ macro_rules! cp_model {
         $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::all_different::new(&$vars)));
+                    $crate::constraints::AllDifferent::new($vars)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -209,7 +209,7 @@ macro_rules! cp_model {
             {
             let list = cp_model!(@List in $variables; $($y),+);
             $constraints.add(Box::new(
-                    $crate::constraints::all_different::new(&list)));
+                    $crate::constraints::AllDifferent::new(list)));
             }
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
@@ -221,7 +221,7 @@ macro_rules! cp_model {
         $($tail:tt)*) => {
         {
             $constraints.add(Box::new(
-                    $crate::constraints::sum::new(&$res, &$vars, $coefs)));
+                    $crate::constraints::SumConstraint::new($res, $vars, $coefs)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -232,7 +232,7 @@ macro_rules! cp_model {
             let vars = vec![$($y.clone()),*];
             let vars = $variables.add(vars);
             $constraints.add(Box::new(
-                    $crate::constraints::sum::new(&$x, &vars, coefs)));
+                    $crate::constraints::SumConstraint::new($x, vars, coefs)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -247,7 +247,7 @@ macro_rules! cp_model {
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
             let vars = $variables.add(vars);
             $constraints.add(Box::new(
-                    $crate::constraints::sum::new(&$r, &vars, coefs)));
+                    $crate::constraints::SumConstraint::new($r, vars, coefs)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -263,7 +263,7 @@ macro_rules! cp_model {
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
             let vars = $variables.add(vars);
             $constraints.add(Box::new(
-                    $crate::constraints::sum::new(&$r, &vars, coefs)));
+                    $crate::constraints::SumConstraint::new($r, vars, coefs)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }

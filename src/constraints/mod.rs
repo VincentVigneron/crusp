@@ -12,24 +12,39 @@ pub enum PropagationState {
     NoChange,
 }
 
-pub trait Constraint<H: VariablesHandler> {
-    fn box_clone(&self) -> Box<Constraint<H>>;
+/// Trait defining a constraint.
+pub trait Constraint<Handler: VariablesHandler> {
+    /// Constraints have to define `box_clone` in order to be cloned. The `ConstraintsHandler`
+    /// handle many kind of variables, so it uses constraints as trait object. Trait object
+    /// can not be cloned because `Clone` require the trait to be `Sized` but trait
+    /// object can not be `Sized`. `box_clone` is a way to bypass this requirement, but
+    /// `box_clone` can not guarantee that the clone is the same as the original, it is
+    /// the `Constraint` developper to guarantee that the clone is equivalent to the original.
+    /// Equivalent means to provide the same solution during the search not to be
+    /// the same.
+    fn box_clone(&self) -> Box<Constraint<Handler>>;
     fn propagate(
         &mut self,
-        variables_handler: &mut H,
+        variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError>;
-    fn retrieve_changed_views(
-        &self,
-        variables_handler: &mut H,
-    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-    fn affected_by_changes<'a>(
-        &self,
-        states: &mut Iterator<Item = &'a (ViewIndex, VariableState)>,
-    ) -> bool;
-    fn affected_by_change(&self, view_index: &ViewIndex, state: &VariableState) -> bool;
-    //fn notify_changed_views(&self, view_index: &Vec<ViewIndex>);
-    //// Return the list of views and variablestates that require a new propagation
-    //fn variable_bindings(&self) -> Vec<(ViewIndex, VariableState)>;
+    /// Initialisation should guarantee that the `Constraint` does not manipulate
+    /// twice the same view. Since view of `ArrayOfRefs` does not hold any information
+    /// about their underlying views (variables), it is necessary to ask this information
+    /// to the variables handler. Indeed, `VariableView` has to implement the `Copy`
+    /// trait. The structures implementing `Copy` must support a memcopy (i.e. the structure
+    /// can be copy byte by byte and its size must be known at compile time), nevertheless ArrayOfRefs
+    /// refers to non-contigous variables in memory so, in general, it requires to hold a dynamic
+    /// array (Vec) of variables which the size is known at runtime.
+    ///
+    /// Initialise shoudl also register the variable dependencies. (?)
+    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()>;
+    /// Prepares the `Constraint` by giving it its variables that have change since
+    /// its last propagation.
+    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>);
+    /// Asks the `Constraint` which variables it has modified after its last propagation.
+    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
+    /// Asks the `Constraint` its variables dependency.
+    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
 }
 
 impl<H: VariablesHandler> Clone for Box<Constraint<H>> {
@@ -44,8 +59,11 @@ pub trait Propagator {}
 #[macro_use]
 pub mod macros;
 pub mod handlers;
-pub mod all_different;
+mod all_different;
+pub use self::all_different::AllDifferent;
 pub mod arithmetic;
-pub mod increasing;
-pub mod regular;
-pub mod sum;
+mod increasing;
+pub use self::increasing::Increasing;
+mod regular;
+mod sum;
+pub use self::sum::SumConstraint;

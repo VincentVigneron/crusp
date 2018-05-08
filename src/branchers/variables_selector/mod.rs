@@ -24,11 +24,9 @@ where
     }
 }
 
-impl<Handler, Var, View> VariableSelector<Handler, Var, View>
-    for SequentialVariableSelector<View>
+impl<Handler, View> VariableSelector<Handler, View> for SequentialVariableSelector<View>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<Var, View>,
-    Var: Variable,
+    Handler: VariablesHandler + SpecificVariablesHandler<View>,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
 {
     fn select(&mut self, handler: &Handler) -> Result<View, ()> {

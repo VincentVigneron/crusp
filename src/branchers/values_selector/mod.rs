@@ -15,11 +15,11 @@ impl MinValueSelector {
 }
 
 // Remove Into<ViewIndex> Requirement if possible (does not make sense).
-impl<Handler, Var, View> ValuesSelector<Handler, Var, View> for MinValueSelector
+impl<Handler, View> ValuesSelector<Handler, View> for MinValueSelector
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<Var, View> + 'static,
-    Var: Variable + AssignableDomain + IterableDomain + 'static,
+    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
     View: VariableView + Clone + Into<ViewIndex> + 'static,
+    View::Variable: Variable + AssignableDomain + IterableDomain + 'static,
 {
     // Error if no value
     fn select(
@@ -34,7 +34,7 @@ where
             .map(move |(value, view)| {
                 let patch: Box<Fn(&mut Handler) -> ()> =
                     Box::new(move |vars: &mut Handler| {
-                        let var: &mut Var = get_mut_from_handler(vars, &view);
+                        let var = get_mut_from_handler(vars, &view);
                         var.set_value(value.clone())
                             .expect("Should not happen MinValueSelector Fn.");
                     });

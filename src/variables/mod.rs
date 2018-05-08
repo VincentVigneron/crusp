@@ -4,6 +4,7 @@ use snowflake::ProcessUniqueId;
 pub mod domains;
 pub mod bool_var;
 pub mod int_var;
+#[macro_use]
 pub mod handlers;
 
 /// Describes the state of a variable after its domain is updated.
@@ -54,7 +55,9 @@ pub enum IndexType {
     FromArrayOfVarsVar(usize, usize),
 }
 
-pub trait VariableView: Copy {}
+pub trait VariableView: Copy {
+    type Variable: Variable;
+}
 
 #[derive(Hash, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
@@ -174,19 +177,22 @@ pub trait Variable: Clone {
 /// array of variables and array of references to variables. Both types are manipulated with the
 /// same trait. When writting constraints over an array of variables, you should use the `Array`
 /// trait instead of the specific types `ArrayOfVars` or `ArrayOfRefs`.
-pub trait Array<Var: Variable>: Variable {
+pub trait Array: Variable {
+    type Variable: Variable;
     /// Returns a mutable reference to the variable at that position or None if out of bounds.
-    fn get_mut(&mut self, position: usize) -> Option<&mut Var>;
+    fn get_mut(&mut self, position: usize) -> Option<&mut Self::Variable>;
     /// Returns a reference to the variable at that position or None if out of bounds.
-    fn get(&self, position: usize) -> Option<&Var>;
+    fn get(&self, position: usize) -> Option<&Self::Variable>;
     /// Returns a mutable reference to the variable at that position without doing bounds check.
-    fn get_unchecked_mut(&mut self, position: usize) -> &mut Var;
+    fn get_unchecked_mut(&mut self, position: usize) -> &mut Self::Variable;
     /// Returns a reference to the variable at that position without doing bounds check.
-    fn get_unchecked(&self, position: usize) -> &Var;
+    fn get_unchecked(&self, position: usize) -> &Self::Variable;
     /// Returns an iterator over the variables.
-    fn iter<'array>(&'array self) -> Box<Iterator<Item = &Var> + 'array>;
+    fn iter<'array>(&'array self) -> Box<Iterator<Item = &Self::Variable> + 'array>;
     /// Returns an iterator that allows modifying each variable.
-    fn iter_mut<'array>(&'array mut self) -> Box<Iterator<Item = &mut Var> + 'array>;
+    fn iter_mut<'array>(
+        &'array mut self,
+    ) -> Box<Iterator<Item = &mut Self::Variable> + 'array>;
     /// Returns the number of variables.
     fn len(&self) -> usize;
 }
@@ -211,7 +217,8 @@ impl<Var: Variable> ArrayOfVars<Var> {
     }
 }
 
-impl<Var: Variable> Array<Var> for ArrayOfVars<Var> {
+impl<Var: Variable> Array for ArrayOfVars<Var> {
+    type Variable = Var;
     fn get_mut(&mut self, position: usize) -> Option<&mut Var> {
         self.variables.get_mut(position)
     }
@@ -295,7 +302,8 @@ impl<Var: Variable> ArrayOfRefs<Var> {
     }
 }
 
-impl<Var: Variable> Array<Var> for ArrayOfRefs<Var> {
+impl<Var: Variable> Array for ArrayOfRefs<Var> {
+    type Variable = Var;
     fn get_mut(&mut self, position: usize) -> Option<&mut Var> {
         unsafe { self.variables.get_mut(position).map(|var| &mut (**var)) }
     }

@@ -31,3 +31,10 @@ macro_rules! expr {
         $e
     }
 }
+
+#[macro_export]
+macro_rules! unsafe_from_raw_point {
+    ($val: expr) => {
+        &mut *($val as *mut _)
+    }
+}

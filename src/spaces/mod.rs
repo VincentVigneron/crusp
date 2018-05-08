@@ -3,7 +3,7 @@ use constraints::PropagationState;
 use constraints::handlers::ConstraintsHandler;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use variables::{Variable, VariableError, ViewIndex};
+use variables::{VariableError, VariableView, ViewIndex};
 use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
 
 #[derive(Clone)]
@@ -43,11 +43,10 @@ where
         }
     }
 
-    pub fn get_variable<'a, Var, View>(&'a self, view: &View) -> &'a Var
+    pub fn get_variable<'a, View>(&'a self, view: &View) -> &'a View::Variable
     where
-        Var: Variable,
-        View: Into<ViewIndex> + 'static,
-        Variables: SpecificVariablesHandler<Var, View>,
+        View: VariableView + Into<ViewIndex> + 'static,
+        Variables: SpecificVariablesHandler<View>,
     {
         get_from_handler(&self.variables, view)
     }
