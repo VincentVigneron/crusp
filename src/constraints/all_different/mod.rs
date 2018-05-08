@@ -1,45 +1,41 @@
 use constraints::Constraint;
 use constraints::PropagationState;
-use variables::{Array, Variable, VariableError, VariableState, VariableView, ViewIndex};
+use variables::{Array, ArrayView, Variable, VariableError, VariableState, ViewIndex};
 use variables::domains::PrunableDomain;
-use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
-                          VariablesHandler};
+use variables::handlers::{SpecificArraysHandler, VariablesHandler};
 
 #[derive(Debug, Clone)]
-pub struct AllDifferent<Var, ArrayView>
+pub struct AllDifferent<Var, Views>
 where
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: PrunableDomain<Type = Var>,
+    Views: ArrayView,
+    Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone,
 {
-    array: ArrayView,
+    array: Views,
 }
 
-impl<Var, ArrayView> AllDifferent<Var, ArrayView>
+impl<Var, Views> AllDifferent<Var, Views>
 where
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: PrunableDomain<Type = Var>,
+    Views: ArrayView,
+    Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone,
 {
-    pub fn new(variables: ArrayView) -> AllDifferent<Var, ArrayView> {
+    pub fn new(variables: Views) -> AllDifferent<Var, Views> {
         AllDifferent { array: variables }
     }
 }
 
-impl<Var, ArrayView, Handler> Constraint<Handler> for AllDifferent<Var, ArrayView>
+impl<Var, Views, Handler> Constraint<Handler> for AllDifferent<Var, Views>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<ArrayView> + Clone,
-    ArrayView: VariableView + Into<ViewIndex> + 'static,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: PrunableDomain<Type = Var>,
+    Handler: VariablesHandler + SpecificArraysHandler<Views> + Clone,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &AllDifferent<Var, ArrayView> = &self;
-        let cloned: AllDifferent<Var, ArrayView> =
-            <AllDifferent<Var, ArrayView> as Clone>::clone(ref_self);
+        let ref_self: &AllDifferent<Var, Views> = &self;
+        let cloned: AllDifferent<Var, Views> =
+            <AllDifferent<Var, Views> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -51,7 +47,7 @@ where
         use variables::VariableState;
         let mut change = false;
 
-        let vars = get_mut_from_handler(variables_handler, &self.array);
+        let vars = variables_handler.get_mut(&self.array);
 
         let affected: BTreeSet<Var> = vars.iter().filter_map(|var| var.value()).collect();
         let unaffected: Vec<_> = vars.iter()

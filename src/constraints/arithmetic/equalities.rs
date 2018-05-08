@@ -1,8 +1,7 @@
 use constraints::{Constraint, PropagationState};
 use variables::{VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::{OrderedDomain, PrunableDomain};
-use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
-                          VariablesHandler};
+use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
 
 #[derive(Clone)]
 pub struct Equal<Var, View>
@@ -46,9 +45,9 @@ where
         let mut change = false;
         unsafe {
             let lhs: &mut View::Variable =
-                unsafe_get_mut_from_handler!(variables_handler, self.lhs);
+                unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
             let rhs: &mut View::Variable =
-                unsafe_get_mut_from_handler!(variables_handler, self.rhs);
+                unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
             let r = lhs.equal(rhs)?;
             change = change || (r != (VariableState::NoChange, VariableState::NoChange));
         }
@@ -118,9 +117,9 @@ where
         let mut change = false;
         unsafe {
             let lhs: &mut View::Variable =
-                unsafe_get_mut_from_handler!(variables_handler, self.lhs);
+                unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
             let rhs: &mut View::Variable =
-                unsafe_get_mut_from_handler!(variables_handler, self.rhs);
+                unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
 
             let r = lhs.weak_upperbound(rhs.max())?;
             change = change || (r != VariableState::NoChange);

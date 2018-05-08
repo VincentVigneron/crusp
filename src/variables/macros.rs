@@ -16,7 +16,7 @@ macro_rules! variables {
         $($tail:tt)*
     ) => {
             let $x = ArrayOfVars::new(10, IntVarValues::new($min, $max).unwrap()).unwrap();
-            let $x = $handler.add($x);
+            let $x = $handler.add_array($x);
             variables!(handler = $handler; $($tail)*);
     };
     (

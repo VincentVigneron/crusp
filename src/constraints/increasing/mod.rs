@@ -2,30 +2,27 @@ use constraints::Constraint;
 use constraints::PropagationState;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
-use variables::{Array, VariableError, VariableState, VariableView, ViewIndex};
+use variables::{Array, ArrayView, VariableError, VariableState, ViewIndex};
 use variables::domains::OrderedDomain;
-use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
-                          VariablesHandler};
+use variables::handlers::{SpecificArraysHandler, VariablesHandler};
 
 #[derive(Clone)]
-pub struct Increasing<Var, ArrayView>
+pub struct Increasing<Var, Views>
 where
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
-    variables: ArrayView,
+    variables: Views,
 }
 
-impl<Var, ArrayView> Increasing<Var, ArrayView>
+impl<Var, Views> Increasing<Var, Views>
 where
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
-    pub fn new(variables: ArrayView) -> Increasing<Var, ArrayView>
+    pub fn new(variables: Views) -> Increasing<Var, Views>
 where {
         Increasing {
             variables: variables,
@@ -33,12 +30,11 @@ where {
     }
 }
 
-impl<Var, ArrayView, Handler> Constraint<Handler> for Increasing<Var, ArrayView>
+impl<Var, Views, Handler> Constraint<Handler> for Increasing<Var, Views>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<ArrayView>,
-    ArrayView: VariableView + Into<ViewIndex> + 'static,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Handler: VariablesHandler + SpecificArraysHandler<Views>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord
         + Eq
         + Add<Output = Var>
@@ -50,9 +46,9 @@ where
         + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &Increasing<Var, ArrayView> = &self;
-        let cloned: Increasing<Var, ArrayView> =
-            <Increasing<Var, ArrayView> as Clone>::clone(ref_self);
+        let ref_self: &Increasing<Var, Views> = &self;
+        let cloned: Increasing<Var, Views> =
+            <Increasing<Var, Views> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -66,13 +62,13 @@ where
     ) -> Result<PropagationState, VariableError> {
         use variables::VariableState;
         let mut change = false;
-        let array = get_mut_from_handler(variables_handler, &self.variables);
+        let array = variables_handler.get_mut(&self.variables);
         let len = array.len();
         for i in 0..(len - 1) {
             unsafe {
-                let lhs: &mut <ArrayView::Variable as Array>::Variable =
+                let lhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(i));
-                let rhs: &mut <ArrayView::Variable as Array>::Variable =
+                let rhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(i + 1));
                 let res = lhs.less_than(rhs)?;
                 change =
@@ -81,9 +77,9 @@ where
         }
         for i in 0..(len - 1) {
             unsafe {
-                let lhs: &mut <ArrayView::Variable as Array>::Variable =
+                let lhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 2 - i));
-                let rhs: &mut <ArrayView::Variable as Array>::Variable =
+                let rhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 1 - i));
                 let res = lhs.less_than(rhs)?;
                 change =

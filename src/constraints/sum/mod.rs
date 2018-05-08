@@ -4,9 +4,9 @@ use std::collections::HashMap;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
-use variables::{Array, VariableError, VariableState, VariableView, ViewIndex};
+use variables::{Array, ArrayView, VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::OrderedDomain;
-use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
+use variables::handlers::{SpecificArraysHandler, SpecificVariablesHandler,
                           VariablesHandler};
 
 #[derive(Clone)]
@@ -16,37 +16,35 @@ enum Type {
 }
 
 #[derive(Clone)]
-pub struct SumConstraint<Var, View, ArrayView>
+pub struct SumConstraint<Var, View, Views>
 where
     View: VariableView + Into<ViewIndex> + 'static,
     View::Variable: OrderedDomain<Type = Var>,
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
     res: View,
-    variables: ArrayView,
+    variables: Views,
     coefs: Vec<Var>,
     indexes: Rc<HashMap<ViewIndex, Type>>,
     input: Option<Vec<(ViewIndex, VariableState)>>,
     output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
-impl<Var, View, ArrayView> SumConstraint<Var, View, ArrayView>
+impl<Var, View, Views> SumConstraint<Var, View, Views>
 where
     View: VariableView + Into<ViewIndex> + 'static,
     View::Variable: OrderedDomain<Type = Var>,
-    ArrayView: VariableView,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
     pub fn new<Coefs>(
         res: View,
-        variables: ArrayView,
+        variables: Views,
         coefs: Coefs,
-    ) -> SumConstraint<Var, View, ArrayView>
+    ) -> SumConstraint<Var, View, Views>
     where
         Coefs: IntoIterator<Item = Var>,
     {
@@ -61,17 +59,15 @@ where
     }
 }
 
-impl<Var, View, ArrayView, Handler> Constraint<Handler>
-    for SumConstraint<Var, View, ArrayView>
+impl<Var, View, Views, Handler> Constraint<Handler> for SumConstraint<Var, View, Views>
 where
     Handler: VariablesHandler
         + SpecificVariablesHandler<View>
-        + SpecificVariablesHandler<ArrayView>,
+        + SpecificArraysHandler<Views>,
     View: VariableView + Into<ViewIndex> + 'static,
     View::Variable: OrderedDomain<Type = Var>,
-    ArrayView: VariableView + Into<ViewIndex> + 'static,
-    ArrayView::Variable: Array,
-    <ArrayView::Variable as Array>::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord
         + Eq
         + Add<Output = Var>
@@ -83,9 +79,9 @@ where
         + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &SumConstraint<Var, View, ArrayView> = &self;
-        let cloned: SumConstraint<Var, View, ArrayView> =
-            <SumConstraint<Var, View, ArrayView> as Clone>::clone(ref_self);
+        let ref_self: &SumConstraint<Var, View, Views> = &self;
+        let cloned: SumConstraint<Var, View, Views> =
+            <SumConstraint<Var, View, Views> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -109,13 +105,13 @@ where
                 // first call
             }
             Some(changes) => {
-                for (idx, state) in changes.into_iter() {
+                for (idx, _state) in changes.into_iter() {
                     match *self.indexes.get(&idx).unwrap() {
                         Type::Result => {
                             // DO stuff
                             // break
                         }
-                        Type::Variable(pos) => {
+                        Type::Variable(_pos) => {
                             // Incremental update
                         }
                     }
@@ -123,14 +119,17 @@ where
             }
         }
 
-        let vars: &mut ArrayView::Variable = unsafe {
-            unsafe_from_raw_point!(get_mut_from_handler(
+        let vars: &mut Views::Array = unsafe {
+            unsafe_from_raw_point!(SpecificArraysHandler::get_mut(
                 variables_handler,
                 &self.variables
             ))
         };
         let res: &mut View::Variable = unsafe {
-            unsafe_from_raw_point!(get_mut_from_handler(variables_handler, &self.res))
+            unsafe_from_raw_point!(SpecificVariablesHandler::get_mut(
+                variables_handler,
+                &self.res
+            ))
         };
 
         let _contributions: Vec<_> = vars.iter()
@@ -152,7 +151,7 @@ where
         change = change || (r != VariableState::NoChange);
         let mut output = vec![];
         output.push((
-            variables_handler.get_unique_ids(&self.res).next().unwrap(),
+            SpecificVariablesHandler::get_unique_id(variables_handler, &self.res),
             r,
         ));
 
@@ -195,7 +194,8 @@ where
     }
     fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
         let indexes = Rc::get_mut(&mut self.indexes).unwrap();
-        let res_id = variables_handler.get_unique_ids(&self.res).next().unwrap();
+        let res_id =
+            SpecificVariablesHandler::get_unique_id(variables_handler, &self.res);
         indexes.insert(res_id, Type::Result);
         for (pos, id) in variables_handler
             .get_unique_ids(&self.variables)

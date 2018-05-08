@@ -59,6 +59,11 @@ pub trait VariableView: Copy {
     type Variable: Variable;
 }
 
+pub trait ArrayView: Copy {
+    type Variable: Variable;
+    type Array: Array<Variable = Self::Variable>;
+}
+
 #[derive(Hash, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,

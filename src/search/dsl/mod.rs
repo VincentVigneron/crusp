@@ -86,7 +86,7 @@ macro_rules! cp_model {
         $($tail:tt)*
     ) => {
         let $x = ArrayOfVars::new($len, IntVarValues::new($min, $max).unwrap()).unwrap();
-        let $x = $variables.add($x);
+        let $x = $variables.add_array($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
@@ -117,7 +117,7 @@ macro_rules! cp_model {
     (@List in $variables: ident; $($views: tt),*) => {{
         let mut list = Vec::new();
         cp_model!(@ListBuilder = list; $($views),+);
-        let list = $variables.add(list);
+        let list = $variables.add_array(list);
         list
     }};
     (
@@ -230,7 +230,7 @@ macro_rules! cp_model {
         {
             let coefs = vec![$($a),*];
             let vars = vec![$($y.clone()),*];
-            let vars = $variables.add(vars);
+            let vars = $variables.add_array(vars);
             $constraints.add(Box::new(
                     $crate::constraints::SumConstraint::new($x, vars, coefs)));
 
@@ -245,7 +245,7 @@ macro_rules! cp_model {
             let mut coefs = vec![expr!($a)];
             let mut vars = vec![$x.clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
-            let vars = $variables.add(vars);
+            let vars = $variables.add_array(vars);
             $constraints.add(Box::new(
                     $crate::constraints::SumConstraint::new($r, vars, coefs)));
 
@@ -261,7 +261,7 @@ macro_rules! cp_model {
             let mut coefs = vec![1];
             let mut vars = vec![$x.clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
-            let vars = $variables.add(vars);
+            let vars = $variables.add_array(vars);
             $constraints.add(Box::new(
                     $crate::constraints::SumConstraint::new($r, vars, coefs)));
 

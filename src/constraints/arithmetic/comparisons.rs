@@ -1,8 +1,7 @@
 use constraints::{Constraint, PropagationState};
 use variables::{VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::OrderedDomain;
-use variables::handlers::{get_mut_from_handler, SpecificVariablesHandler,
-                          VariablesHandler};
+use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
 
 macro_rules! compare_constraint_impl {
     ($name: ident; $method: ident) => {
@@ -48,9 +47,9 @@ macro_rules! compare_constraint_impl {
                 let mut change = false;
                 unsafe {
                     let lhs: &mut View::Variable =
-                        unsafe_get_mut_from_handler!(variables_handler, self.lhs);
+                        unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
                     let rhs: &mut View::Variable =
-                        unsafe_get_mut_from_handler!(variables_handler, self.rhs);
+                        unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
                     let r = lhs.$method(rhs)?;
                     change = change || (r != (VariableState::NoChange, VariableState::NoChange));
                 }
