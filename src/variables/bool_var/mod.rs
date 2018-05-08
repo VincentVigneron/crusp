@@ -1,6 +1,5 @@
 use variables::{Variable, VariableError, VariableState};
-use variables::domains::{AssignableDomain, FiniteDomain, FromRangeDomain,
-                         FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain};
+use variables::domains::{AssignableDomain, FiniteDomain, IterableDomain, PrunableDomain};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Domain {
@@ -42,6 +41,7 @@ impl AssignableDomain for BoolVar {
                 return Ok(VariableState::NoChange);
             }
             _ => {
+                self.domain = Domain::None;
                 return Err(VariableError::DomainWipeout);
             }
         };
@@ -87,45 +87,8 @@ impl FiniteDomain for BoolVar {
     }
 }
 
-impl OrderedDomain for BoolVar {
-    fn min(&self) -> Self::Type {
-        unimplemented!()
-    }
-
-    fn max(&self) -> Self::Type {
-        unimplemented!()
-    }
-
-    fn strict_upperbound(
-        &mut self,
-        ub: Self::Type,
-    ) -> Result<VariableState, VariableError> {
-        unimplemented!()
-    }
-
-    fn weak_upperbound(
-        &mut self,
-        ub: Self::Type,
-    ) -> Result<VariableState, VariableError> {
-        unimplemented!()
-    }
-
-    fn strict_lowerbound(
-        &mut self,
-        lb: Self::Type,
-    ) -> Result<VariableState, VariableError> {
-        unimplemented!()
-    }
-
-    fn weak_lowerbound(
-        &mut self,
-        lb: Self::Type,
-    ) -> Result<VariableState, VariableError> {
-        unimplemented!()
-    }
-}
-
 impl PrunableDomain for BoolVar {
+    #[allow(unused)]
     fn equal(
         &mut self,
         value: &mut Self,
@@ -133,6 +96,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
+    #[allow(unused)]
     fn in_sorted_values<Values>(
         &mut self,
         values: Values,
@@ -143,6 +107,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
+    #[allow(unused)]
     fn remove_value(
         &mut self,
         value: Self::Type,
@@ -150,6 +115,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
+    #[allow(unused)]
     fn remove_if<Predicate>(
         &mut self,
         mut pred: Predicate,
@@ -160,6 +126,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
+    #[allow(unused)]
     fn retains_if<Predicate>(
         &mut self,
         mut pred: Predicate,
@@ -170,6 +137,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
+    #[allow(unused)]
     fn not_equal(
         &mut self,
         value: &mut BoolVar,
