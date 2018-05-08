@@ -480,7 +480,7 @@ macro_rules! variables_handler_build {
                     }
                 }
 
-                fn get_unique_id(&self, view: &VarView<$type>) -> ViewIndex {
+                fn get_variable_id(&self, view: &VarView<$type>) -> ViewIndex {
                      view.clone().into()
                 }
 
@@ -527,22 +527,22 @@ macro_rules! variables_handler_build {
             }
 
             impl SpecificArraysHandler<ArrayOfVarsView<$type>> for Handler {
-                fn get_mut(&mut self, view: &ArrayOfVarsView<$type>) -> &mut ArrayOfVars<$type> {
+                fn get_array_mut(&mut self, view: &ArrayOfVarsView<$type>) -> &mut ArrayOfVars<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked_mut(view.get_idx())
                     }
                 }
-                fn get(&self, view: &ArrayOfVarsView<$type>) -> & ArrayOfVars<$type> {
+                fn get_array(&self, view: &ArrayOfVarsView<$type>) -> & ArrayOfVars<$type> {
                     unsafe {
                         self.$type.variables_array.get_unchecked(view.get_idx())
                     }
                 }
 
-                fn get_unique_id(&self, view: &ArrayOfVarsView<$type>, position: usize) ->  ViewIndex {
+                fn get_array_id(&self, view: &ArrayOfVarsView<$type>, position: usize) ->  ViewIndex {
                     VarView::<$type>::new_from_array(view.id, view.get_idx(), position).into()
                 }
 
-                fn get_unique_ids(&self, view: &ArrayOfVarsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                fn get_array_ids(&self, view: &ArrayOfVarsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
                     let range = 0..self.$type.variables_array[view.get_idx()].len();
                     Box::new(range
                         .map(|y| VarView::<$type>::new_from_array(view.id, view.get_idx(), y))
@@ -626,22 +626,22 @@ macro_rules! variables_handler_build {
             }
 
             impl SpecificArraysHandler<ArrayOfRefsView<$type>> for Handler {
-                fn get_mut(&mut self, view: &ArrayOfRefsView<$type>) -> &mut ArrayOfRefs<$type> {
+                fn get_array_mut(&mut self, view: &ArrayOfRefsView<$type>) -> &mut ArrayOfRefs<$type> {
                     unsafe {
                         self.$type.variables_ref.get_unchecked_mut(view.get_idx())
                     }
                 }
-                fn get(&self, view: &ArrayOfRefsView<$type>) -> &ArrayOfRefs<$type> {
+                fn get_array(&self, view: &ArrayOfRefsView<$type>) -> &ArrayOfRefs<$type> {
                     unsafe {
                         self.$type.variables_ref.get_unchecked(view.get_idx())
                     }
                 }
 
-                fn get_unique_id(&self, view: &ArrayOfRefsView<$type>, position: usize) ->  ViewIndex {
+                fn get_array_id(&self, view: &ArrayOfRefsView<$type>, position: usize) ->  ViewIndex {
                     self.$type.variables_ref_view[view.get_idx()][position].into()
                 }
 
-                fn get_unique_ids(&self, view: &ArrayOfRefsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
+                fn get_array_ids(&self, view: &ArrayOfRefsView<$type>) -> Box<Iterator<Item = ViewIndex>> {
                     Box::new(self.$type.variables_ref_view[view.get_idx()].iter()
                         .cloned()
                         .map(Into::<ViewIndex>::into)

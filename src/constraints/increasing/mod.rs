@@ -62,7 +62,7 @@ where
     ) -> Result<PropagationState, VariableError> {
         use variables::VariableState;
         let mut change = false;
-        let array = variables_handler.get_mut(&self.variables);
+        let array = variables_handler.get_array_mut(&self.variables);
         let len = array.len();
         for i in 0..(len - 1) {
             unsafe {

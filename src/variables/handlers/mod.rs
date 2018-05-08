@@ -37,7 +37,7 @@ where
 {
     fn get_mut(&mut self, view: &View) -> &mut View::Variable;
     fn get(&self, view: &View) -> &View::Variable;
-    fn get_unique_id(&self, view: &View) -> ViewIndex;
+    fn get_variable_id(&self, view: &View) -> ViewIndex;
 
     //fn retrieve_state(&mut self, view: &View) -> VariableState;
     //// Retrieve state of the view but also of the subiview
@@ -66,10 +66,10 @@ pub trait SpecificArraysHandler<View>: VariablesHandler
 where
     View: ArrayView + Into<ViewIndex> + 'static,
 {
-    fn get_mut(&mut self, view: &View) -> &mut View::Array;
-    fn get(&self, view: &View) -> &View::Array;
-    fn get_unique_id(&self, view: &View, position: usize) -> ViewIndex;
-    fn get_unique_ids(&self, view: &View) -> Box<Iterator<Item = ViewIndex>>;
+    fn get_array_mut(&mut self, view: &View) -> &mut View::Array;
+    fn get_array(&self, view: &View) -> &View::Array;
+    fn get_array_id(&self, view: &View, position: usize) -> ViewIndex;
+    fn get_array_ids(&self, view: &View) -> Box<Iterator<Item = ViewIndex>>;
 
     //fn retrieve_state(&mut self, view: &View) -> VariableState;
     //// Retrieve state of the view but also of the subiview

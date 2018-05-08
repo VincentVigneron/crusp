@@ -120,17 +120,10 @@ where
         }
 
         let vars: &mut Views::Array = unsafe {
-            unsafe_from_raw_point!(SpecificArraysHandler::get_mut(
-                variables_handler,
-                &self.variables
-            ))
+            unsafe_from_raw_point!(variables_handler.get_array_mut(&self.variables))
         };
-        let res: &mut View::Variable = unsafe {
-            unsafe_from_raw_point!(SpecificVariablesHandler::get_mut(
-                variables_handler,
-                &self.res
-            ))
-        };
+        let res: &mut View::Variable =
+            unsafe { unsafe_from_raw_point!(variables_handler.get_mut(&self.res)) };
 
         let _contributions: Vec<_> = vars.iter()
             .zip(self.coefs.iter().cloned())
@@ -150,10 +143,7 @@ where
         let r = res.weak_lowerbound(min.clone())?;
         change = change || (r != VariableState::NoChange);
         let mut output = vec![];
-        output.push((
-            SpecificVariablesHandler::get_unique_id(variables_handler, &self.res),
-            r,
-        ));
+        output.push((variables_handler.get_variable_id(&self.res), r));
 
         let f = res.max() - min;
         //if f < 0 {
@@ -194,13 +184,9 @@ where
     }
     fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
         let indexes = Rc::get_mut(&mut self.indexes).unwrap();
-        let res_id =
-            SpecificVariablesHandler::get_unique_id(variables_handler, &self.res);
+        let res_id = variables_handler.get_variable_id(&self.res);
         indexes.insert(res_id, Type::Result);
-        for (pos, id) in variables_handler
-            .get_unique_ids(&self.variables)
-            .enumerate()
-        {
+        for (pos, id) in variables_handler.get_array_ids(&self.variables).enumerate() {
             if indexes.insert(id, Type::Variable(pos)).is_some() {
                 return Err(());
             }

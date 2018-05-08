@@ -47,7 +47,7 @@ where
         use variables::VariableState;
         let mut change = false;
 
-        let vars = variables_handler.get_mut(&self.array);
+        let vars = variables_handler.get_array_mut(&self.array);
 
         let affected: BTreeSet<Var> = vars.iter().filter_map(|var| var.value()).collect();
         let unaffected: Vec<_> = vars.iter()
