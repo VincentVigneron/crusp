@@ -44,7 +44,7 @@ macro_rules! cp_model {
         use $crate::variables::int_var::*;
 
         let mut variables_handler = default_handler::Builder::new();
-        let mut constraints_handler = SequentialConstraintsHandler::new();
+        let mut constraints_handler = DefaultConstraintsHandlerBuilder::new();
         let mut branchers_handler = BranchersHandler::new();
 
         cp_model!(variables = variables_handler; constraints = constraints_handler; $($tail)*);
@@ -57,7 +57,8 @@ macro_rules! cp_model {
         branchers_handler.add_specific_brancher(Box::new(brancher));
 
 
-        let variables_handler = variables_handler.finalize();
+        let mut variables_handler = variables_handler.finalize();
+        let constraints_handler = constraints_handler.finalize(&mut variables_handler).unwrap();
 
         let space = Space::new(variables_handler, constraints_handler, branchers_handler);
         let mut solver = Solver::new(space);

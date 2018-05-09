@@ -12,6 +12,7 @@ where
 {
     lhs: View,
     rhs: View,
+    output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
 impl<Var, View> Equal<Var, View>
@@ -21,7 +22,11 @@ where
     Var: Eq + Ord + Clone + 'static,
 {
     pub fn new(lhs: View, rhs: View) -> Equal<Var, View> {
-        Equal { lhs: lhs, rhs: rhs }
+        Equal {
+            lhs: lhs,
+            rhs: rhs,
+            output: None,
+        }
     }
 }
 
@@ -42,35 +47,73 @@ where
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
-        let mut change = false;
+        let mut output = vec![];
+        self.output = None;
+
         unsafe {
             let lhs: &mut View::Variable =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
             let rhs: &mut View::Variable =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
-            let r = lhs.equal(rhs)?;
-            change = change || (r != (VariableState::NoChange, VariableState::NoChange));
+            let (lhs, rhs) = lhs.equal(rhs)?;
+            match lhs {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.lhs), state));
+                }
+            }
+            match rhs {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.rhs), state));
+                }
+            }
         }
 
-        if change {
+        if !output.is_empty() {
+            self.output = Some(output);
             Ok(PropagationState::FixPoint)
         } else {
             Ok(PropagationState::NoChange)
         }
     }
     #[allow(unused)]
-    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
-        unimplemented!()
+    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+        // Do nothing
     }
     fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
-    }
-    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+        use std::mem;
+        let mut res = None;
+        mem::swap(&mut self.output, &mut res);
+        match res {
+            None => Box::new(vec![].into_iter()),
+            Some(changes) => Box::new(changes.into_iter()),
+        }
     }
     #[allow(unused)]
-    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
-        unimplemented!()
+    fn dependencies(
+        &self,
+        variables: &Handler,
+    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+        Box::new(
+            vec![
+                (
+                    variables.get_variable_id(&self.lhs),
+                    VariableState::ValuesChange,
+                ),
+                (
+                    variables.get_variable_id(&self.rhs),
+                    VariableState::ValuesChange,
+                ),
+            ].into_iter(),
+        )
+    }
+    #[allow(unused)]
+    fn initialise(
+        &mut self,
+        variables_handler: &mut Handler,
+    ) -> Result<PropagationState, VariableError> {
+        self.propagate(variables_handler)
     }
 }
 
@@ -83,6 +126,7 @@ where
 {
     lhs: View,
     rhs: View,
+    output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
 impl<Var, View> EqualBounds<Var, View>
@@ -92,7 +136,11 @@ where
     Var: Eq + Ord + Clone + 'static,
 {
     pub fn new(lhs: View, rhs: View) -> EqualBounds<Var, View> {
-        EqualBounds { lhs: lhs, rhs: rhs }
+        EqualBounds {
+            lhs: lhs,
+            rhs: rhs,
+            output: None,
+        }
     }
 }
 
@@ -114,40 +162,85 @@ where
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
-        let mut change = false;
+        let mut output = vec![];
+        self.output = None;
         unsafe {
             let lhs: &mut View::Variable =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
             let rhs: &mut View::Variable =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
 
-            let r = lhs.weak_upperbound(rhs.max())?;
-            change = change || (r != VariableState::NoChange);
-            let r = rhs.weak_upperbound(lhs.max())?;
-            change = change || (r != VariableState::NoChange);
-            let r = lhs.weak_lowerbound(rhs.min())?;
-            change = change || (r != VariableState::NoChange);
-            let r = rhs.weak_lowerbound(lhs.min())?;
-            change = change || (r != VariableState::NoChange);
+            let state = lhs.weak_upperbound(rhs.max())?;
+            match state {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.lhs), state));
+                }
+            }
+            let state = rhs.weak_upperbound(lhs.max())?;
+            match state {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.rhs), state));
+                }
+            }
+            let state = lhs.weak_lowerbound(rhs.min())?;
+            match state {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.lhs), state));
+                }
+            }
+            let state = rhs.weak_lowerbound(lhs.min())?;
+            match state {
+                VariableState::NoChange => {}
+                state => {
+                    output.push((variables_handler.get_variable_id(&self.rhs), state));
+                }
+            }
         }
-        if change {
+        if !output.is_empty() {
+            self.output = Some(output);
             Ok(PropagationState::FixPoint)
         } else {
             Ok(PropagationState::NoChange)
         }
     }
     #[allow(unused)]
-    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
-        unimplemented!()
+    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+        // Do nothing
     }
     fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+        use std::mem;
+        let mut res = None;
+        mem::swap(&mut self.output, &mut res);
+        match res {
+            None => Box::new(vec![].into_iter()),
+            Some(changes) => Box::new(changes.into_iter()),
+        }
     }
-    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+    fn dependencies(
+        &self,
+        variables: &Handler,
+    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+        Box::new(
+            vec![
+                (
+                    variables.get_variable_id(&self.lhs),
+                    VariableState::ValuesChange,
+                ),
+                (
+                    variables.get_variable_id(&self.rhs),
+                    VariableState::ValuesChange,
+                ),
+            ].into_iter(),
+        )
     }
     #[allow(unused)]
-    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
-        unimplemented!()
+    fn initialise(
+        &mut self,
+        variables_handler: &mut Handler,
+    ) -> Result<PropagationState, VariableError> {
+        self.propagate(variables_handler)
     }
 }

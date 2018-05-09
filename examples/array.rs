@@ -14,7 +14,7 @@ use crusp::variables::int_var::*;
 
 fn main() {
     let mut variables_handler = default_handler::Builder::new();
-    let mut constraints_handler = SequentialConstraintsHandler::new();
+    let mut constraints_handler = DefaultConstraintsHandlerBuilder::new();
     let mut branchers_handler = BranchersHandler::new();
 
     variables!(
@@ -28,7 +28,10 @@ fn main() {
         constraint f |==| g;
         constraint increasing(e);
         );
-    let variables_handler = variables_handler.finalize();
+    let mut variables_handler = variables_handler.finalize();
+    let constraints_handler = constraints_handler
+        .finalize(&mut variables_handler)
+        .unwrap();
 
     let variables: Vec<_> = (0..10).map(|i| e.get(i).clone()).collect();
     let variables_selector =

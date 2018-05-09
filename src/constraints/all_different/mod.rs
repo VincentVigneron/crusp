@@ -12,6 +12,7 @@ where
     Var: Eq + Ord + Clone,
 {
     array: Views,
+    output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
 impl<Var, Views> AllDifferent<Var, Views>
@@ -21,7 +22,10 @@ where
     Var: Eq + Ord + Clone,
 {
     pub fn new(variables: Views) -> AllDifferent<Var, Views> {
-        AllDifferent { array: variables }
+        AllDifferent {
+            array: variables,
+            output: None,
+        }
     }
 }
 
@@ -45,9 +49,12 @@ where
     ) -> Result<PropagationState, VariableError> {
         use std::collections::BTreeSet;
         use variables::VariableState;
-        let mut change = false;
+        let mut output = vec![];
+        self.output = None;
 
-        let vars = variables_handler.get_array_mut(&self.array);
+        let vars: &mut Views::Array = unsafe {
+            unsafe_from_raw_point!(variables_handler.get_array_mut(&self.array))
+        };
 
         let affected: BTreeSet<Var> = vars.iter().filter_map(|var| var.value()).collect();
         let unaffected: Vec<_> = vars.iter()
@@ -64,30 +71,47 @@ where
             let var = vars.get_unchecked_mut(i);
             match var.remove_if(|val| affected.contains(&val))? {
                 VariableState::NoChange => {}
-                _ => {
-                    change = true;
+                state => {
+                    output.push((variables_handler.get_array_id(&self.array, i), state));
                 }
             }
         }
 
-        if change {
+        if !output.is_empty() {
+            self.output = Some(output);
             Ok(PropagationState::FixPoint)
         } else {
             Ok(PropagationState::NoChange)
         }
     }
     #[allow(unused)]
-    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
-        unimplemented!()
+    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+        // do nothing
     }
     fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+        use std::mem;
+        let mut res = None;
+        mem::swap(&mut self.output, &mut res);
+        match res {
+            None => Box::new(vec![].into_iter()),
+            Some(changes) => Box::new(changes.into_iter()),
+        }
     }
-    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        unimplemented!()
+    fn dependencies(
+        &self,
+        variables: &Handler,
+    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+        Box::new(
+            variables
+                .get_array_ids(&self.array)
+                .into_iter()
+                .map(|val| (val, VariableState::ValuesChange)),
+        )
     }
-    #[allow(unused)]
-    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
-        unimplemented!()
+    fn initialise(
+        &mut self,
+        variables_handler: &mut Handler,
+    ) -> Result<PropagationState, VariableError> {
+        self.propagate(variables_handler)
     }
 }

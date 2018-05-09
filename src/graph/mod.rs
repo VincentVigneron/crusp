@@ -82,12 +82,15 @@ where
     // add node 2 to node 2
     pub fn insert_node1_to_node2(&mut self, src: Node1, label: Edge, dst: Node2) {
         let edge = self.edges1.entry(src).or_insert(vec![]);
-        let &mut (_, ref mut nodes) = edge.iter_mut()
-            .find(|entry| {
-                let &mut (ref key, _) = *entry;
-                *key == label
-            })
-            .expect("Error Graph insert_node1_to_node2.");
+        let position = edge.iter().position(|&(ref key, _)| *key == label);
+        let position = match position {
+            Some(position) => position,
+            None => {
+                edge.push((label, vec![]));
+                edge.len() - 1
+            }
+        };
+        let &mut (_, ref mut nodes) = unsafe { edge.get_unchecked_mut(position) };
         if !nodes.contains(&dst) {
             nodes.push(dst);
             self.edges2.entry(dst).or_insert(HashSet::new()).insert(src);
@@ -107,7 +110,11 @@ where
     }
 
     // Better naming
-    pub fn nodes_affected_by_events(&mut self) -> Vec<(Node2, Vec<Node1>)> {
+    // Replace vector by iterator (at least for Node1) it will allow for a constraints
+    // to skip unecessary comutation if it wants to propagate all at each
+    // change. It requires to split events and graph to please the borrows checker. The lifetime of
+    // an event should be lesser than the lifetime of the graph.
+    pub fn events(&mut self) -> Option<Vec<(Node2, Vec<Node1>)>> {
         let mut nodes = HashMap::new();
         for event in self.events.drain(0..) {
             let Event { src, from, event } = event;
@@ -134,9 +141,15 @@ where
                 nodes.entry(succ).or_insert(HashSet::new()).insert(src);
             }
         }
-        nodes
-            .into_iter()
-            .map(|(node2, nodes1)| (node2, nodes1.into_iter().collect()))
-            .collect()
+        if nodes.is_empty() {
+            None
+        } else {
+            Some(
+                nodes
+                    .into_iter()
+                    .map(|(node2, nodes1)| (node2, nodes1.into_iter().collect()))
+                    .collect(),
+            )
+        }
     }
 }

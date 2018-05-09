@@ -14,6 +14,110 @@ enum Type {
     Result,
     Variable(usize),
 }
+/*
+struct SumVariables<'a, Var, View, Views>
+where
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
+    Var: Ord + Eq + Clone,
+{
+    res: &'a mut View::Variable,
+    variables: &'a mut Views::Array,
+}
+
+struct SumViews<Var, View, Views>
+where
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
+    Var: Ord + Eq + Clone,
+{
+    res: View,
+    variables: Views,
+}
+
+impl<Var, View, Views> SumViews<Var, View, Views>
+where
+    View: VariableView + Into<ViewIndex> + 'static,
+    View::Variable: OrderedDomain<Type = Var>,
+    Views: ArrayView + Into<ViewIndex> + 'static,
+    Views::Variable: OrderedDomain<Type = Var>,
+    Var: Ord + Eq + Clone,
+{
+    pub fn retrieve_variables<'a, Handler>(
+        &self,
+        variables_handler: &'a mut Handler,
+    ) -> SumVariables<'a, Var, View, Views>
+    where
+        Handler: VariablesHandler
+            + SpecificVariablesHandler<View>
+            + SpecificArraysHandler<Views>,
+    {
+        unsafe {
+            SumVariables {
+                res: unsafe_from_raw_point!(variables_handler.get_mut(&self.res)),
+                variables: unsafe_from_raw_point!(
+                    variables_handler.get_array_mut(&self.variables)
+                ),
+            }
+        }
+    }
+}
+*/
+
+//variables_and_views!(
+//struct SumVariables;
+//struct SumViews;
+//struct<Var, View, Views>
+//where
+//View: VariableView + Into<ViewIndex> + 'static,
+//View::Variable: OrderedDomain<Type = Var>,
+//Views: ArrayView + Into<ViewIndex> + 'static,
+//Views::Variable: OrderedDomain<Type = Var>,
+//Var: Ord + Eq + Clone,
+//{
+//res: View,
+//Variables: Views,
+//}
+//);
+//macro_rules! variables_and_views{
+//(
+//struct $variables: ident;
+//struct $views: ident;
+//struct<$($var_type: ident),+>
+//where
+//{
+//$( $var: ident: $view: ty),+
+//}
+//) => {
+//struct $variables<'a, $($var_type: 'a ),+> {
+//$($var: &'a mut <$tvar>::Variable),+,
+//}
+//struct $views<$($var_type),+> {
+//$($var: $view),+
+//}
+//impl<$($var_type),+> $views<$($var_type),+> {
+//pub fn retrieve_variables<'a, $($var_type),+, Handler>(
+//&self,
+//variables_handler: &'a mut Handler,
+//) -> $variables<'a, $($var_type),+>
+//where
+//Handler: VariablesHandler $(+SpecificVariablesHandler<$tvar, $var>)+,
+//{
+//unsafe {
+//StructVars {
+//$(
+//$var: unsafe_from_raw_point!(variables_handler.get_mut(&self.$var)),
+//),+
+//}
+//}
+//}
+//};
+//}
+//}
 
 #[derive(Clone)]
 pub struct SumConstraint<Var, View, Views>
@@ -28,7 +132,7 @@ where
     variables: Views,
     coefs: Vec<Var>,
     indexes: Rc<HashMap<ViewIndex, Type>>,
-    input: Option<Vec<(ViewIndex, VariableState)>>,
+    input: Option<Vec<ViewIndex>>,
     output: Option<Vec<(ViewIndex, VariableState)>>,
 }
 
@@ -59,6 +163,17 @@ where
     }
 }
 
+macro_rules! constraint_box_clone {
+    ($handler: ident) => {
+        fn box_clone(&self) -> Box<Constraint<$handler>> {
+            let ref_self: &Self = &self;
+            let cloned: Self = <Self as Clone>::clone(ref_self);
+
+            Box::new(cloned) as Box<Constraint<$handler>>
+        }
+    }
+}
+
 impl<Var, View, Views, Handler> Constraint<Handler> for SumConstraint<Var, View, Views>
 where
     Handler: VariablesHandler
@@ -78,13 +193,7 @@ where
         + Clone
         + 'static,
 {
-    fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &SumConstraint<Var, View, Views> = &self;
-        let cloned: SumConstraint<Var, View, Views> =
-            <SumConstraint<Var, View, Views> as Clone>::clone(ref_self);
-
-        Box::new(cloned) as Box<Constraint<Handler>>
-    }
+    constraint_box_clone!(Handler);
 
     // adding to propagator/constraint information about change view
     // add iter to array and size => len
@@ -105,7 +214,7 @@ where
                 // first call
             }
             Some(changes) => {
-                for (idx, _state) in changes.into_iter() {
+                for idx in changes.into_iter() {
                     match *self.indexes.get(&idx).unwrap() {
                         Type::Result => {
                             // DO stuff
@@ -162,7 +271,7 @@ where
             Ok(PropagationState::NoChange)
         }
     }
-    fn prepare(&mut self, states: Box<Iterator<Item = (ViewIndex, VariableState)>>) {
+    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
         self.input = Some(states.collect());
     }
     fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
@@ -174,7 +283,10 @@ where
             Some(changes) => Box::new(changes.into_iter()),
         }
     }
-    fn dependencies(&self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+    fn dependencies(
+        &self,
+        _: &Handler,
+    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
         let deps: Vec<_> = self.indexes
             .keys()
             .cloned()
@@ -182,15 +294,21 @@ where
             .collect();
         Box::new(deps.into_iter())
     }
-    fn initialise(&mut self, variables_handler: &mut Handler) -> Result<(), ()> {
-        let indexes = Rc::get_mut(&mut self.indexes).unwrap();
-        let res_id = variables_handler.get_variable_id(&self.res);
-        indexes.insert(res_id, Type::Result);
-        for (pos, id) in variables_handler.get_array_ids(&self.variables).enumerate() {
-            if indexes.insert(id, Type::Variable(pos)).is_some() {
-                return Err(());
+    fn initialise(
+        &mut self,
+        variables_handler: &mut Handler,
+    ) -> Result<PropagationState, VariableError> {
+        {
+            let indexes = Rc::get_mut(&mut self.indexes).unwrap();
+            let res_id = variables_handler.get_variable_id(&self.res);
+            indexes.insert(res_id, Type::Result);
+            for (pos, id) in variables_handler.get_array_ids(&self.variables).enumerate()
+            {
+                if indexes.insert(id, Type::Variable(pos)).is_some() {
+                    return Err(VariableError::DomainWipeout);
+                }
             }
         }
-        Ok(())
+        self.propagate(variables_handler)
     }
 }

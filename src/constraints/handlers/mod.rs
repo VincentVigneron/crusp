@@ -3,71 +3,114 @@ use graph::TwoNodesGraph;
 use variables::{VariableError, VariableState, ViewIndex};
 use variables::handlers::VariablesHandler;
 
-pub trait ConstraintsHandler<H: VariablesHandler>: Clone {
-    fn propagate_all(&mut self, &mut H) -> Result<PropagationState, VariableError>;
-    fn add(&mut self, Box<Constraint<H>>);
+pub trait ConstraintsHandlerBuilder<Variables: VariablesHandler, Constraints: ConstraintsHandler<Variables>>
+     {
+    fn add(&mut self, Box<Constraint<Variables>>);
+    fn finalize(self, variables: &mut Variables) -> Result<Constraints, VariableError>;
 }
 
-#[derive(Clone)]
-pub struct SequentialConstraintsHandler<H: VariablesHandler> {
-    constraints: Vec<Box<Constraint<H>>>,
-    graph: TwoNodesGraph<ViewIndex, usize, VariableState>,
+pub trait ConstraintsHandler<Variables: VariablesHandler>: Clone {
+    fn propagate_all(
+        &mut self,
+        variables: &mut Variables,
+    ) -> Result<PropagationState, VariableError>;
 }
 
-impl<H: VariablesHandler> SequentialConstraintsHandler<H> {
-    pub fn new() -> SequentialConstraintsHandler<H> {
-        SequentialConstraintsHandler {
+pub struct DefaultConstraintsHandlerBuilder<Variables: VariablesHandler> {
+    constraints: Vec<Box<Constraint<Variables>>>,
+}
+
+impl<Variables: VariablesHandler> DefaultConstraintsHandlerBuilder<Variables> {
+    pub fn new() -> DefaultConstraintsHandlerBuilder<Variables> {
+        DefaultConstraintsHandlerBuilder {
             constraints: Vec::new(),
-            graph: TwoNodesGraph::new(),
         }
     }
 }
 
-impl<H: VariablesHandler> ConstraintsHandler<H> for SequentialConstraintsHandler<H> {
+impl<
+    Variables: VariablesHandler,
+> ConstraintsHandlerBuilder<Variables, DefaultConstraintsHandler<Variables>>
+    for DefaultConstraintsHandlerBuilder<Variables> {
+    fn add(&mut self, constraint: Box<Constraint<Variables>>) {
+        self.constraints.push(constraint);
+    }
+
+    fn finalize(
+        mut self,
+        variables: &mut Variables,
+    ) -> Result<DefaultConstraintsHandler<Variables>, VariableError> {
+        let mut graph: TwoNodesGraph<ViewIndex, usize, VariableState> =
+            TwoNodesGraph::new();
+        for (idx, constraint) in self.constraints.iter().enumerate() {
+            for (view, state) in constraint.dependencies(&variables) {
+                graph.insert_node1_to_node2(view, state, idx);
+            }
+        }
+        // Sort according to complexity?
+        for constraint in self.constraints.iter_mut() {
+            constraint.initialise(variables)?;
+        }
+        let len = self.constraints.len();
+        Ok(DefaultConstraintsHandler {
+            constraints: self.constraints,
+            subsumeds: vec![false; len],
+            graph: graph,
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct DefaultConstraintsHandler<H: VariablesHandler> {
+    constraints: Vec<Box<Constraint<H>>>,
+    subsumeds: Vec<bool>,
+    graph: TwoNodesGraph<ViewIndex, usize, VariableState>,
+}
+
+impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H> {
     fn propagate_all(
         &mut self,
         variables_handler: &mut H,
     ) -> Result<PropagationState, VariableError> {
-        // Option<ConstraintState> instead
-        let mut change = false;
-        for constraint in self.constraints.iter_mut() {
-            let has_change = match constraint.propagate(variables_handler)? {
-                PropagationState::FixPoint => true,
-                PropagationState::Subsumed => true,
-                PropagationState::NoChange => false,
+        for (idx, constraint, subsumed) in self.constraints
+            .iter_mut()
+            .enumerate()
+            .zip(self.subsumeds.iter_mut())
+            .map(|((a, b), c)| (a, b, c))
+            .filter(|&(_, _, ref subsumed)| !**subsumed)
+        {
+            constraint.prepare(Box::new(vec![].into_iter()));
+            match constraint.propagate(variables_handler)? {
+                PropagationState::FixPoint => for (view, state) in constraint.result() {
+                    self.graph.add_event(view, idx, state);
+                },
+                PropagationState::Subsumed => {
+                    *subsumed = true;
+                    continue;
+                }
+                PropagationState::NoChange => {}
             };
-            change = change || has_change;
         }
-        if !change {
-            return Ok(PropagationState::FixPoint);
-        }
-        //let mut variables_states: Vec<_> =
-        //variables_handler.retrieve_all_changed_states().collect();
-        while change {
-            change = false;
-            for constraint in self.constraints.iter_mut() {
-                //let mut states = variables_states.iter();
-                //if constraint.affected_by_changes(&mut states) {
-                let has_change = match constraint.propagate(variables_handler)? {
-                    PropagationState::FixPoint => true,
-                    //PropagationState::Subsumed => true, // remove if subsumed
-                    PropagationState::Subsumed => false,
-                    PropagationState::NoChange => false,
-                };
-                change = change || has_change;
-                //}
-            }
-            if !change {
-                return Ok(PropagationState::FixPoint);
-            }
-            //variables_states = variables_handler.retrieve_all_changed_states().collect();
-        }
-        //unreachable!()
-        Ok(PropagationState::FixPoint)
-    }
 
-    fn add(&mut self, constraint: Box<Constraint<H>>) {
-        self.constraints.push(constraint);
-        //constraint.variable_bindings();
+        while let Some(events) = self.graph.events() {
+            for (idx, changes) in events {
+                let constraint = self.constraints.get_mut(idx).unwrap();
+                let subsumed = self.subsumeds.get_mut(idx).unwrap();
+                constraint.prepare(Box::new(changes.into_iter()));
+                match constraint.propagate(variables_handler)? {
+                    PropagationState::FixPoint => {
+                        for (view, state) in constraint.result() {
+                            self.graph.add_event(view, idx, state);
+                        }
+                    }
+                    PropagationState::Subsumed => {
+                        *subsumed = true;
+                        continue;
+                    }
+                    PropagationState::NoChange => {}
+                };
+            }
+        }
+        Ok(PropagationState::FixPoint)
     }
 }
