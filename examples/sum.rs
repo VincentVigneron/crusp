@@ -27,7 +27,9 @@ fn main() {
 
             constraint res :: coefs * values;
         }
-        branch [a,b,c,d,e,f,g,h,i,j];
+        branchers {
+            branch([a,b,c,d,e,f,g,h,i,j], variables_order, domain_order);
+        }
         solve;
         output (res,a,b,c,d,e,f,g,h,i,j);
     );

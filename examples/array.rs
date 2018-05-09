@@ -3,7 +3,7 @@ extern crate crusp;
 
 use crusp::branchers::BranchersHandler;
 use crusp::branchers::brancher::DefaultBrancher;
-use crusp::branchers::values_selector::MinValueSelector;
+use crusp::branchers::values_selector::DomainOrderValueSelector;
 use crusp::branchers::variables_selector::SequentialVariableSelector;
 use crusp::constraints::handlers::*;
 use crusp::search::Solver;
@@ -36,7 +36,7 @@ fn main() {
     let variables: Vec<_> = (0..10).map(|i| e.get(i).clone()).collect();
     let variables_selector =
         SequentialVariableSelector::new(variables.into_iter()).unwrap();
-    let values_selector = MinValueSelector::new();
+    let values_selector = DomainOrderValueSelector::new();
     let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
     branchers_handler.add_specific_brancher(Box::new(brancher));
 

@@ -13,7 +13,9 @@ fn main() {
 
             constraint increasing([a,b,c]);
         }
-        branch [a,b,c];
+        branchers {
+            branch([a,b,c], variables_order, domain_max);
+        }
         solve;
         output (a,b,c);
     );

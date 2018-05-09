@@ -98,7 +98,7 @@ impl PrunableDomain for BoolVar {
 
     fn in_values<Values>(
         &mut self,
-        values: Values,
+        _values: Values,
     ) -> Result<VariableState, VariableError>
     where
         Values: IntoIterator<Item = Self::Type>,

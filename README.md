@@ -23,7 +23,9 @@ fn main() {
             constraint a < b;
             constraint b < c;
         }
-        branch [a,b,c];
+        branchers {
+            branch([a,b,c], variables_order, domain_max);
+        }
         solve;
         output (a,b,c);
     );
@@ -35,7 +37,7 @@ fn main() {
 ```
 
 ```
-3 < 4 < 5
+5 < 6 < 9
 ```
 
 ### More Money
@@ -66,7 +68,9 @@ fn main() {
             constraint money = (10000*m + 1000*o + 100*n + 10*e + y);
             constraint money = (send + more);
         }
-        branch [s,e,n,d,m,o,r,y];
+        branchers {
+            branch([s,e,n,d,m,o,r,y], variables_order, domain_order);
+        }
         solve;
         output (send, more, money);
     );

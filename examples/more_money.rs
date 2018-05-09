@@ -24,7 +24,9 @@ fn main() {
             constraint money = sum([m,o,n,e,y]*[10000,1000,100,10,1]);
             constraint money = sum([send,more]*[1,1]);
         }
-        branch [s,e,n,d,m,o,r,y];
+        branchers {
+            branch([s,e,n,d,m,o,r,y], variables_order, domain_order);
+        }
         solve;
         output (send, more, money);
     );
