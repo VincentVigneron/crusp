@@ -96,6 +96,9 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H>
             for (idx, changes) in events {
                 let constraint = self.constraints.get_mut(idx).unwrap();
                 let subsumed = self.subsumeds.get_mut(idx).unwrap();
+                if *subsumed {
+                    continue;
+                }
                 constraint.prepare(Box::new(changes.into_iter()));
                 match constraint.propagate(variables_handler)? {
                     PropagationState::FixPoint => {
