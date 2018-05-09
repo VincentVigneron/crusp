@@ -82,10 +82,13 @@ fn main() {
 ```
 
 ## TODO LIST
-- [ ] Top Priority Constraints (maybe remove macros as it is now)
+- [ ] Priority Constraints add macros?
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
 - [ ] Priority OrderedDomain min and max should return an Option.
+- [ ] Graph Split Event And Graph.
+- [ ] Event use iterator (avoid unecessary computation).
+- [ ] Remove Vec and use array if possible.
 - [ ] Change in\_sorted\_values from PrunbalDomain.
 - [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)
 - [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)

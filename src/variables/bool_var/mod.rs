@@ -96,8 +96,7 @@ impl PrunableDomain for BoolVar {
         unimplemented!()
     }
 
-    #[allow(unused)]
-    fn in_sorted_values<Values>(
+    fn in_values<Values>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError>

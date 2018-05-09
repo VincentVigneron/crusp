@@ -214,22 +214,6 @@ where
         values: Values,
     ) -> Result<VariableState, VariableError>
     where
-        Values: IntoIterator<Item = Self::Type>,
-    {
-        let values: Vec<_> = values.into_iter().collect();
-        //let mut values: Vec<_> = values.into_iter().collect();
-        //values.sort();
-        self.in_sorted_values(values.into_iter())
-    }
-    /// Forces the domain of the variables to be in the values past has parameter.
-    ///
-    /// # Parameters
-    /// * `value` - The variable to compare to.
-    fn in_sorted_values<Values: Iterator<Item = Self::Type>>(
-        &mut self,
-        values: Values,
-    ) -> Result<VariableState, VariableError>
-    where
         Values: IntoIterator<Item = Self::Type>;
     /// Remove the value from the domain of a variable.
     ///
@@ -257,4 +241,21 @@ where
     ) -> Result<VariableState, VariableError>
     where
         Predicate: FnMut(&Self::Type) -> bool;
+}
+
+/// Trait that definies variable that allows to remove any values from its domains.
+pub trait OrderedPrunableDomain: PrunableDomain + OrderedDomain
+where
+    Self::Type: Eq + Ord,
+{
+    /// Forces the domain of the variables to be in the values past has parameter.
+    ///
+    /// # Parameters
+    /// * `value` - The variable to compare to.
+    fn in_sorted_values<Values: Iterator<Item = Self::Type>>(
+        &mut self,
+        values: Values,
+    ) -> Result<VariableState, VariableError>
+    where
+        Values: IntoIterator<Item = Self::Type>;
 }

@@ -1,6 +1,7 @@
 use variables::{Variable, VariableError, VariableState};
 use variables::domains::{AssignableDomain, FiniteDomain, FromRangeDomain,
-                         FromValuesDomain, IterableDomain, OrderedDomain, PrunableDomain};
+                         FromValuesDomain, IterableDomain, OrderedDomain,
+                         OrderedPrunableDomain, PrunableDomain};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntVarValues {
@@ -272,42 +273,17 @@ impl PrunableDomain for IntVarValues {
         Ok((ok_self, ok_value))
     }
 
-    // Change to non-naive implementation
-    fn in_sorted_values<Values>(
+    fn in_values<Values>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError>
     where
         Values: IntoIterator<Item = Self::Type>,
     {
-        use std::collections::BTreeSet;
-        let s1: BTreeSet<_> = self.iter().map(|&v| v).collect();
-        let s2: BTreeSet<_> = values.into_iter().collect();
-        let domain: Vec<_> = s1.intersection(&s2).map(|val| *val).collect();
-
-        if domain.is_empty() {
-            self.invalidate();
-            return Err(VariableError::DomainWipeout);
-        }
-        let ok_self = {
-            let check_change = |var: &mut IntVarValues| {
-                if var.size() == domain.len() {
-                    VariableState::NoChange
-                } else if var.min() != unwrap_first!(domain) {
-                    var.update_state(VariableState::BoundsChange);
-                    VariableState::BoundsChange
-                } else if var.max() != unwrap_last!(domain) {
-                    var.update_state(VariableState::BoundsChange);
-                    VariableState::BoundsChange
-                } else {
-                    var.update_state(VariableState::ValuesChange);
-                    VariableState::ValuesChange
-                }
-            };
-            check_change(self)
-        };
-        self.domain = domain;
-        Ok(ok_self)
+        let values: Vec<_> = values.into_iter().collect();
+        let mut values: Vec<_> = values.into_iter().collect();
+        values.sort();
+        self.in_sorted_values(values.into_iter())
     }
 
     // check change function (equality, bounds, values, nochange...)
@@ -381,6 +357,46 @@ impl PrunableDomain for IntVarValues {
                 _ => Ok((VariableState::NoChange, VariableState::NoChange)),
             },
         }
+    }
+}
+
+impl OrderedPrunableDomain for IntVarValues {
+    // Change to non-naive implementation
+    fn in_sorted_values<Values>(
+        &mut self,
+        values: Values,
+    ) -> Result<VariableState, VariableError>
+    where
+        Values: IntoIterator<Item = Self::Type>,
+    {
+        use std::collections::BTreeSet;
+        let s1: BTreeSet<_> = self.iter().map(|&v| v).collect();
+        let s2: BTreeSet<_> = values.into_iter().collect();
+        let domain: Vec<_> = s1.intersection(&s2).map(|val| *val).collect();
+
+        if domain.is_empty() {
+            self.invalidate();
+            return Err(VariableError::DomainWipeout);
+        }
+        let ok_self = {
+            let check_change = |var: &mut IntVarValues| {
+                if var.size() == domain.len() {
+                    VariableState::NoChange
+                } else if var.min() != unwrap_first!(domain) {
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
+                } else if var.max() != unwrap_last!(domain) {
+                    var.update_state(VariableState::BoundsChange);
+                    VariableState::BoundsChange
+                } else {
+                    var.update_state(VariableState::ValuesChange);
+                    VariableState::ValuesChange
+                }
+            };
+            check_change(self)
+        };
+        self.domain = domain;
+        Ok(ok_self)
     }
 }
 
