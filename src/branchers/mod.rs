@@ -1,9 +1,9 @@
-use variables::{VariableView, ViewIndex};
 use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
+use variables::{VariableView, ViewIndex};
 
 pub mod brancher;
-pub mod variables_selector;
 pub mod values_selector;
+pub mod variables_selector;
 
 //Brancher => Branch ?
 pub trait VariableSelector<Handler, View>
@@ -35,6 +35,11 @@ where
         &mut self,
         variables: &Handler,
     ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>;
+    // Return None if branch is subsumed
+    //fn specific_branch(
+    //&mut self,
+    //variables: &Handler,
+    //) -> Option<Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>>;
 }
 
 pub trait Brancher<Handler> {

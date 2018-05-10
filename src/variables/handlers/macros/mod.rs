@@ -65,6 +65,7 @@ impl<Var: Variable> Into<ViewIndex> for VarView<Var> {
     }
 }
 
+// Add len field
 #[derive(Debug)]
 pub struct ArrayOfVarsView<Var: Variable> {
     pub id: ProcessUniqueId,
@@ -96,7 +97,10 @@ impl<Var: Variable> ArrayOfVarsView<Var> {
         }
     }
 
+    //pub fn len(&self) -> usize {}
+
     // Change id type to implement partialeq
+    //pub fn get(&self, y: usize) -> Option<VarView<Var>> {
     pub fn get(&self, y: usize) -> VarView<Var> {
         VarView {
             id: self.id,
