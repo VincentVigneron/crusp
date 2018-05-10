@@ -55,11 +55,11 @@ pub enum IndexType {
     FromArrayOfVarsVar(usize, usize),
 }
 
-pub trait VariableView: Copy {
+pub trait VariableView: Clone {
     type Variable: Variable;
 }
 
-pub trait ArrayView: Copy {
+pub trait ArrayView: Clone {
     type Variable: Variable;
     type Array: Array<Variable = Self::Variable>;
 }

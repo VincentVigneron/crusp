@@ -202,6 +202,7 @@ macro_rules! variables_handler_build {
             SpecificArraysHandlerBuilder
             };
         use snowflake::ProcessUniqueId;
+        use std::rc::Rc;
 
         #[derive(Debug)]
         struct SpecificTypeHandler<Var: Variable> {
@@ -209,7 +210,7 @@ macro_rules! variables_handler_build {
             variables: Vec<Var>,
             variables_array: Vec<ArrayOfVars<Var>>,
             variables_ref: Vec<ArrayOfRefs<Var>>,
-            variables_ref_view: Vec<Vec<VarView<Var>>>,
+            variables_ref_view: Vec<Rc<Vec<VarView<Var>>>>,
         }
 
         impl<Var: Variable> SpecificTypeHandler<Var> {
@@ -241,7 +242,7 @@ macro_rules! variables_handler_build {
             id: ProcessUniqueId,
             variables: Vec<Var>,
             variables_array: Vec<ArrayOfVars<Var>>,
-            variables_ref_view: Vec<Vec<VarView<Var>>>,
+            variables_ref_view: Vec<Rc<Vec<VarView<Var>>>>,
         }
 
         impl<Var: Variable> SpecificTypeHandlerBuilder<Var> {
@@ -446,7 +447,7 @@ macro_rules! variables_handler_build {
             for Builder {
                 fn add_array(&mut self, x: Vec<VarView<$type>>) -> ArrayOfRefsView<$type> {
                     let view = ArrayOfRefsView::new(self.$type.id, self.$type.variables_ref_view.len());
-                    self.$type.variables_ref_view.push(x);
+                    self.$type.variables_ref_view.push(Rc::new(x));
                     view
                 }
             }
