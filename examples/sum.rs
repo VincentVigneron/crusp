@@ -19,11 +19,11 @@ fn main() {
             let i = values[8];
             let j = values[9];
 
+
             constraint a < b;
             constraint b < c;
             constraint b < d;
             constraint d < j;
-
 
             constraint res :: coefs * values;
         }

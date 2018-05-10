@@ -2,6 +2,8 @@
 // Replacing variables =..; constraints =..; by space =..;
 // Allow rules with only cosntraints and variables.
 // Don't call finalize without calling solve befor...
+
+// Care declaring variable inside macro can be dangerous (conflict with parameters)
 #[macro_export]
 macro_rules! cp_model {
     (
@@ -73,6 +75,14 @@ macro_rules! cp_model {
         let $x: ident = var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
+        let $x = $variables.add(IntVarValues::new($min, ($max-1)).unwrap());
+        cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+    };
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+        let $x: ident = var int($min:tt ..= $max:tt);
+        $($tail:tt)*
+    ) => {
         let $x = $variables.add(IntVarValues::new($min, $max).unwrap());
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
@@ -81,7 +91,17 @@ macro_rules! cp_model {
         let $x: ident = array[$len: tt] of var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = ArrayOfVars::new($len, IntVarValues::new($min, $max).unwrap()).unwrap();
+        let $x = ArrayOfVars::new($len, IntVarValues::new(expr!($min), expr!($max-1)).unwrap()).unwrap();
+        let $x = $variables.add_array($x);
+
+        cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+    };
+    (
+        variables = $variables: ident; constraints = $constraints: ident;
+        let $x: ident = array[$len: tt] of var int($min:tt ..= $max:tt);
+        $($tail:tt)*
+    ) => {
+        let $x = ArrayOfVars::new($len, IntVarValues::new(expr!($min), expr!($max)).unwrap()).unwrap();
         let $x = $variables.add_array($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
@@ -212,6 +232,43 @@ macro_rules! cp_model {
         }
     };
     (
+        variables = $variables: ident;
+        constraints = $constraints: ident;
+        for $i: ident in $min:tt .. $max:tt {
+            $($cons:tt)*
+        }
+        $($tail:tt)*
+    ) => {{
+            {
+                for $i in $min .. $max {
+                    cp_model!(
+                        variables =  $variables;
+                        constraints = $constraints;
+                        $($cons)*
+                    );
+                }
+            }
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+    }};
+    (
+        variables = $variables: ident;
+        constraints = $constraints: ident;
+        constraint   add($res:tt ,$var:tt,$coef:expr);
+        $($tail:tt)*
+    ) => {{
+            {
+            $constraints.add(Box::new(
+                $crate::constraints::arithmetic::AddConstant::new(
+                    cp_model!(@Var; $res),
+                    cp_model!(@Var; $var),
+                    $coef
+                )));
+            }
+
+            cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
+    }};
+    (
         variables = $variables: ident; constraints = $constraints: ident;
         constraint $res:ident :: $coefs:ident * $vars: ident;
         $($tail:tt)*) => {
@@ -233,13 +290,19 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
     };
+    (@Var; $x:ident) => {
+        $x
+    };
+    (@Var; $x:ident[$i:expr]) => {
+        $x.get($i)
+    };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-        constraint $r:ident = ($a:tt * $x:ident + $($rem: tt)*);
+        constraint $r:tt = ($a:tt * $x:tt + $($rem: tt)*);
         $($tail:tt)*) => {
         {
             let mut coefs = vec![expr!($a)];
-            let mut vars = vec![$x.clone()];
+            let mut vars = vec![cp_model!(@Var;$x).clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
             let vars = $variables.add_array(vars);
             $constraints.add(Box::new(
@@ -250,16 +313,17 @@ macro_rules! cp_model {
     };
     (
         variables = $variables: ident; constraints = $constraints: ident;
-        constraint $r:ident =  ($x:ident + $($rem: tt)*);
+        constraint $r:tt =  ($x:tt + $($rem: tt)*);
         $($tail:tt)*
     ) => {
         {
             let mut coefs = vec![1];
-            let mut vars = vec![$x.clone()];
+            let mut vars = vec![cp_model!(@Var;$x).clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
             let vars = $variables.add_array(vars);
             $constraints.add(Box::new(
-                    $crate::constraints::SumConstraint::new($r, vars, coefs)));
+                    //$crate::constraints::SumConstraint::new($r, vars, coefs)));
+                    $crate::constraints::SumConstraint::new(cp_model!(@Var;$r), vars, coefs)));
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
         }
@@ -267,32 +331,32 @@ macro_rules! cp_model {
     (coefs = $coefs: ident; vars = $vars: ident;) => {};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-        ($x:ident)
+        ($x:tt)
     ) => {{
         $coefs.push(1);
-        $vars.push($x.clone());
+        $vars.push(cp_model!(@Var;$x).clone());
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-        ($a:tt * $x:ident)
+        ($a:tt * $x:tt)
     ) => {{
         $coefs.push(expr!($a));
-        $vars.push($x.clone());
+        $vars.push(cp_model!(@Var; $x).clone());
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-        ($x:ident + $($rem:tt)*)
+        ($x:tt + $($rem:tt)*)
     ) => {{
         $coefs.push(1);
-        $vars.push($x.clone());
+        $vars.push(cp_model!(@Var; $x).clone());
         cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
     }};
     (
         coefs = $coefs: ident; vars = $vars: ident;
-        ($a:tt * $x:ident + $($rem:tt)*)
+        ($a:tt * $x:tt + $($rem:tt)*)
     ) => {{
         $coefs.push(expr!($a));
-        $vars.push($x.clone());
+        $vars.push(cp_model!(@Var; $x).clone());
 
         cp_model!(coefs = $coefs; vars = $vars; ($($rem)+));
     }};
@@ -309,6 +373,25 @@ macro_rules! cp_model {
         {
             let mut x = vec![];
             cp_model!(@VecBuilder = x; $($views),+);
+            let variables_selector = SequentialVariableSelector::new(x.into_iter()).unwrap();
+            let values_selector = DomainOrderValueSelector::new();
+            let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+            $branchers.add_specific_brancher(Box::new(brancher));
+
+            cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident;
+        branchers = $branchers: ident;
+        branch([$views: ident[$i:ident] for $ii:ident in $min:tt .. $max:tt], variables_order, domain_order);
+        $($tail:tt)*
+    ) => {
+        {
+            let mut x = vec![];
+            for $i in $min..$max {
+                x.push($views.get($ii));
+            }
             let variables_selector = SequentialVariableSelector::new(x.into_iter()).unwrap();
             let values_selector = DomainOrderValueSelector::new();
             let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();

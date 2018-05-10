@@ -7,3 +7,6 @@ pub use self::comparisons::LessThan;
 mod equalities;
 pub use self::equalities::Equal;
 pub use self::equalities::EqualBounds;
+
+mod binary_ops;
+pub use self::binary_ops::AddConstant;
