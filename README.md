@@ -86,6 +86,8 @@ fn main() {
 ```
 
 ## TODO LIST
+- [ ] Priority make view cloneable instead of copyable. Add WeakVec> to ArrayOfRefView => Remove get_*_id() inside variablehandler.
+- [ ] Priority add get_comparable_id() to view.
 - [ ] Priority Constraints add macros?
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
