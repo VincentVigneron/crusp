@@ -1,8 +1,8 @@
 use graph::Subsumed;
 use snowflake::ProcessUniqueId;
 
-pub mod domains;
 pub mod bool_var;
+pub mod domains;
 pub mod int_var;
 #[macro_use]
 pub mod handlers;
@@ -64,6 +64,7 @@ pub trait ArrayView: Copy {
     type Array: Array<Variable = Self::Variable>;
 }
 
+// View Comparator used only to check if view are tied
 #[derive(Hash, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ViewIndex {
     id: ProcessUniqueId,
@@ -156,10 +157,25 @@ where
     }
 }
 
+/// Trait used to an array of variable;
+trait ArryaBuilder {
+    type Builder: VariableBuilder;
+    fn into_iter(self) -> Box<Iterator<Item = Self::Builder>>;
+}
+
+/// Trait used to build a variable. `SpecificVariablesHandler` requires
+/// to add VariableBuiler or ArrayBuilder in order to assign them one
+/// unique id.
+trait VariableBuilder: Sized {
+    type Variable: Variable + Sized;
+    fn finalize(self, id: usize) -> Self::Variable;
+}
+
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
+    // id() -> usize;
     /// The underlying type holded by the `Variable`.
     type Type: Clone;
     /// Returns if the variable is affected.

@@ -1,7 +1,8 @@
+use variables::domains::{
+    AssignableDomain, FiniteDomain, FromRangeDomain, FromValuesDomain, IterableDomain,
+    OrderedDomain, OrderedPrunableDomain, PrunableDomain,
+};
 use variables::{Variable, VariableError, VariableState};
-use variables::domains::{AssignableDomain, FiniteDomain, FromRangeDomain,
-                         FromValuesDomain, IterableDomain, OrderedDomain,
-                         OrderedPrunableDomain, PrunableDomain};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntVarValues {
