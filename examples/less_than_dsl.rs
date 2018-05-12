@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate crusp;
 
+use crusp::variables::Variable;
+
 fn main() {
     let result = cp_model!(
         model {
@@ -20,7 +22,7 @@ fn main() {
         output (a,b,c);
     );
     match result {
-        Some((a, b, c)) => println!("{} < {} < {}", a, b, c),
+        Some((a, b, c)) => println!("{} < {} < {}", value!(a), value!(b), value!(c)),
         None => println!("No solution!"),
     }
 }

@@ -1,23 +1,25 @@
 use constraints::Constraint;
 use constraints::PropagationState;
-use variables::{Array, ArrayView, Variable, VariableError, VariableState, ViewIndex};
 use variables::domains::PrunableDomain;
-use variables::handlers::{SpecificArraysHandler, VariablesHandler};
+use variables::handlers::{
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
+use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Debug, Clone)]
 pub struct AllDifferent<Var, Views>
 where
-    Views: ArrayView,
+    Views: VariableContainerView,
     Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone,
 {
     array: Views,
-    output: Option<Vec<(ViewIndex, VariableState)>>,
+    output: Option<Vec<(VariableId, VariableState)>>,
 }
 
 impl<Var, Views> AllDifferent<Var, Views>
 where
-    Views: ArrayView,
+    Views: VariableContainerView,
     Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone,
 {
@@ -31,9 +33,10 @@ where
 
 impl<Var, Views, Handler> Constraint<Handler> for AllDifferent<Var, Views>
 where
-    Handler: VariablesHandler + SpecificArraysHandler<Views> + Clone,
-    Views: ArrayView + Into<ViewIndex> + 'static,
-    Views::Variable: PrunableDomain<Type = Var>,
+    Handler: VariablesHandler + VariableContainerHandler<Views> + Clone,
+    Views: VariableContainerView + 'static,
+    Views::Container: Array<Variable = Views::Variable>,
+    Views::Variable: PrunableDomain<Type = Var> + 'static,
     Var: Eq + Ord + Clone + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
@@ -52,9 +55,7 @@ where
         let mut output = vec![];
         self.output = None;
 
-        let vars: &mut Views::Array = unsafe {
-            unsafe_from_raw_point!(variables_handler.get_array_mut(&self.array))
-        };
+        let vars = variables_handler.get_mut(&self.array);
 
         let affected: BTreeSet<Var> = vars.iter().filter_map(|var| var.value()).collect();
         let unaffected: Vec<_> = vars.iter()
@@ -72,7 +73,7 @@ where
             match var.remove_if(|val| affected.contains(&val))? {
                 VariableState::NoChange => {}
                 state => {
-                    output.push((variables_handler.get_array_id(&self.array, i), state));
+                    output.push((var.id(), state));
                 }
             }
         }
@@ -85,10 +86,10 @@ where
         }
     }
     #[allow(unused)]
-    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+    fn prepare(&mut self, states: Box<Iterator<Item = VariableId>>) {
         // do nothing
     }
-    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+    fn result(&mut self) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         use std::mem;
         let mut res = None;
         mem::swap(&mut self.output, &mut res);
@@ -99,14 +100,16 @@ where
     }
     fn dependencies(
         &self,
-        variables: &Handler,
-    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        Box::new(
-            variables
-                .get_array_ids(&self.array)
-                .into_iter()
-                .map(|val| (val, VariableState::ValuesChange)),
-        )
+        variables_handler: &Handler,
+    ) -> Box<Iterator<Item = (VariableId, VariableState)>> {
+        Box::new({
+            let dep: Vec<_> = variables_handler
+                .get(&self.array)
+                .iter()
+                .map(|val| (val.id(), VariableState::ValuesChange))
+                .collect();
+            dep.into_iter()
+        })
     }
     fn initialise(
         &mut self,

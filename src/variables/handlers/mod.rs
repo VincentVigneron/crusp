@@ -1,24 +1,22 @@
-use super::{ArrayView, VariableView, ViewIndex};
+use super::Variable;
 
 /// Represents a variables handler. Variable handlers can manage many type of variables
 /// and give acces to statistics about each variables. A `VariablesHandler` does not
 /// provide acces to variable, that's why each structure that implements a `VariableHandler`
 /// should at least implements one `SpecificVariablesHandler`.
-pub trait VariablesHandler: Clone {
-    //fn retrieve_all_changed_states(
-    //&mut self,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-
-    //fn retrieve_changed_states<Views>(
-    //&mut self,
-    //views: Views,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>
-    //where
-    //Views: Iterator<Item = ViewIndex>;
-}
+pub trait VariablesHandler: Clone {}
 
 pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
     fn finalize(self) -> VarHandler;
+}
+
+/// This trait design the view associated to a type of variable
+/// managed by a `SpecificTypeHandler`.
+pub trait VariableContainerView: Clone {
+    /// The `Type` managed by the Handler (Variable or Array of Variable).
+    type Container;
+    /// The type of `Variable` managed by the handler (Type == Variable if the Type is a variable).
+    type Variable: Variable;
 }
 
 /// Gives immutable and mutable acces to owned variables. A `SpecificVariablesHandler`
@@ -31,92 +29,39 @@ pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
 ///
 /// * `Var` - The type of variable handled.
 /// * `View` - The associated view for the variable.
-pub trait SpecificVariablesHandler<View>: VariablesHandler
+pub trait VariableContainerHandler<View>
 where
-    View: VariableView + Into<ViewIndex> + 'static,
+    View: VariableContainerView,
 {
-    fn get_mut(&mut self, view: &View) -> &mut View::Variable;
-    fn get(&self, view: &View) -> &View::Variable;
-    fn get_variable_id(&self, view: &View) -> ViewIndex;
-
-    //fn retrieve_state(&mut self, view: &View) -> VariableState;
-    //// Retrieve state of the view but also of the subiview
-    //fn retrieve_states<'a, Views: Iterator<Item = &'a View>>(
-    //&mut self,
-    //views: Views,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-    //fn retrieve_all_changed_states(
-    //&mut self,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-    //fn into_indexes(&self, &View) -> Box<Iterator<Item = ViewIndex>>;
-
-    // fn iter(&self) -> &mut Variable;
+    fn get_mut(&mut self, view: &View) -> &mut View::Container;
+    fn get(&self, view: &View) -> &View::Container;
 }
 
-pub trait SpecificVariablesHandlerBuilder<View, VarHandler, Param>
-    : VariablesHandlerBuilder<VarHandler>
+pub trait VariableContainerHandlerBuilder<View, VarHandler, Param>
 where
-    View: VariableView + Into<ViewIndex> + 'static,
-    VarHandler: SpecificVariablesHandler<View>,
+    View: VariableContainerView,
+    VarHandler: VariableContainerHandler<View>,
 {
     fn add(&mut self, views: Param) -> View;
 }
 
-pub trait SpecificArraysHandler<View>: VariablesHandler
-where
-    View: ArrayView + Into<ViewIndex> + 'static,
-{
-    fn get_array_mut(&mut self, view: &View) -> &mut View::Array;
-    fn get_array(&self, view: &View) -> &View::Array;
-    fn get_array_id(&self, view: &View, position: usize) -> ViewIndex;
-    fn get_array_ids(&self, view: &View) -> Box<Iterator<Item = ViewIndex>>;
-
-    //fn retrieve_state(&mut self, view: &View) -> VariableState;
-    //// Retrieve state of the view but also of the subiview
-    //fn retrieve_states<'a, Views: Iterator<Item = &'a View>>(
-    //&mut self,
-    //views: Views,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-    //fn retrieve_all_changed_states(
-    //&mut self,
-    //) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
-    //fn into_indexes(&self, &View) -> Box<Iterator<Item = ViewIndex>>;
-
-    // fn iter(&self) -> &mut Variable;
-}
-
-pub trait SpecificArraysHandlerBuilder<View, VarHandler, Param>
-    : VariablesHandlerBuilder<VarHandler>
-where
-    View: ArrayView + Into<ViewIndex> + 'static,
-    VarHandler: SpecificArraysHandler<View>,
-{
-    fn add_array(&mut self, views: Param) -> View;
-}
-
-#[macro_export]
-macro_rules! unsafe_get_mut_from_handler {
-    ($variables: expr, $view: expr) => {
-        &mut *(get_mut_from_handler($variables,&$view) as *mut _)
-    }
-}
 pub fn get_mut_from_handler<'a, Handler, View>(
     vars: &'a mut Handler,
     view: &View,
-) -> &'a mut View::Variable
+) -> &'a mut View::Container
 where
-    Handler: SpecificVariablesHandler<View>,
-    View: VariableView + Into<ViewIndex> + 'static,
+    Handler: VariableContainerHandler<View>,
+    View: VariableContainerView,
 {
     vars.get_mut(&view)
 }
 pub fn get_from_handler<'a, Handler, View>(
     vars: &'a Handler,
     view: &View,
-) -> &'a View::Variable
+) -> &'a View::Container
 where
-    Handler: SpecificVariablesHandler<View>,
-    View: VariableView + Into<ViewIndex> + 'static,
+    Handler: VariableContainerHandler<View>,
+    View: VariableContainerView,
 {
     vars.get(&view)
 }

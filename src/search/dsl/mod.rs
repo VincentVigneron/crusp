@@ -62,8 +62,8 @@ macro_rules! cp_model {
         if solver.solve() {
             let solution = solver.solution().unwrap();
             Some(($(
-                        solution.get_variable(&$out).value().unwrap()
-                   ),+))
+                        solution.get_variable(&$out).clone()
+                   ),+,))
         } else {
             None
         }
@@ -75,7 +75,7 @@ macro_rules! cp_model {
         let $x: ident = var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = $variables.add(IntVarValues::new($min, ($max-1)).unwrap());
+        let $x = $variables.add(IntVarValuesBuilder::new($min, ($max-1)).unwrap());
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
     (
@@ -83,7 +83,7 @@ macro_rules! cp_model {
         let $x: ident = var int($min:tt ..= $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = $variables.add(IntVarValues::new($min, $max).unwrap());
+        let $x = $variables.add(IntVarValuesBuilder::new($min, $max).unwrap());
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
     (
@@ -91,8 +91,8 @@ macro_rules! cp_model {
         let $x: ident = array[$len: tt] of var int($min:tt .. $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = ArrayOfVars::new($len, IntVarValues::new(expr!($min), expr!($max-1)).unwrap()).unwrap();
-        let $x = $variables.add_array($x);
+        let $x = ArrayOfVarsBuilder::new($len, IntVarValuesBuilder::new(expr!($min), expr!($max-1)).unwrap()).unwrap();
+        let $x = $variables.add($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
@@ -101,8 +101,8 @@ macro_rules! cp_model {
         let $x: ident = array[$len: tt] of var int($min:tt ..= $max:tt);
         $($tail:tt)*
     ) => {
-        let $x = ArrayOfVars::new($len, IntVarValues::new(expr!($min), expr!($max)).unwrap()).unwrap();
-        let $x = $variables.add_array($x);
+        let $x = ArrayOfVarsBuilder::new($len, IntVarValuesBuilder::new(expr!($min), expr!($max)).unwrap()).unwrap();
+        let $x = $variables.add($x);
 
         cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
     };
@@ -133,7 +133,7 @@ macro_rules! cp_model {
     (@List in $variables: ident; $($views: tt),*) => {{
         let mut list = Vec::new();
         cp_model!(@ListBuilder = list; $($views),+);
-        let list = $variables.add_array(list);
+        let list = $variables.add(list);
         list
     }};
     (
@@ -238,8 +238,7 @@ macro_rules! cp_model {
             $($cons:tt)*
         }
         $($tail:tt)*
-    ) => {{
-            {
+    ) => {
                 for $i in $min .. $max {
                     cp_model!(
                         variables =  $variables;
@@ -247,10 +246,9 @@ macro_rules! cp_model {
                         $($cons)*
                     );
                 }
-            }
 
             cp_model!(variables = $variables; constraints = $constraints; $($tail)*);
-    }};
+    };
     (
         variables = $variables: ident;
         constraints = $constraints: ident;
@@ -283,7 +281,7 @@ macro_rules! cp_model {
         {
             let coefs = vec![$($a),*];
             let vars = vec![$($y.clone()),*];
-            let vars = $variables.add_array(vars);
+            let vars = $variables.add(vars);
             $constraints.add(Box::new(
                     $crate::constraints::SumConstraint::new($x, vars, coefs)));
 
@@ -304,7 +302,7 @@ macro_rules! cp_model {
             let mut coefs = vec![expr!($a)];
             let mut vars = vec![cp_model!(@Var;$x).clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
-            let vars = $variables.add_array(vars);
+            let vars = $variables.add(vars);
             $constraints.add(Box::new(
                     $crate::constraints::SumConstraint::new($r, vars, coefs)));
 
@@ -320,7 +318,7 @@ macro_rules! cp_model {
             let mut coefs = vec![1];
             let mut vars = vec![cp_model!(@Var;$x).clone()];
             cp_model!(coefs = coefs; vars = vars; ($($rem)*));
-            let vars = $variables.add_array(vars);
+            let vars = $variables.add(vars);
             $constraints.add(Box::new(
                     //$crate::constraints::SumConstraint::new($r, vars, coefs)));
                     $crate::constraints::SumConstraint::new(cp_model!(@Var;$r), vars, coefs)));

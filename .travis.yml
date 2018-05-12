@@ -14,7 +14,7 @@ services:
 rust:
     - stable
     - nightly
-    - 1.25.0
+    - 1.26.0
 
 script:
     - cargo build --verbose

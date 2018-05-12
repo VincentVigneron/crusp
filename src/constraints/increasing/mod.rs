@@ -2,24 +2,26 @@ use constraints::Constraint;
 use constraints::PropagationState;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
-use variables::{Array, ArrayView, VariableError, VariableState, ViewIndex};
 use variables::domains::OrderedDomain;
-use variables::handlers::{SpecificArraysHandler, VariablesHandler};
+use variables::handlers::{
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
+use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Clone)]
 pub struct Increasing<Var, Views>
 where
-    Views: ArrayView,
+    Views: VariableContainerView,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
     array: Views,
-    output: Option<Vec<(ViewIndex, VariableState)>>,
+    output: Option<Vec<(VariableId, VariableState)>>,
 }
 
 impl<Var, Views> Increasing<Var, Views>
 where
-    Views: ArrayView,
+    Views: VariableContainerView,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
@@ -34,8 +36,9 @@ where {
 
 impl<Var, Views, Handler> Constraint<Handler> for Increasing<Var, Views>
 where
-    Handler: VariablesHandler + SpecificArraysHandler<Views>,
-    Views: ArrayView + Into<ViewIndex> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<Views>,
+    Views: VariableContainerView + 'static,
+    Views::Container: Array<Variable = Views::Variable>,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord
         + Eq
@@ -65,42 +68,38 @@ where
         use variables::VariableState;
         self.output = None;
         let mut output = vec![];
-        let len = { variables_handler.get_array_mut(&self.array).len() };
+        let len = { variables_handler.get(&self.array).len() };
         for i in 0..(len - 1) {
-            let (lhs, rhs) = unsafe {
-                let array = variables_handler.get_array_mut(&self.array);
+            unsafe {
+                let array = variables_handler.get_mut(&self.array);
                 let lhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(i));
                 let rhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(i + 1));
-                lhs.less_than(rhs)?
+                let (lhs_state, rhs_state) = lhs.less_than(rhs)?;
+                if lhs_state != VariableState::NoChange {
+                    output.push((lhs.id(), lhs_state));
+                }
+                if rhs_state != VariableState::NoChange {
+                    output.push((rhs.id(), rhs_state));
+                }
             };
-            if lhs != VariableState::NoChange {
-                let view = variables_handler.get_array_id(&self.array, i);
-                output.push((view.into(), lhs));
-            }
-            if rhs != VariableState::NoChange {
-                let view = variables_handler.get_array_id(&self.array, i + 1);
-                output.push((view.into(), rhs));
-            }
         }
         for i in 0..(len - 1) {
-            let (lhs, rhs) = unsafe {
-                let array = variables_handler.get_array_mut(&self.array);
+            unsafe {
+                let array = variables_handler.get_mut(&self.array);
                 let lhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 2 - i));
                 let rhs: &mut Views::Variable =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 1 - i));
-                lhs.less_than(rhs)?
+                let (lhs_state, rhs_state) = lhs.less_than(rhs)?;
+                if lhs_state != VariableState::NoChange {
+                    output.push((lhs.id(), lhs_state));
+                }
+                if rhs_state != VariableState::NoChange {
+                    output.push((rhs.id(), rhs_state));
+                }
             };
-            if lhs != VariableState::NoChange {
-                let view = variables_handler.get_array_id(&self.array, len - 2 - i);
-                output.push((view.into(), lhs));
-            }
-            if rhs != VariableState::NoChange {
-                let view = variables_handler.get_array_id(&self.array, len - 1 - i);
-                output.push((view.into(), rhs));
-            }
         }
         if !output.is_empty() {
             self.output = Some(output);
@@ -110,10 +109,10 @@ where
         }
     }
     #[allow(unused)]
-    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+    fn prepare(&mut self, states: Box<Iterator<Item = VariableId>>) {
         // Do nothing.
     }
-    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+    fn result(&mut self) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         use std::mem;
         let mut res = None;
         mem::swap(&mut self.output, &mut res);
@@ -125,14 +124,14 @@ where
     #[allow(unused)]
     fn dependencies(
         &self,
-        variables: &Handler,
-    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
-        Box::new(
-            variables
-                .get_array_ids(&self.array)
-                .into_iter()
-                .map(|val| (val, VariableState::ValuesChange)),
-        )
+        variables_handler: &Handler,
+    ) -> Box<Iterator<Item = (VariableId, VariableState)>> {
+        let deps: Vec<_> = variables_handler
+            .get(&self.array)
+            .iter()
+            .map(|var| (var.id(), VariableState::ValuesChange))
+            .collect();
+        Box::new(deps.into_iter())
     }
     #[allow(unused)]
     fn initialise(

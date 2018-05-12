@@ -1,8 +1,10 @@
 use super::ValuesSelector;
-use variables::{Variable, VariableView, ViewIndex};
 use variables::domains::{AssignableDomain, IterableDomain, OrderedDomain};
-use variables::handlers::{get_from_handler, get_mut_from_handler,
-                          SpecificVariablesHandler, VariablesHandler};
+use variables::handlers::{
+    get_from_handler, get_mut_from_handler, VariableContainerHandler,
+    VariableContainerView, VariablesHandler,
+};
+use variables::Variable;
 
 #[derive(Clone, Debug)]
 pub struct DomainOrderValueSelector {}
@@ -14,12 +16,12 @@ impl DomainOrderValueSelector {
     }
 }
 
-// Remove Into<ViewIndex> Requirement if possible (does not make sense).
+// Remove Into<VariableId> Requirement if possible (does not make sense).
 impl<Handler, View> ValuesSelector<Handler, View> for DomainOrderValueSelector
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
-    View::Variable: Variable + AssignableDomain + IterableDomain + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView + 'static,
+    View::Container: Variable + AssignableDomain + IterableDomain + 'static,
 {
     // Error if no value
     fn select(
@@ -55,12 +57,12 @@ impl MinValueSelector {
     }
 }
 
-// Remove Into<ViewIndex> Requirement if possible (does not make sense).
+// Remove Into<VariableId> Requirement if possible (does not make sense).
 impl<Handler, View, Var> ValuesSelector<Handler, View> for MinValueSelector
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
-    View::Variable: Variable<Type = Var>
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView + 'static,
+    View::Container: Variable<Type = Var>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain
@@ -102,12 +104,12 @@ impl MaxValueSelector {
     }
 }
 
-// Remove Into<ViewIndex> Requirement if possible (does not make sense).
+// Remove Into<VariableId> Requirement if possible (does not make sense).
 impl<Handler, View, Var> ValuesSelector<Handler, View> for MaxValueSelector
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
-    View::Variable: Variable<Type = Var>
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView + 'static,
+    View::Container: Variable<Type = Var>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain

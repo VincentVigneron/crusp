@@ -31,7 +31,9 @@ fn main() {
         output (send, more, money);
     );
     match result {
-        Some((send, more, money)) => println!("{} = {} + {}", money, send, more),
+        Some((send, more, money)) => {
+            println!("{} = {} + {}", value!(money), value!(send), value!(more))
+        }
         None => println!("No solution!"),
     }
 }

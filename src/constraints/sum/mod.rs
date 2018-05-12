@@ -4,10 +4,11 @@ use std::collections::HashMap;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
 use std::rc::Rc;
-use variables::{Array, ArrayView, VariableError, VariableState, VariableView, ViewIndex};
 use variables::domains::OrderedDomain;
-use variables::handlers::{SpecificArraysHandler, SpecificVariablesHandler,
-                          VariablesHandler};
+use variables::handlers::{
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
+use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Clone)]
 enum Type {
@@ -122,25 +123,25 @@ where
 #[derive(Clone)]
 pub struct SumConstraint<Var, View, Views>
 where
-    View: VariableView + Into<ViewIndex> + 'static,
-    View::Variable: OrderedDomain<Type = Var>,
-    Views: ArrayView + Into<ViewIndex> + 'static,
+    View: VariableContainerView,
+    View::Container: OrderedDomain<Type = Var>,
+    Views: VariableContainerView,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
     res: View,
     variables: Views,
     coefs: Vec<Var>,
-    indexes: Rc<HashMap<ViewIndex, Type>>,
-    input: Option<Vec<ViewIndex>>,
-    output: Option<Vec<(ViewIndex, VariableState)>>,
+    indexes: Rc<HashMap<VariableId, Type>>,
+    input: Option<Vec<VariableId>>,
+    output: Option<Vec<(VariableId, VariableState)>>,
 }
 
 impl<Var, View, Views> SumConstraint<Var, View, Views>
 where
-    View: VariableView + Into<ViewIndex> + 'static,
-    View::Variable: OrderedDomain<Type = Var>,
-    Views: ArrayView + Into<ViewIndex> + 'static,
+    View: VariableContainerView,
+    View::Container: OrderedDomain<Type = Var>,
+    Views: VariableContainerView,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord + Eq + Clone,
 {
@@ -177,11 +178,12 @@ macro_rules! constraint_box_clone {
 impl<Var, View, Views, Handler> Constraint<Handler> for SumConstraint<Var, View, Views>
 where
     Handler: VariablesHandler
-        + SpecificVariablesHandler<View>
-        + SpecificArraysHandler<Views>,
-    View: VariableView + Into<ViewIndex> + 'static,
-    View::Variable: OrderedDomain<Type = Var>,
-    Views: ArrayView + Into<ViewIndex> + 'static,
+        + VariableContainerHandler<View>
+        + VariableContainerHandler<Views>,
+    View: VariableContainerView + 'static,
+    View::Container: OrderedDomain<Type = Var>,
+    Views: VariableContainerView + 'static,
+    Views::Container: Array<Variable = Views::Variable>,
     Views::Variable: OrderedDomain<Type = Var>,
     Var: Ord
         + Eq
@@ -228,10 +230,9 @@ where
             }
         }
 
-        let vars: &mut Views::Array = unsafe {
-            unsafe_from_raw_point!(variables_handler.get_array_mut(&self.variables))
-        };
-        let res: &mut View::Variable =
+        let vars: &mut Views::Container =
+            unsafe { unsafe_from_raw_point!(variables_handler.get_mut(&self.variables)) };
+        let res: &mut View::Container =
             unsafe { unsafe_from_raw_point!(variables_handler.get_mut(&self.res)) };
 
         let _contributions: Vec<_> = vars.iter()
@@ -252,7 +253,7 @@ where
         let r = res.weak_lowerbound(min.clone())?;
         change = change || (r != VariableState::NoChange);
         let mut output = vec![];
-        output.push((variables_handler.get_variable_id(&self.res), r));
+        output.push((res.id(), r));
 
         let f = res.max() - min;
         //if f < 0 {
@@ -271,10 +272,10 @@ where
             Ok(PropagationState::NoChange)
         }
     }
-    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>) {
+    fn prepare(&mut self, states: Box<Iterator<Item = VariableId>>) {
         self.input = Some(states.collect());
     }
-    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+    fn result(&mut self) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         use std::mem;
         let mut res = None;
         mem::swap(&mut self.output, &mut res);
@@ -286,7 +287,7 @@ where
     fn dependencies(
         &self,
         _: &Handler,
-    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>> {
+    ) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         let deps: Vec<_> = self.indexes
             .keys()
             .cloned()
@@ -294,15 +295,19 @@ where
             .collect();
         Box::new(deps.into_iter())
     }
+    // Change error type
     fn initialise(
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
         {
             let indexes = Rc::get_mut(&mut self.indexes).unwrap();
-            let res_id = variables_handler.get_variable_id(&self.res);
-            indexes.insert(res_id, Type::Result);
-            for (pos, id) in variables_handler.get_array_ids(&self.variables).enumerate()
+            indexes.insert(variables_handler.get(&self.res).id(), Type::Result);
+            for (pos, id) in variables_handler
+                .get(&self.variables)
+                .iter()
+                .map(|var| var.id())
+                .enumerate()
             {
                 if indexes.insert(id, Type::Variable(pos)).is_some() {
                     return Err(VariableError::DomainWipeout);

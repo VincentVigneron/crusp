@@ -1,5 +1,5 @@
-use variables::{VariableError, VariableState, ViewIndex};
 use variables::handlers::VariablesHandler;
+use variables::{VariableError, VariableId, VariableState};
 
 pub enum ConstraintState {
     Ready,
@@ -47,14 +47,14 @@ pub trait Constraint<Handler: VariablesHandler> {
     ) -> Result<PropagationState, VariableError>;
     /// Prepares the `Constraint` by giving it its variables that have change since
     /// its last propagation.
-    fn prepare(&mut self, states: Box<Iterator<Item = ViewIndex>>);
+    fn prepare(&mut self, states: Box<Iterator<Item = VariableId>>);
     /// Asks the `Constraint` which variables it has modified after its last propagation.
-    fn result(&mut self) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
+    fn result(&mut self) -> Box<Iterator<Item = (VariableId, VariableState)>>;
     /// Asks the `Constraint` its variables dependency.
     fn dependencies(
         &self,
         variables_handler: &Handler,
-    ) -> Box<Iterator<Item = (ViewIndex, VariableState)>>;
+    ) -> Box<Iterator<Item = (VariableId, VariableState)>>;
 }
 
 impl<H: VariablesHandler> Clone for Box<Constraint<H>> {
@@ -66,10 +66,8 @@ impl<H: VariablesHandler> Clone for Box<Constraint<H>> {
 pub trait PropagatorState {}
 pub trait Propagator {}
 
-#[macro_use]
-pub mod macros;
-pub mod handlers;
 mod all_different;
+pub mod handlers;
 pub use self::all_different::AllDifferent;
 pub mod arithmetic;
 mod increasing;

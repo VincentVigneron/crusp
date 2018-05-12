@@ -1,10 +1,12 @@
 use branchers::BranchersHandler;
-use constraints::PropagationState;
 use constraints::handlers::ConstraintsHandler;
+use constraints::PropagationState;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use variables::{VariableError, VariableView, ViewIndex};
-use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
+use variables::handlers::{
+    get_from_handler, VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
+use variables::{Variable, VariableError};
 
 #[derive(Clone)]
 pub struct Space<Variables, Constraints>
@@ -43,10 +45,10 @@ where
         }
     }
 
-    pub fn get_variable<'a, View>(&'a self, view: &View) -> &'a View::Variable
+    pub fn get_variable<'a, View>(&'a self, view: &View) -> &'a View::Container
     where
-        View: VariableView + Into<ViewIndex> + 'static,
-        Variables: SpecificVariablesHandler<View>,
+        View: VariableContainerView,
+        Variables: VariableContainerHandler<View>,
     {
         get_from_handler(&self.variables, view)
     }

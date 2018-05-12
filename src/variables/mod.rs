@@ -1,11 +1,12 @@
 use graph::Subsumed;
-use snowflake::ProcessUniqueId;
 
 pub mod bool_var;
 pub mod domains;
 pub mod int_var;
 #[macro_use]
 pub mod handlers;
+#[macro_use]
+pub mod macros;
 
 /// Describes the state of a variable after its domain is updated.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -48,117 +49,8 @@ pub enum VariableError {
     DomainWipeout,
 }
 
-#[derive(Hash, Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
-pub enum IndexType {
-    FromVar(usize),
-    FromArrayOfVars(usize),
-    FromArrayOfVarsVar(usize, usize),
-}
-
-pub trait VariableView: Clone {
-    type Variable: Variable;
-}
-
-pub trait ArrayView: Clone {
-    type Variable: Variable;
-    type Array: Array<Variable = Self::Variable>;
-}
-
-// View Comparator used only to check if view are tied
-#[derive(Hash, Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ViewIndex {
-    id: ProcessUniqueId,
-    index_type: IndexType,
-}
-
-impl ViewIndex {
-    pub fn new_from_var(id: ProcessUniqueId, x: usize) -> ViewIndex {
-        ViewIndex {
-            id: id,
-            index_type: IndexType::FromVar(x),
-        }
-    }
-
-    pub fn new_from_array(id: ProcessUniqueId, x: usize) -> ViewIndex {
-        ViewIndex {
-            id: id,
-            index_type: IndexType::FromArrayOfVars(x),
-        }
-    }
-
-    pub fn new_from_array_var(id: ProcessUniqueId, x: usize, y: usize) -> ViewIndex {
-        ViewIndex {
-            id: id,
-            index_type: IndexType::FromArrayOfVarsVar(x, y),
-        }
-    }
-    // x sub_view_of x
-    // x sub_view_of_y && y sub_view_of x => x == y
-    pub fn is_subview_of(&self, idx: &ViewIndex) -> bool {
-        if self.id != idx.id {
-            return false;
-        }
-        match self.index_type {
-            IndexType::FromArrayOfVarsVar(x, y) => match idx.index_type {
-                IndexType::FromArrayOfVars(x_) => x == x_,
-                IndexType::FromArrayOfVarsVar(x_, y_) => x == x_ && y == y_,
-                _ => false,
-            },
-            IndexType::FromArrayOfVars(x) => match idx.index_type {
-                IndexType::FromArrayOfVars(x_) => x == x_,
-                _ => false,
-            },
-            IndexType::FromVar(x) => match idx.index_type {
-                IndexType::FromVar(x_) => x == x_,
-                _ => false,
-            },
-        }
-    }
-
-    pub fn get_id(&self) -> ProcessUniqueId {
-        self.id.clone()
-    }
-
-    pub fn get_type(&self) -> IndexType {
-        self.index_type.clone()
-    }
-}
-
-pub trait AllDisjoint: Iterator<Item = ViewIndex> {
-    fn all_disjoint(self) -> Result<(), (ViewIndex, ViewIndex)>
-    where
-        Self: Sized;
-}
-
-// More precise result for all_disjoint (i.e. which views are equal and ,which view is a
-// subview of an array)
-impl<I> AllDisjoint for I
-where
-    I: Iterator<Item = ViewIndex>,
-{
-    fn all_disjoint(self) -> Result<(), (ViewIndex, ViewIndex)>
-    where
-        Self: Sized,
-    {
-        use std::iter;
-        let views: Vec<_> = self.collect();
-        let incompatibles = views
-            .iter()
-            .enumerate()
-            .map(|(i, view)| (view, views.iter().skip(i + 1)))
-            .flat_map(|(left, rights)| iter::repeat(left).zip(rights))
-            .find(|&(ref left, ref right)| {
-                left.is_subview_of(right) || right.is_subview_of(left)
-            });
-        match incompatibles {
-            None => Ok(()),
-            Some((left, right)) => Err((left.clone(), right.clone())),
-        }
-    }
-}
-
 /// Trait used to an array of variable;
-trait ArryaBuilder {
+pub trait ArrayBuilder: Sized {
     type Builder: VariableBuilder;
     fn into_iter(self) -> Box<Iterator<Item = Self::Builder>>;
 }
@@ -166,16 +58,18 @@ trait ArryaBuilder {
 /// Trait used to build a variable. `SpecificVariablesHandler` requires
 /// to add VariableBuiler or ArrayBuilder in order to assign them one
 /// unique id.
-trait VariableBuilder: Sized {
-    type Variable: Variable + Sized;
+pub trait VariableBuilder: Clone {
+    type Variable: Variable + Clone;
     fn finalize(self, id: usize) -> Self::Variable;
 }
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VariableId(usize);
 
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
-    // id() -> usize;
     /// The underlying type holded by the `Variable`.
     type Type: Clone;
     /// Returns if the variable is affected.
@@ -187,18 +81,14 @@ pub trait Variable: Clone {
     /// Returns the state of the variable without reinitialising it.
     /// The state of a variable describes if and how the domain of the variable has
     /// been updated.
-    fn get_state(&self) -> &VariableState;
-    /// Returns the state of the variable and reinitialises the state of the
-    /// variable. The state of a variable describes if and how the domain of the variable
-    /// has been updated.
-    fn retrieve_state(&mut self) -> VariableState;
+    fn id(&self) -> VariableId;
 }
 
 /// This trait describes an array of variables. There is two types of array:
 /// array of variables and array of references to variables. Both types are manipulated with the
 /// same trait. When writting constraints over an array of variables, you should use the `Array`
 /// trait instead of the specific types `ArrayOfVars` or `ArrayOfRefs`.
-pub trait Array: Variable {
+pub trait Array {
     type Variable: Variable;
     /// Returns a mutable reference to the variable at that position or None if out of bounds.
     fn get_mut(&mut self, position: usize) -> Option<&mut Self::Variable>;
@@ -218,6 +108,32 @@ pub trait Array: Variable {
     fn len(&self) -> usize;
 }
 
+/// Represents an array of `Variable` builder.
+#[derive(Debug, Clone)]
+pub struct ArrayOfVarsBuilder<Builder: VariableBuilder> {
+    /// The array of `Variable`.
+    variables: Vec<Builder>,
+}
+impl<Builder: VariableBuilder> ArrayOfVarsBuilder<Builder> {
+    /// Creates a new `ArrayOfVars` or None if the number of variables is null.
+    ///
+    /// # Arguments
+    /// *`len` - The number of variables.
+    /// *`var` - The prototype of variable used to fill the array.
+    pub fn new(len: usize, var: Builder) -> Option<Self> {
+        Some(ArrayOfVarsBuilder {
+            variables: vec![var.clone(); len],
+        })
+    }
+}
+
+impl<Builder: VariableBuilder + 'static> ArrayBuilder for ArrayOfVarsBuilder<Builder> {
+    type Builder = Builder;
+    fn into_iter(self) -> Box<Iterator<Item = Self::Builder>> {
+        Box::new(self.variables.into_iter())
+    }
+}
+
 /// Represents an array of `Variable`.
 #[derive(Debug, Clone)]
 pub struct ArrayOfVars<Var: Variable> {
@@ -234,6 +150,13 @@ impl<Var: Variable> ArrayOfVars<Var> {
     pub fn new(len: usize, var: Var) -> Option<Self> {
         Some(ArrayOfVars {
             variables: vec![var.clone(); len],
+        })
+    }
+    ///
+    /// # Arguments
+    pub fn new_from_iter(var: impl IntoIterator<Item = Var>) -> Option<Self> {
+        Some(ArrayOfVars {
+            variables: var.into_iter().collect(),
         })
     }
 }
@@ -266,40 +189,6 @@ impl<Var: Variable> Array for ArrayOfVars<Var> {
 
     fn len(&self) -> usize {
         self.variables.len()
-    }
-}
-impl<Var: Variable> Variable for ArrayOfVars<Var> {
-    type Type = Var::Type;
-    fn value(&self) -> Option<Self::Type> {
-        unimplemented!()
-    }
-    fn is_affected(&self) -> bool {
-        unimplemented!()
-    }
-    fn get_state(&self) -> &VariableState {
-        //&self.state
-        unimplemented!()
-    }
-    fn retrieve_state(&mut self) -> VariableState {
-        self.variables
-            .iter()
-            .map(|var| var.get_state())
-            .scan(VariableState::NoChange, |acc, state| {
-                if *acc == VariableState::BoundsChange {
-                    return None;
-                }
-                *acc = if *acc == VariableState::NoChange {
-                    state.clone()
-                } else if *state == VariableState::BoundsChange {
-                    VariableState::BoundsChange
-                } else {
-                    acc.clone()
-                };
-
-                Some(acc.clone())
-            })
-            .last()
-            .unwrap()
     }
 }
 
@@ -353,40 +242,3 @@ impl<Var: Variable> Array for ArrayOfRefs<Var> {
         self.variables.len()
     }
 }
-
-impl<Var: Variable> Variable for ArrayOfRefs<Var> {
-    type Type = Var::Type;
-    fn value(&self) -> Option<Self::Type> {
-        unimplemented!()
-    }
-    fn is_affected(&self) -> bool {
-        unimplemented!()
-    }
-    fn get_state(&self) -> &VariableState {
-        //&self.state
-        unimplemented!()
-    }
-    fn retrieve_state(&mut self) -> VariableState {
-        self.iter()
-            .map(|var| var.get_state())
-            .scan(VariableState::NoChange, |acc, state| {
-                if *acc == VariableState::BoundsChange {
-                    return None;
-                }
-                *acc = if *acc == VariableState::NoChange {
-                    state.clone()
-                } else if *state == VariableState::BoundsChange {
-                    VariableState::BoundsChange
-                } else {
-                    acc.clone()
-                };
-
-                Some(acc.clone())
-            })
-            .last()
-            .unwrap()
-    }
-}
-
-#[macro_use]
-pub mod macros;

@@ -1,4 +1,3 @@
-use variables::bool_var::BoolVar;
-use variables::int_var::IntVarValues;
+use variables::int_var::IntVarValuesBuilder;
 
-variables_handler_build!(IntVarValues, BoolVar);
+variables_handler_build!(IntVarValuesBuilder);

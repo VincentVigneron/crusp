@@ -1,5 +1,7 @@
-use variables::{Variable, VariableError, VariableState};
-use variables::domains::{AssignableDomain, FiniteDomain, IterableDomain, PrunableDomain};
+use variables::domains::{
+    AssignableDomain, FiniteDomain, IterableDomain, PrunableDomain,
+};
+use variables::{Variable, VariableError, VariableId, VariableState};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Domain {
@@ -56,23 +58,16 @@ impl Variable for BoolVar {
         self.domain == Domain::True || self.domain == Domain::False
     }
 
-    fn get_state(&self) -> &VariableState {
-        &self.state
-    }
-
-    fn retrieve_state(&mut self) -> VariableState {
-        use std::mem;
-        let mut state = VariableState::NoChange;
-        mem::swap(&mut self.state, &mut state);
-        state
-    }
-
     fn value(&self) -> Option<Self::Type> {
         match self.domain {
             Domain::True => Some(true),
             Domain::False => Some(false),
             _ => None,
         }
+    }
+
+    fn id(&self) -> VariableId {
+        unimplemented!()
     }
 }
 

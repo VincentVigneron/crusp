@@ -1,5 +1,6 @@
-use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
-use variables::{VariableView, ViewIndex};
+use variables::handlers::{
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
 
 pub mod brancher;
 pub mod values_selector;
@@ -8,16 +9,16 @@ pub mod variables_selector;
 //Brancher => Branch ?
 pub trait VariableSelector<Handler, View>
 where
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
-    Handler: VariablesHandler + SpecificVariablesHandler<View>,
+    View: VariableContainerView,
+    Handler: VariablesHandler + VariableContainerHandler<View>,
 {
     fn select(&mut self, handler: &Handler) -> Result<View, ()>;
 }
 
 pub trait ValuesSelector<Handler, View>
 where
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
-    Handler: VariablesHandler + SpecificVariablesHandler<View>,
+    View: VariableContainerView,
+    Handler: VariablesHandler + VariableContainerHandler<View>,
 {
     fn select(
         &mut self,
@@ -28,8 +29,8 @@ where
 
 pub trait SpecificBrancher<Handler, View>: Brancher<Handler>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View>,
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View>,
+    View: VariableContainerView,
 {
     fn specific_branch(
         &mut self,

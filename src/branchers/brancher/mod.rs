@@ -1,13 +1,14 @@
 use super::{Brancher, SpecificBrancher, ValuesSelector, VariableSelector};
 use std::marker::PhantomData;
-use variables::{VariableView, ViewIndex};
-use variables::handlers::{SpecificVariablesHandler, VariablesHandler};
+use variables::handlers::{
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
 
 #[derive(Clone, Debug)]
 pub struct DefaultBrancher<Handler, View, VarSel, ValSel>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView,
     VarSel: VariableSelector<Handler, View> + Clone + 'static,
     ValSel: ValuesSelector<Handler, View> + Clone + 'static,
 {
@@ -20,8 +21,8 @@ where
 
 impl<Handler, View, VarSel, ValSel> DefaultBrancher<Handler, View, VarSel, ValSel>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView,
     VarSel: VariableSelector<Handler, View> + Clone + 'static,
     ValSel: ValuesSelector<Handler, View> + Clone + 'static,
 {
@@ -41,8 +42,8 @@ where
 impl<Handler, View, VarSel, ValSel> Brancher<Handler>
     for DefaultBrancher<Handler, View, VarSel, ValSel>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView + 'static,
     VarSel: VariableSelector<Handler, View> + Clone + 'static,
     ValSel: ValuesSelector<Handler, View> + Clone + 'static,
 {
@@ -65,8 +66,8 @@ where
 impl<Handler, View, VarSel, ValSel> SpecificBrancher<Handler, View>
     for DefaultBrancher<Handler, View, VarSel, ValSel>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View> + 'static,
-    View: VariableView + Into<ViewIndex> + Clone + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    View: VariableContainerView + 'static,
     VarSel: VariableSelector<Handler, View> + Clone + 'static,
     ValSel: ValuesSelector<Handler, View> + Clone + 'static,
 {

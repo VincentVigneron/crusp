@@ -1,19 +1,21 @@
 use super::VariableSelector;
-use variables::{Variable, VariableView, ViewIndex};
-use variables::handlers::{get_from_handler, SpecificVariablesHandler, VariablesHandler};
+use variables::handlers::{
+    get_from_handler, VariableContainerHandler, VariableContainerView, VariablesHandler,
+};
+use variables::Variable;
 
 // Change vec to array require get_view inside VariableHandler
 #[derive(Clone, Debug)]
 pub struct SequentialVariableSelector<View>
 where
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    View: VariableContainerView,
 {
     variables: Vec<View>,
 }
 
 impl<View> SequentialVariableSelector<View>
 where
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    View: VariableContainerView,
 {
     // Check variables empty and if no doublon
     pub fn new<Views: Iterator<Item = View>>(
@@ -27,8 +29,9 @@ where
 
 impl<Handler, View> VariableSelector<Handler, View> for SequentialVariableSelector<View>
 where
-    Handler: VariablesHandler + SpecificVariablesHandler<View>,
-    View: VariableView + Clone + Into<ViewIndex> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<View>,
+    View: VariableContainerView,
+    View::Container: Variable,
 {
     fn select(&mut self, handler: &Handler) -> Result<View, ()> {
         self.variables

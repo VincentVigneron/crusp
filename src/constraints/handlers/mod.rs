@@ -1,10 +1,13 @@
 use super::{Constraint, PropagationState};
 use graph::TwoNodesGraph;
-use variables::{VariableError, VariableState, ViewIndex};
 use variables::handlers::VariablesHandler;
+use variables::{VariableError, VariableId, VariableState};
 
-pub trait ConstraintsHandlerBuilder<Variables: VariablesHandler, Constraints: ConstraintsHandler<Variables>>
-     {
+pub trait ConstraintsHandlerBuilder<
+    Variables: VariablesHandler,
+    Constraints: ConstraintsHandler<Variables>,
+>
+{
     fn add(&mut self, Box<Constraint<Variables>>);
     fn finalize(self, variables: &mut Variables) -> Result<Constraints, VariableError>;
 }
@@ -28,10 +31,10 @@ impl<Variables: VariablesHandler> DefaultConstraintsHandlerBuilder<Variables> {
     }
 }
 
-impl<
-    Variables: VariablesHandler,
-> ConstraintsHandlerBuilder<Variables, DefaultConstraintsHandler<Variables>>
-    for DefaultConstraintsHandlerBuilder<Variables> {
+impl<Variables: VariablesHandler>
+    ConstraintsHandlerBuilder<Variables, DefaultConstraintsHandler<Variables>>
+    for DefaultConstraintsHandlerBuilder<Variables>
+{
     fn add(&mut self, constraint: Box<Constraint<Variables>>) {
         self.constraints.push(constraint);
     }
@@ -40,7 +43,7 @@ impl<
         mut self,
         variables: &mut Variables,
     ) -> Result<DefaultConstraintsHandler<Variables>, VariableError> {
-        let mut graph: TwoNodesGraph<ViewIndex, usize, VariableState> =
+        let mut graph: TwoNodesGraph<VariableId, usize, VariableState> =
             TwoNodesGraph::new();
         for (idx, constraint) in self.constraints.iter().enumerate() {
             for (view, state) in constraint.dependencies(&variables) {
@@ -64,7 +67,7 @@ impl<
 pub struct DefaultConstraintsHandler<H: VariablesHandler> {
     constraints: Vec<Box<Constraint<H>>>,
     subsumeds: Vec<bool>,
-    graph: TwoNodesGraph<ViewIndex, usize, VariableState>,
+    graph: TwoNodesGraph<VariableId, usize, VariableState>,
 }
 
 impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H> {

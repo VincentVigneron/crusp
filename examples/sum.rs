@@ -20,11 +20,6 @@ fn main() {
             let j = values[9];
 
 
-            constraint a < b;
-            constraint b < c;
-            constraint b < d;
-            constraint d < j;
-
             constraint res :: coefs * values;
         }
         branchers {
@@ -36,7 +31,17 @@ fn main() {
     match result {
         Some((res, a, b, c, d, e, f, g, h, i, j)) => println!(
             "{} = {} + {} + {} + {} + {} + {} + {} + {} + {} + {}",
-            res, a, b, c, d, e, f, g, h, i, j
+            value!(res),
+            value!(a),
+            value!(b),
+            value!(c),
+            value!(d),
+            value!(e),
+            value!(f),
+            value!(g),
+            value!(h),
+            value!(i),
+            value!(j)
         ),
         None => println!("No solution!"),
     }
