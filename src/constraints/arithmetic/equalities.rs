@@ -166,28 +166,28 @@ where
             let rhs: &mut View::Container =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
 
-            let state = lhs.weak_upperbound(rhs.max())?;
+            let state = lhs.weak_upperbound(rhs.unchecked_max())?;
             match state {
                 VariableState::NoChange => {}
                 state => {
                     output.push((lhs.id(), state));
                 }
             }
-            let state = rhs.weak_upperbound(lhs.max())?;
+            let state = rhs.weak_upperbound(lhs.unchecked_max())?;
             match state {
                 VariableState::NoChange => {}
                 state => {
                     output.push((rhs.id(), state));
                 }
             }
-            let state = lhs.weak_lowerbound(rhs.min())?;
+            let state = lhs.weak_lowerbound(rhs.unchecked_min())?;
             match state {
                 VariableState::NoChange => {}
                 state => {
                     output.push((lhs.id(), state));
                 }
             }
-            let state = rhs.weak_lowerbound(lhs.min())?;
+            let state = rhs.weak_lowerbound(lhs.unchecked_min())?;
             match state {
                 VariableState::NoChange => {}
                 state => {

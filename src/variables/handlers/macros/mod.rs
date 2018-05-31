@@ -222,7 +222,7 @@ macro_rules! variables_handler_build {
         use $crate::variables::{
             VariableBuilder,  ArrayBuilder,
             ArrayOfVars,ArrayOfVarsBuilder,
-            ArrayOfRefs, Array, Variable
+            ArrayOfRefs
         };
         use $crate::variables::handlers::macros::{
             ArrayOfVarsView, ArrayOfRefsView, VarView,
@@ -270,6 +270,9 @@ macro_rules! variables_handler_build {
         }
 
         impl VariablesHandlerBuilder<Handler> for Builder {
+            fn new_builder() -> Self {
+                Self::new()
+            }
             fn finalize(self) -> Handler {
                 Handler {
                     $(

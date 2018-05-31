@@ -65,9 +65,9 @@ impl IntVarValues {
             Err(VariableError::DomainWipeout)
         } else if self.size() == prev_size {
             Ok(VariableState::NoChange)
-        } else if self.min() != prev_min {
+        } else if self.unchecked_min() != prev_min {
             Ok(VariableState::BoundsChange)
-        } else if self.max() != prev_max {
+        } else if self.unchecked_max() != prev_max {
             Ok(VariableState::BoundsChange)
         } else {
             Ok(VariableState::ValuesChange)
@@ -116,8 +116,8 @@ impl FromValuesDomain for IntVarValues {
 
 impl AssignableDomain for IntVarValues {
     fn set_value(&mut self, value: Self::Type) -> Result<VariableState, VariableError> {
-        if self.min() > value || self.max() < value {
-            self.invalidate();
+        if self.unchecked_min() > value || self.unchecked_max() < value {
+            //self.invalidate();
             return Err(VariableError::DomainWipeout);
         }
         let var_value = self.value();
@@ -147,10 +147,8 @@ impl Variable for IntVarValues {
     }
 
     fn value(&self) -> Option<Self::Type> {
-        if self.domain.is_empty() {
-            None
-        } else if self.min() == self.max() {
-            Some(self.min())
+        if self.min() == self.max() {
+            self.min()
         } else {
             None
         }
@@ -168,20 +166,20 @@ impl FiniteDomain for IntVarValues {
 }
 
 impl OrderedDomain for IntVarValues {
-    fn min(&self) -> Self::Type {
-        *self.domain.first().unwrap()
+    fn min(&self) -> Option<Self::Type> {
+        self.domain.first().map(Clone::clone)
     }
-    fn max(&self) -> Self::Type {
-        *self.domain.last().unwrap()
+    fn max(&self) -> Option<Self::Type> {
+        self.domain.last().map(Clone::clone)
     }
 
     fn strict_upperbound(
         &mut self,
         ub: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.max() < ub {
+        if self.unchecked_max() < ub {
             Ok(VariableState::NoChange)
-        } else if self.min() >= ub {
+        } else if self.unchecked_min() >= ub {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().rposition(|&val| val < ub).unwrap();
@@ -194,9 +192,9 @@ impl OrderedDomain for IntVarValues {
         &mut self,
         ub: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.max() <= ub {
+        if self.unchecked_max() <= ub {
             Ok(VariableState::NoChange)
-        } else if self.min() > ub {
+        } else if self.unchecked_min() > ub {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().rposition(|&val| val <= ub).unwrap();
@@ -209,9 +207,9 @@ impl OrderedDomain for IntVarValues {
         &mut self,
         lb: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.min() > lb {
+        if self.unchecked_min() > lb {
             Ok(VariableState::NoChange)
-        } else if self.max() <= lb {
+        } else if self.unchecked_max() <= lb {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val > lb).unwrap();
@@ -224,9 +222,9 @@ impl OrderedDomain for IntVarValues {
         &mut self,
         lb: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.min() >= lb {
+        if self.unchecked_min() >= lb {
             Ok(VariableState::NoChange)
-        } else if self.max() < lb {
+        } else if self.unchecked_max() < lb {
             Err(VariableError::DomainWipeout)
         } else {
             let index = self.domain.iter().position(|&val| val >= lb).unwrap();
@@ -256,9 +254,9 @@ impl PrunableDomain for IntVarValues {
             let check_change = |var: &mut IntVarValues| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
-                } else if var.min() != unwrap_first!(domain) {
+                } else if var.unchecked_min() != unwrap_first!(domain) {
                     VariableState::BoundsChange
-                } else if var.max() != unwrap_last!(domain) {
+                } else if var.unchecked_max() != unwrap_last!(domain) {
                     VariableState::BoundsChange
                 } else {
                     VariableState::ValuesChange
@@ -290,7 +288,7 @@ impl PrunableDomain for IntVarValues {
         &mut self,
         value: Self::Type,
     ) -> Result<VariableState, VariableError> {
-        if self.min() > value && self.max() < value {
+        if self.unchecked_min() > value && self.unchecked_max() < value {
             return Ok(VariableState::NoChange);
         }
         let (min, max) = (self.min(), self.max());
@@ -319,7 +317,7 @@ impl PrunableDomain for IntVarValues {
     where
         Predicate: FnMut(&Self::Type) -> bool,
     {
-        let (min, max, size) = (self.min(), self.max(), self.size());
+        let (min, max, size) = (self.unchecked_min(), self.unchecked_max(), self.size());
         self.domain.retain(|v| !pred(v));
         self.domain_change(min, max, size)
     }
@@ -331,7 +329,7 @@ impl PrunableDomain for IntVarValues {
     where
         Predicate: FnMut(&Self::Type) -> bool,
     {
-        let (min, max, size) = (self.min(), self.max(), self.size());
+        let (min, max, size) = (self.unchecked_min(), self.unchecked_max(), self.size());
         self.domain.retain(|v| pred(v));
         self.domain_change(min, max, size)
     }
@@ -378,9 +376,9 @@ impl OrderedPrunableDomain for IntVarValues {
             let check_change = |var: &mut IntVarValues| {
                 if var.size() == domain.len() {
                     VariableState::NoChange
-                } else if var.min() != unwrap_first!(domain) {
+                } else if var.unchecked_min() != unwrap_first!(domain) {
                     VariableState::BoundsChange
-                } else if var.max() != unwrap_last!(domain) {
+                } else if var.unchecked_max() != unwrap_last!(domain) {
                     VariableState::BoundsChange
                 } else {
                     VariableState::ValuesChange

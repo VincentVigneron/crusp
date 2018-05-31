@@ -8,6 +8,7 @@ pub trait ConstraintsHandlerBuilder<
     Constraints: ConstraintsHandler<Variables>,
 >
 {
+    fn new_builder() -> Self;
     fn add(&mut self, Box<Constraint<Variables>>);
     fn finalize(self, variables: &mut Variables) -> Result<Constraints, VariableError>;
 }
@@ -35,6 +36,9 @@ impl<Variables: VariablesHandler>
     ConstraintsHandlerBuilder<Variables, DefaultConstraintsHandler<Variables>>
     for DefaultConstraintsHandlerBuilder<Variables>
 {
+    fn new_builder() -> Self {
+        Self::new()
+    }
     fn add(&mut self, constraint: Box<Constraint<Variables>>) {
         self.constraints.push(constraint);
     }

@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate crusp;
 
-use crusp::variables::Variable;
-
 fn main() {
     let result = cp_model!(
         model {

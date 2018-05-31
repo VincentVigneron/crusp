@@ -1,4 +1,5 @@
 use graph::Subsumed;
+use std::iter;
 
 pub mod bool_var;
 pub mod domains;
@@ -82,6 +83,9 @@ pub trait Variable: Clone {
     /// The state of a variable describes if and how the domain of the variable has
     /// been updated.
     fn id(&self) -> VariableId;
+    fn iter_ids(&self) -> Box<Iterator<Item = VariableId>> {
+        Box::new(iter::once(self.id().clone()))
+    }
 }
 
 /// This trait describes an array of variables. There is two types of array:
@@ -106,6 +110,9 @@ pub trait Array {
     ) -> Box<Iterator<Item = &mut Self::Variable> + 'array>;
     /// Returns the number of variables.
     fn len(&self) -> usize;
+    fn iter_ids<'a>(&'a self) -> Box<Iterator<Item = VariableId> + 'a> {
+        Box::new(self.iter().map(|var| var.id()))
+    }
 }
 
 /// Represents an array of `Variable` builder.

@@ -86,14 +86,11 @@ fn main() {
 ```
 
 ## TODO LIST
-- [ ] Priority make view cloneable instead of copyable. Add WeakVec> to ArrayOfRefView => Remove get_*_id() inside variablehandler.
-- [ ] Priority add get_comparable_id() to view.
+- [ ] Priority Graph Split Event And Graph.
+- [ ] Event use iterator (avoid unecessary computation).
 - [ ] Priority Constraints add macros?
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
-- [ ] Priority OrderedDomain min and max should return an Option.
-- [ ] Graph Split Event And Graph.
-- [ ] Event use iterator (avoid unecessary computation).
 - [ ] Remove Vec and use array if possible.
 - [ ] Change in\_sorted\_values from PrunbalDomain.
 - [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)

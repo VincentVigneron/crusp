@@ -4,7 +4,7 @@ extern crate crusp;
 use crusp::variables::{Array, Variable};
 
 fn main() {
-    let n = 4;
+    let n = 15;
     let min_n = -(n as i32);
     let max_n = (n as i32) * 2;
     let result = cp_model!(

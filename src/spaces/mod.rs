@@ -1,20 +1,67 @@
 use branchers::BranchersHandler;
-use constraints::handlers::ConstraintsHandler;
+use constraints::handlers::{ConstraintsHandler, ConstraintsHandlerBuilder};
 use constraints::PropagationState;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use variables::handlers::{
-    get_from_handler, VariableContainerHandler, VariableContainerView, VariablesHandler,
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
+    VariablesHandlerBuilder,
 };
-use variables::{Variable, VariableError};
+use variables::VariableError;
+
+#[derive(Clone)]
+pub struct SpaceBuilder<Variables, VariablesBuilder, Constraints, ConstraintsBuilder>
+where
+    Variables: VariablesHandler,
+    VariablesBuilder: VariablesHandlerBuilder<Variables>,
+    Constraints: ConstraintsHandler<Variables>,
+    ConstraintsBuilder: ConstraintsHandlerBuilder<Variables, Constraints>,
+{
+    variables: VariablesBuilder,
+    constraints: ConstraintsBuilder,
+    brancher: BranchersHandler<Variables>,
+    _phantom: PhantomData<*const Constraints>,
+}
+
+impl<Variables, VariablesBuilder, Constraints, ConstraintsBuilder>
+    SpaceBuilder<Variables, VariablesBuilder, Constraints, ConstraintsBuilder>
+where
+    Variables: VariablesHandler,
+    VariablesBuilder: VariablesHandlerBuilder<Variables>,
+    Constraints: ConstraintsHandler<Variables>,
+    ConstraintsBuilder: ConstraintsHandlerBuilder<Variables, Constraints>,
+{
+    pub fn new(
+        variables: VariablesBuilder,
+        constraints: ConstraintsBuilder,
+        brancher: BranchersHandler<Variables>,
+    ) -> Self {
+        SpaceBuilder {
+            variables: variables,
+            constraints: constraints,
+            brancher: brancher,
+            _phantom: PhantomData,
+        }
+    }
+
+    //fn finalize(self) -> Space<Variables, Constraints> -> Result<PropagationState,VaraibleError> {
+    //let mut variables = self.variables.finalize();
+    //let constraints = self.constraints.finalize(&mut variables)?;
+    //Space {
+    //variables: variables,
+    //constraints: constraints,
+    //branchers: self.branchers,
+    //}
+    //}
+}
 
 #[derive(Clone)]
 pub struct Space<Variables, Constraints>
 where
-    Variables: VariablesHandler + Debug,
+    Variables: VariablesHandler,
     Constraints: ConstraintsHandler<Variables>,
 {
-    pub variables: Variables,
+    variables: Variables,
     constraints: Constraints,
     brancher: BranchersHandler<Variables>,
 }
@@ -50,7 +97,7 @@ where
         View: VariableContainerView,
         Variables: VariableContainerHandler<View>,
     {
-        get_from_handler(&self.variables, view)
+        self.variables.get(view)
     }
 
     // disable run method after it was used (chagne type/ using state)..

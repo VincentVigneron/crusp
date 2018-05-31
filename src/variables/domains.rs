@@ -54,9 +54,23 @@ where
     Self::Type: Ord + Eq,
 {
     /// Returns the minimal value of the domain.
-    fn min(&self) -> Self::Type;
+    fn min(&self) -> Option<Self::Type>;
     /// Returns the maximal value of the domain.
-    fn max(&self) -> Self::Type;
+    fn max(&self) -> Option<Self::Type>;
+    fn unchecked_min(&self) -> Self::Type {
+        let error = format!(
+            "Call unchecked_min on a variable with an empty domain (line {}).",
+            line!()
+        );
+        self.min().expect(&error)
+    }
+    fn unchecked_max(&self) -> Self::Type {
+        let error = format!(
+            "Call unchecked_min on a variable with an empty domain (line {}).",
+            line!()
+        );
+        self.max().expect(&error)
+    }
     /// Forces the upperbound of the variable to be strictly lesser than `ub`.
     /// Returns an error of type `VariableError::DomainWipeout`
     /// if the new upperbound is lesser than the minimal value of the domain, otherwise
@@ -109,8 +123,8 @@ where
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.strict_upperbound(value.max())?;
-        let state_value = value.strict_lowerbound(self.min())?;
+        let state_self = self.strict_upperbound(value.unchecked_max())?;
+        let state_value = value.strict_lowerbound(self.unchecked_min())?;
 
         Ok((state_self, state_value))
     }
@@ -126,8 +140,8 @@ where
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.weak_upperbound(value.max())?;
-        let state_value = value.weak_lowerbound(self.min())?;
+        let state_self = self.weak_upperbound(value.unchecked_max())?;
+        let state_value = value.weak_lowerbound(self.unchecked_min())?;
 
         Ok((state_self, state_value))
     }
@@ -143,8 +157,8 @@ where
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.strict_lowerbound(value.min())?;
-        let state_value = value.strict_upperbound(self.max())?;
+        let state_self = self.strict_lowerbound(value.unchecked_min())?;
+        let state_value = value.strict_upperbound(self.unchecked_max())?;
 
         Ok((state_self, state_value))
     }
@@ -160,8 +174,8 @@ where
         &mut self,
         value: &mut Self,
     ) -> Result<(VariableState, VariableState), VariableError> {
-        let state_self = self.weak_lowerbound(value.min())?;
-        let state_value = value.weak_upperbound(self.max())?;
+        let state_self = self.weak_lowerbound(value.unchecked_min())?;
+        let state_value = value.weak_upperbound(self.unchecked_max())?;
 
         Ok((state_self, state_value))
     }

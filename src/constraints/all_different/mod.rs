@@ -1,9 +1,7 @@
 use constraints::Constraint;
 use constraints::PropagationState;
 use variables::domains::PrunableDomain;
-use variables::handlers::{
-    VariableContainerHandler, VariableContainerView, VariablesHandler,
-};
+use variables::handlers::{VariableContainerHandler, VariableContainerView, VariablesHandler};
 use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Debug, Clone)]
@@ -14,6 +12,7 @@ where
     Var: Eq + Ord + Clone,
 {
     array: Views,
+    used: Vec<bool>,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
@@ -23,13 +22,15 @@ where
     Views::Variable: PrunableDomain<Type = Var>,
     Var: Eq + Ord + Clone,
 {
-    pub fn new(variables: Views) -> AllDifferent<Var, Views> {
+    pub fn new(array: Views) -> Self {
         AllDifferent {
-            array: variables,
+            array: array,
             output: None,
+            used: vec![],
         }
     }
 }
+use std::fmt;
 
 impl<Var, Views, Handler> Constraint<Handler> for AllDifferent<Var, Views>
 where
@@ -37,12 +38,11 @@ where
     Views: VariableContainerView + 'static,
     Views::Container: Array<Variable = Views::Variable>,
     Views::Variable: PrunableDomain<Type = Var> + 'static,
-    Var: Eq + Ord + Clone + 'static,
+    Var: Eq + Ord + Clone + 'static + fmt::Display,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
         let ref_self: &AllDifferent<Var, Views> = &self;
-        let cloned: AllDifferent<Var, Views> =
-            <AllDifferent<Var, Views> as Clone>::clone(ref_self);
+        let cloned: AllDifferent<Var, Views> = <AllDifferent<Var, Views> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -57,25 +57,47 @@ where
 
         let vars = variables_handler.get_mut(&self.array);
 
-        let affected: BTreeSet<Var> = vars.iter().filter_map(|var| var.value()).collect();
-        let unaffected: Vec<_> = vars.iter()
+        //println!("+++++++++++");
+        let _ = vars.iter()
+            .zip(self.used.iter())
+            .filter(|&(_, ref used)| **used)
+            .map(|(var, _)| var.value().clone().unwrap())
+            //.inspect(|val| println!("{}", val))
+            .last();
+        let (new_affected, unaffected): (Vec<_>, Vec<_>) = vars.iter()
+            .zip(self.used.iter())
             .enumerate()
-            .map(|(i, var)| (i, var.value()))
-            .filter(|&(_, ref var)| var.is_none())
-            .map(|(i, _)| i)
-            .collect();
-        if unaffected.is_empty() {
-            return Ok(PropagationState::Subsumed);
+            .filter(|&(_, (_, ref used))| !**used)
+            .map(|(pos, (var, _))| (pos, var.value()))
+            .partition(|(_, val)| val.is_some());
+        let mut affected = BTreeSet::new();
+        for (pos, val) in new_affected.into_iter() {
+            self.used[pos] = true;
+            let dup = !affected.insert(val.unwrap());
+            if dup {
+                return Err(VariableError::DomainWipeout);
+            }
         }
+        //println!("===========");
+        let _ = vars.iter()
+            .zip(self.used.iter())
+            .filter(|&(_, ref used)| **used)
+            .map(|(var, _)| var.value().clone().unwrap())
+            //.inspect(|val| println!("{}", val))
+            .last();
 
-        for i in unaffected.into_iter() {
-            let var = vars.get_unchecked_mut(i);
+        let end = unaffected.is_empty();
+        for (pos, _) in unaffected.into_iter() {
+            let var = vars.get_unchecked_mut(pos);
             match var.remove_if(|val| affected.contains(&val))? {
                 VariableState::NoChange => {}
                 state => {
                     output.push((var.id(), state));
                 }
             }
+        }
+        if end {
+            return Ok(PropagationState::Subsumed);
         }
 
         if !output.is_empty() {
@@ -115,6 +137,8 @@ where
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
+        let len = variables_handler.get(&self.array).len();
+        self.used = vec![false; len];
         self.propagate(variables_handler)
     }
 }

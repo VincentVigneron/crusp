@@ -7,6 +7,7 @@ use super::Variable;
 pub trait VariablesHandler: Clone {}
 
 pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
+    fn new_builder() -> Self;
     fn finalize(self) -> VarHandler;
 }
 
@@ -69,3 +70,10 @@ where
 #[macro_use]
 pub mod macros;
 pub mod default_handler;
+
+mod default {
+    use variables::int_var::IntVarValuesBuilder;
+    variables_handler_build!(IntVarValuesBuilder);
+}
+pub use self::default::Builder as DefaultVariablesBuilder;
+pub use self::default::Handler as DefaultVariablesHandler;
