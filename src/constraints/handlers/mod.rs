@@ -1,5 +1,6 @@
 use super::{Constraint, PropagationState};
 use graph::{BipartiteGraph, BipartiteGraphBuilder};
+use std::rc::Rc;
 use variables::handlers::VariablesHandler;
 use variables::{VariableError, VariableId, VariableState};
 
@@ -62,7 +63,7 @@ impl<Variables: VariablesHandler>
         Ok(DefaultConstraintsHandler {
             constraints: self.constraints,
             subsumeds: vec![false; len],
-            graph: graph.finalize(),
+            graph: Rc::new(graph.finalize()),
         })
     }
 }
@@ -71,7 +72,7 @@ impl<Variables: VariablesHandler>
 pub struct DefaultConstraintsHandler<H: VariablesHandler> {
     constraints: Vec<Box<Constraint<H>>>,
     subsumeds: Vec<bool>,
-    graph: BipartiteGraph<VariableId, usize, VariableState>,
+    graph: Rc<BipartiteGraph<VariableId, usize, VariableState>>,
 }
 
 impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H> {
