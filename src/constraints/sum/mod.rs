@@ -247,17 +247,24 @@ where
     }
     fn dependencies(
         &self,
-        _: &Handler,
+        variables_handler: &Handler,
     ) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         //let Vars { res, array } = self.variables.retrieve(variables_handler);
         //let ids = res.iter_ids().chain(array.iter_ids());
-        let deps: Vec<_> = self.indexes
-            .keys()
-            .cloned()
-            .map(|id| (id, VariableState::MaxBoundChange))
+        //let deps: Vec<_> = self.indexes
+        //.keys()
+        //.cloned()
+        //.map(|id| (id, VariableState::MaxBoundChange))
+        //.collect();
+        //Box::new(deps.into_iter())
+        use std::iter;
+        let Vars { res, array } = self.variables.retrieve(variables_handler);
+        let deps: Vec<_> = array
+            .iter()
+            .map(|var| (var.id(), VariableState::MaxBoundChange))
+            .chain(iter::once((res.id(), VariableState::MaxBoundChange)))
             .collect();
         Box::new(deps.into_iter())
-        //unimplemented!()
     }
     // Change error type
     fn initialise(
