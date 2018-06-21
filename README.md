@@ -86,6 +86,7 @@ fn main() {
 ```
 
 ## TODO LIST
+- [ ] Change constraint output function and pass a reference to a mutable collection in th epropagation method instead.
 - [ ] Priority Graph Split Event And Graph.
 - [ ] Event use iterator (avoid unecessary computation).
 - [ ] Priority Constraints add macros?

@@ -17,6 +17,7 @@ where
 {
     array: Views,
     used: Vec<bool>,
+    nb_used: usize,
     output: Option<Vec<(VariableId, VariableState)>>,
     id_to_pos: Rc<HashMap<VariableId, usize>>,
     changes: Option<Vec<usize>>,
@@ -32,6 +33,7 @@ where
         AllDifferent {
             array: array,
             used: vec![],
+            nb_used: 0,
             output: None,
             id_to_pos: Rc::new(HashMap::new()),
             changes: None,
@@ -45,7 +47,7 @@ where
     Views: VariableContainerView + 'static,
     Views::Container: Array<Variable = Views::Variable>,
     Views::Variable: PrunableDomain<Type = Var> + 'static,
-    Var: Eq + Ord + Clone + 'static + fmt::Display,
+    Var: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
 {
     fn propagate_changes<Handler>(
         &mut self,
@@ -60,35 +62,36 @@ where
 
         let mut changes = None;
         mem::swap(&mut changes, &mut self.changes);
-        self.output = Some(vec![]);
-        let changes = changes.unwrap();
+        if self.output.is_none() {
+            self.output = Some(Vec::new());
+        }
+        let mut changes = changes.unwrap();
+        changes.sort();
 
         {
             let vars = variables_handler.get_mut(&self.array);
 
             let mut affected = BTreeSet::new();
-            println!("======");
+
             for pos in changes {
                 let var = vars.get_unchecked_mut(pos);
-                if !var.is_affected() {
+                if !var.is_affected() || self.used[pos] {
                     continue;
                 }
                 let val = var.value().unwrap();
-                println!("{}", val);
                 self.used[pos] = true;
+                self.nb_used += 1;
                 if !affected.insert(val) {
                     return Err(VariableError::DomainWipeout);
                 }
             }
 
             let mut changes = vec![];
-            let mut end = true;
             for (pos, (var, _)) in vars.iter_mut()
                 .zip(self.used.iter())
                 .enumerate()
                 .filter(|&(_, (_, ref used))| !**used)
             {
-                end = false;
                 match var.remove_if(|val| affected.contains(&val))? {
                     VariableState::NoChange => {}
                     state => {
@@ -100,9 +103,9 @@ where
                 }
             }
             if changes.is_empty() {
-                //if end {
-                //return Ok(PropagationState::Subsumed);
-                //}
+                if self.nb_used == self.used.len() {
+                    return Ok(PropagationState::Subsumed);
+                }
 
                 if !self.output.as_ref().unwrap().is_empty() {
                     return Ok(PropagationState::FixPoint);
@@ -130,54 +133,46 @@ where
         let mut output = vec![];
         self.output = None;
 
-        let vars = variables_handler.get_mut(&self.array);
+        {
+            let vars = variables_handler.get_mut(&self.array);
 
-        //println!("+++++++++++");
-        let _ = vars.iter()
-            .zip(self.used.iter())
-            .filter(|&(_, ref used)| **used)
-            .map(|(var, _)| var.value().clone().unwrap())
-            //.inspect(|val| println!("{}", val))
-            .last();
-        let (new_affected, unaffected): (Vec<_>, Vec<_>) = vars.iter()
-            .zip(self.used.iter())
-            .enumerate()
-            .filter(|&(_, (_, ref used))| !**used)
-            .map(|(pos, (var, _))| (pos, var.value()))
-            .partition(|(_, val)| val.is_some());
-        let mut affected = BTreeSet::new();
-        for (pos, val) in new_affected.into_iter() {
-            self.used[pos] = true;
-            let dup = !affected.insert(val.unwrap());
-            if dup {
-                return Err(VariableError::DomainWipeout);
-            }
-        }
-        //println!("===========");
-        let _ = vars.iter()
-            .zip(self.used.iter())
-            .filter(|&(_, ref used)| **used)
-            .map(|(var, _)| var.value().clone().unwrap())
-            //.inspect(|val| println!("{}", val))
-            .last();
-
-        let end = unaffected.is_empty();
-        for (pos, _) in unaffected.into_iter() {
-            let var = vars.get_unchecked_mut(pos);
-            match var.remove_if(|val| affected.contains(&val))? {
-                VariableState::NoChange => {}
-                state => {
-                    output.push((var.id(), state));
+            let (new_affected, unaffected): (Vec<_>, Vec<_>) = vars.iter()
+                .zip(self.used.iter())
+                .enumerate()
+                //.filter(|&(_, (_, ref used))| !**used)
+                .map(|(pos, (var, _))| (pos, var.value()))
+                .partition(|(_, val)| val.is_some());
+            let mut affected = BTreeSet::new();
+            for (pos, val) in new_affected.into_iter() {
+                if !self.used[pos] {
+                    self.used[pos] = true;
+                    self.nb_used += 1;
+                }
+                let dup = !affected.insert(val.unwrap());
+                if dup {
+                    return Err(VariableError::DomainWipeout);
                 }
             }
-        }
-        if end {
-            return Ok(PropagationState::Subsumed);
+
+            if unaffected.is_empty() {
+                return Ok(PropagationState::Subsumed);
+            }
+            let mut changes = Vec::new();
+            for (pos, _) in unaffected.into_iter() {
+                let var = vars.get_unchecked_mut(pos);
+                match var.remove_if(|val| affected.contains(&val))? {
+                    VariableState::NoChange => {}
+                    state => {
+                        output.push((var.id(), state));
+                        changes.push(pos);
+                    }
+                }
+            }
         }
 
         if !output.is_empty() {
             self.output = Some(output);
-            Ok(PropagationState::FixPoint)
+            self.propagate_changes(variables_handler)
         } else {
             Ok(PropagationState::NoChange)
         }
@@ -190,7 +185,7 @@ where
     Views: VariableContainerView + 'static,
     Views::Container: Array<Variable = Views::Variable>,
     Views::Variable: PrunableDomain<Type = Var> + 'static,
-    Var: Eq + Ord + Clone + 'static + fmt::Display,
+    Var: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
         let ref_self: &AllDifferent<Var, Views> = &self;

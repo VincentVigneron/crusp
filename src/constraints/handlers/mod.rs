@@ -94,6 +94,9 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H>
                     events.add_event(view, idx, state);
                 },
                 PropagationState::Subsumed => {
+                    for (view, state) in constraint.result() {
+                        events.add_event(view, idx, state);
+                    }
                     *subsumed = true;
                     continue;
                 }
@@ -117,6 +120,9 @@ impl<H: VariablesHandler> ConstraintsHandler<H> for DefaultConstraintsHandler<H>
                         }
                     }
                     PropagationState::Subsumed => {
+                        for (view, state) in constraint.result() {
+                            events.add_event(view, idx, state);
+                        }
                         *subsumed = true;
                         continue;
                     }
