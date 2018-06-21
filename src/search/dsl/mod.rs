@@ -432,6 +432,76 @@ macro_rules! cp_model {
             cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
         }
     };
+    (
+        variables = $variables: ident;
+        branchers = $branchers: ident;
+        branch([$($views: tt),+], smallest_domain, domain_order);
+        $($tail:tt)*
+    ) => {
+        {
+            let mut x = vec![];
+            cp_model!(@VecBuilder = x; $($views),+);
+            let variables_selector = SmallestDomainVariableSelector::new(x.into_iter()).unwrap();
+            let values_selector = DomainOrderValueSelector::new();
+            let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+            $branchers.add_specific_brancher(Box::new(brancher));
+
+            cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident;
+        branchers = $branchers: ident;
+        branch([$views: ident[$i:ident] for $ii:ident in $min:tt .. $max:tt], smallest_domain, domain_order);
+        $($tail:tt)*
+    ) => {
+        {
+            let mut x = vec![];
+            for $i in $min..$max {
+                x.push($views.get($ii));
+            }
+            let variables_selector = SmallestDomainVariableSelector::new(x.into_iter()).unwrap();
+            let values_selector = DomainOrderValueSelector::new();
+            let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+            $branchers.add_specific_brancher(Box::new(brancher));
+
+            cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident;
+        branchers = $branchers: ident;
+        branch([$($views: tt),+], smallest_domain, domain_min);
+        $($tail:tt)*
+    ) => {
+        {
+            let mut x = vec![];
+            cp_model!(@VecBuilder = x; $($views),+);
+            let variables_selector = SmallestDomainVariableSelector::new(x.into_iter()).unwrap();
+            let values_selector = MinOrderValueSelector::new();
+            let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+            $branchers.add_specific_brancher(Box::new(brancher));
+
+            cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
+        }
+    };
+    (
+        variables = $variables: ident;
+        branchers = $branchers: ident;
+        branch([$($views: tt),+], smallest_domain, domain_max);
+        $($tail:tt)*
+    ) => {
+        {
+            let mut x = vec![];
+            cp_model!(@VecBuilder = x; $($views),+);
+            let variables_selector = SmallestDomainVariableSelector::new(x.into_iter()).unwrap();
+            let values_selector = MaxValueSelector::new();
+            let brancher = DefaultBrancher::new(variables_selector, values_selector).unwrap();
+            $branchers.add_specific_brancher(Box::new(brancher));
+
+            cp_model!(variables = $variables; branchers = $branchers; $($tail)*);
+        }
+    };
     (@VecBuilder = $list: ident; ) => {};
     (@VecBuilder = $list: ident; $x: ident) => {
         $list.push($x.clone());

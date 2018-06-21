@@ -26,7 +26,7 @@ fn main() {
             constraint all_different(diag2);
         }
         branchers {
-            branch([queens[i] for i in 0 .. n], variables_order, domain_order);
+            branch([queens[i] for i in 0 .. n], smallest_domain, domain_order);
         }
         solve;
         output (queens);
