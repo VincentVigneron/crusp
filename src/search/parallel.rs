@@ -9,13 +9,14 @@ pub mod dsl;
 
 #[allow(dead_code)]
 #[derive(Clone)]
-pub struct Solver<Variables, Constraints>
+pub struct ParallelSolver<Variables, Constraints>
 where
     Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
 {
     init: Space<Variables, Constraints>,
     solution: Option<Space<Variables, Constraints>>,
+    level: usize,
 }
 
 enum SearchState<Variables, Constraints>
@@ -53,6 +54,7 @@ macro_rules! next_search_state {
         match $nodes.back_mut() {
             Some(&mut (ref mut space, ref mut branches)) => match branches.next() {
                 Some(branch) => {
+                    depth += 1;
                     let space = space.clone();
                     SearchState::Node(space, branch)
                 }
@@ -87,15 +89,18 @@ macro_rules! run_search_state {
     };
 }
 
-impl<Variables, Constraints> Solver<Variables, Constraints>
+impl<Variables, Constraints> ParallelSolver<Variables, Constraints>
 where
     Variables: VariablesHandler + 'static + Debug,
     Constraints: ConstraintsHandler<Variables>,
 {
-    pub fn new(space: Space<Variables, Constraints>) -> Solver<Variables, Constraints> {
-        Solver {
+    pub fn new(
+        space: Space<Variables, Constraints>,
+    ) -> ParallelSolver<Variables, Constraints> {
+        ParallelSolver {
             init: space,
             solution: None,
+            level: 4,
         }
     }
 
@@ -105,9 +110,13 @@ where
         // propagate => branch => test if search is ended
         run_space!(self.init, nodes, self.solution);
 
+        let mut depth = 0;
         while !nodes.is_empty() {
-            let state = next_search_state!(nodes);
-            run_search_state!(nodes, state, self.solution);
+            if depth == self.level {
+            } else {
+                let state = next_search_state!(nodes);
+                run_search_state!(nodes, state, self.solution);
+            }
         }
         false
     }
