@@ -86,6 +86,9 @@ fn main() {
 ```
 
 ## TODO LIST
+- [ ] Add path recomputation to search (prefer recomputation to copy)
+- [ ] Change Space+Searh+Solver methods
+- [ ] Limit the use of Sync and Send
 - [ ] Change constraint output function and pass a reference to a mutable collection in th epropagation method instead.
 - [ ] Priority Graph Split Event And Graph.
 - [ ] Event use iterator (avoid unecessary computation).
