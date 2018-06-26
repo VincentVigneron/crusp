@@ -71,6 +71,7 @@ pub struct VariableId(usize);
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
 pub trait Variable: Clone {
+    // Add Send to Type??
     /// The underlying type holded by the `Variable`.
     type Type: Clone;
     /// Returns if the variable is affected.

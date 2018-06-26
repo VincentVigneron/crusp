@@ -61,7 +61,7 @@ where
     Variables: VariablesHandler,
     Constraints: ConstraintsHandler<Variables>,
 {
-    variables: Variables,
+    pub variables: Variables,
     constraints: Constraints,
     brancher: BranchersHandler<Variables>,
 }
@@ -73,6 +73,14 @@ where
 {
     Subsumed,
     Branches(SpaceIterator<Variables, Constraints>),
+}
+
+pub enum BranchState<Variables>
+where
+    Variables: VariablesHandler + 'static + Debug,
+{
+    Subsumed,
+    Branches(Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>),
 }
 
 impl<Variables, Constraints> Space<Variables, Constraints>
@@ -109,6 +117,14 @@ where
         }
     }
 
+    pub fn run_branch(&mut self) -> Result<BranchState<Variables>, VariableError> {
+        self.propagate()?;
+        match self.brancher.branch(&self.variables).ok() {
+            Some(branches) => Ok(BranchState::Branches(branches)),
+            _ => Ok(BranchState::Subsumed),
+        }
+    }
+
     fn propagate(&mut self) -> Result<PropagationState, VariableError> {
         self.constraints.propagate_all(&mut self.variables)
     }
@@ -123,7 +139,7 @@ where
     Variables: VariablesHandler + Debug,
     Constraints: ConstraintsHandler<Variables>,
 {
-    branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> ()>>>,
+    branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>,
     phantom_constraints: PhantomData<Constraints>,
 }
 

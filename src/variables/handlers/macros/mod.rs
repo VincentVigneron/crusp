@@ -1,6 +1,6 @@
 use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
-use std::rc::Rc;
+use std::sync::Arc;
 use variables::handlers::VariableContainerView;
 use variables::{ArrayOfRefs, ArrayOfVars, Variable};
 
@@ -19,6 +19,8 @@ pub struct VarView<Var: Variable> {
     pub view: VarIndexType,
     phantom: PhantomData<*const Var>,
 }
+
+unsafe impl<Var: Variable> Send for VarView<Var> {}
 
 impl<Var: Variable> Clone for VarView<Var> {
     fn clone(&self) -> VarView<Var> {
@@ -64,6 +66,7 @@ pub struct ArrayOfVarsView<Var: Variable> {
     x: usize,
     phantom: PhantomData<Var>,
 }
+unsafe impl<Var: Variable> Send for ArrayOfVarsView<Var> {}
 
 impl<Var: Variable> Clone for ArrayOfVarsView<Var> {
     fn clone(&self) -> ArrayOfVarsView<Var> {
@@ -112,6 +115,7 @@ pub struct ArrayOfRefsView<Var: Variable> {
     x: usize,
     phantom: PhantomData<Var>,
 }
+unsafe impl<Var: Variable> Send for ArrayOfRefsView<Var> {}
 impl<Var: Variable> Clone for ArrayOfRefsView<Var> {
     fn clone(&self) -> ArrayOfRefsView<Var> {
         ArrayOfRefsView {
@@ -146,7 +150,7 @@ pub struct TypeHandlerBuilder<Var: Variable> {
     pub id: ProcessUniqueId,
     pub variables: Vec<Var>,
     pub variables_array: Vec<ArrayOfVars<Var>>,
-    pub variables_ref_view: Vec<Rc<Vec<VarView<Var>>>>,
+    pub variables_ref_view: Vec<Arc<Vec<VarView<Var>>>>,
 }
 
 impl<Var: Variable> TypeHandlerBuilder<Var> {
@@ -201,8 +205,10 @@ pub struct TypeHandler<Var: Variable> {
     pub variables: Vec<Var>,
     pub variables_array: Vec<ArrayOfVars<Var>>,
     pub variables_ref: Vec<ArrayOfRefs<Var>>,
-    pub variables_ref_view: Vec<Rc<Vec<VarView<Var>>>>,
+    pub variables_ref_view: Vec<Arc<Vec<VarView<Var>>>>,
 }
+unsafe impl<Var: Variable> Send for TypeHandler<Var> {}
+unsafe impl<Var: Variable> Sync for TypeHandler<Var> {}
 impl<Var: Variable> TypeHandler<Var> {}
 impl<Var: Variable> Clone for TypeHandler<Var> {
     fn clone(&self) -> TypeHandler<Var> {
@@ -233,7 +239,7 @@ macro_rules! variables_handler_build {
             VariableContainerHandler,
             VariableContainerHandlerBuilder,
         };
-        use std::rc::Rc;
+        use std::sync::Arc;
 
         #[derive(Debug)]
         #[allow(non_snake_case)]
@@ -283,6 +289,8 @@ macro_rules! variables_handler_build {
         }
 
         impl $crate::variables::handlers::VariablesHandler for Handler {}
+        unsafe impl Sync for Handler {}
+        unsafe impl Send for Handler {}
 
         $(
             impl VariableContainerHandlerBuilder<
@@ -321,7 +329,7 @@ macro_rules! variables_handler_build {
                     -> ArrayOfRefsView<<$builder as VariableBuilder>::Variable>
                 {
                     let view = ArrayOfRefsView::new(self.$builder.id, self.$builder.variables_ref_view.len());
-                    self.$builder.variables_ref_view.push(Rc::new(x));
+                    self.$builder.variables_ref_view.push(Arc::new(x));
                     view
                 }
             }

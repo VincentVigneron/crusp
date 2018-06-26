@@ -38,6 +38,9 @@ pub struct IntVarValues {
     id: usize,
 }
 
+unsafe impl Sync for IntVarValues {}
+unsafe impl Send for IntVarValues {}
+
 impl IntVarValues {
     pub fn new(min: i32, max: i32) -> Option<IntVarValues> {
         if min > max {

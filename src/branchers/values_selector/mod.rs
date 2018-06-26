@@ -20,21 +20,22 @@ impl DomainOrderValueSelector {
 impl<Handler, View> ValuesSelector<Handler, View> for DomainOrderValueSelector
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
-    View: VariableContainerView + 'static,
+    View: VariableContainerView + Send + 'static,
     View::Container: Variable + AssignableDomain + IterableDomain + 'static,
+    <View::Container as Variable>::Type: Send,
 {
     // Error if no value
     fn select(
         &mut self,
         handler: &Handler,
         view: View,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()> {
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
         let var = get_from_handler(handler, &view);
         let branches: Vec<_> = var.iter()
             .cloned()
             .map(|val| (val, view.clone()))
             .map(move |(value, view)| {
-                let patch: Box<Fn(&mut Handler) -> ()> =
+                let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
                         let var = get_mut_from_handler(vars, &view);
                         var.set_value(value.clone())
@@ -61,20 +62,21 @@ impl MinValueSelector {
 impl<Handler, View, Var> ValuesSelector<Handler, View> for MinValueSelector
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
-    View: VariableContainerView + 'static,
+    View: VariableContainerView + Send + 'static,
     View::Container: Variable<Type = Var>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain
         + 'static,
     Var: Ord + Eq + Clone + 'static,
+    <View::Container as Variable>::Type: Send,
 {
     // Error if no value
     fn select(
         &mut self,
         handler: &Handler,
         view: View,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()> {
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
         let var = get_from_handler(handler, &view);
         let mut values: Vec<_> = var.iter().cloned().collect();
         values.sort();
@@ -82,7 +84,7 @@ where
             .into_iter()
             .map(|val| (val, view.clone()))
             .map(move |(value, view)| {
-                let patch: Box<Fn(&mut Handler) -> ()> =
+                let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
                         let var = get_mut_from_handler(vars, &view);
                         var.set_value(value.clone())
@@ -108,12 +110,13 @@ impl MaxValueSelector {
 impl<Handler, View, Var> ValuesSelector<Handler, View> for MaxValueSelector
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
-    View: VariableContainerView + 'static,
+    View: VariableContainerView + Send + 'static,
     View::Container: Variable<Type = Var>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain
         + 'static,
+    <View::Container as Variable>::Type: Send,
     Var: Ord + Eq + Clone + 'static,
 {
     // Error if no value
@@ -121,7 +124,7 @@ where
         &mut self,
         handler: &Handler,
         view: View,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()> {
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
         let var = get_from_handler(handler, &view);
         let mut values: Vec<_> = var.iter().cloned().collect();
         values.sort();
@@ -130,7 +133,7 @@ where
             .rev()
             .map(|val| (val, view.clone()))
             .map(move |(value, view)| {
-                let patch: Box<Fn(&mut Handler) -> ()> =
+                let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
                         let var = get_mut_from_handler(vars, &view);
                         var.set_value(value.clone())

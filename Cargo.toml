@@ -6,6 +6,7 @@ authors = ["vigneron <vincent.vigneron@univ-angers.fr>"]
 [dependencies]
 snowflake = "1.3.0"
 rand = "0.4.2"
+rayon = "1.0.1"
 
 [badges]
 travis-ci = { repository = "Razican/vsop87-rs", branch = "master" }

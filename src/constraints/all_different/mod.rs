@@ -1,7 +1,7 @@
 use constraints::Constraint;
 use constraints::PropagationState;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 use variables::domains::PrunableDomain;
 use variables::handlers::{
     VariableContainerHandler, VariableContainerView, VariablesHandler,
@@ -19,7 +19,7 @@ where
     used: Vec<bool>,
     nb_used: usize,
     output: Option<Vec<(VariableId, VariableState)>>,
-    id_to_pos: Rc<HashMap<VariableId, usize>>,
+    id_to_pos: Arc<HashMap<VariableId, usize>>,
     changes: Option<Vec<usize>>,
 }
 
@@ -35,7 +35,7 @@ where
             used: vec![],
             nb_used: 0,
             output: None,
-            id_to_pos: Rc::new(HashMap::new()),
+            id_to_pos: Arc::new(HashMap::new()),
             changes: None,
         }
     }
@@ -250,7 +250,7 @@ where
     ) -> Result<PropagationState, VariableError> {
         let len = variables_handler.get(&self.array).len();
         self.used = vec![false; len];
-        self.id_to_pos = Rc::new(
+        self.id_to_pos = Arc::new(
             variables_handler
                 .get(&self.array)
                 .iter()

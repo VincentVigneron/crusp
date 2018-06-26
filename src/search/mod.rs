@@ -6,6 +6,7 @@ use variables::handlers::VariablesHandler;
 
 #[macro_use]
 pub mod dsl;
+pub mod parallel;
 
 #[allow(dead_code)]
 #[derive(Clone)]

@@ -3,7 +3,7 @@ use constraints::PropagationState;
 use std::collections::HashMap;
 use std::iter::Sum;
 use std::ops::{Add, Div, Mul, Sub};
-use std::rc::Rc;
+use std::sync::Arc;
 use variables::domains::OrderedDomain;
 use variables::handlers::{
     VariableContainerHandler, VariableContainerView, VariablesHandler,
@@ -105,7 +105,7 @@ where
 {
     variables: Variables<View, Views>,
     coefs: Vec<Var>,
-    indexes: Rc<HashMap<VariableId, Type>>,
+    indexes: Arc<HashMap<VariableId, Type>>,
     input: Option<Vec<VariableId>>,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
@@ -129,7 +129,7 @@ where
         SumConstraint {
             variables: Variables::new(res, array),
             coefs: coefs.into_iter().collect(),
-            indexes: Rc::new(HashMap::new()),
+            indexes: Arc::new(HashMap::new()),
             input: None,
             output: None,
         }
@@ -273,7 +273,7 @@ where
     ) -> Result<PropagationState, VariableError> {
         {
             let MutVars { res, array } = self.variables.retrieve_mut(variables_handler);
-            let indexes = Rc::get_mut(&mut self.indexes).unwrap();
+            let indexes = Arc::get_mut(&mut self.indexes).unwrap();
             indexes.insert(res.id(), Type::Result);
             for (pos, id) in array.iter().map(|var| var.id()).enumerate() {
                 if indexes.insert(id, Type::Variable(pos)).is_some() {

@@ -1,11 +1,10 @@
 use constraints::handlers::ConstraintsHandler;
-use spaces::{Space, SpaceState};
-use std::collections::VecDeque;
+use rayon::prelude::*;
+use spaces::{BranchState, Space};
+//use std::collections::VecDeque;
+use super::Solver;
 use std::fmt::Debug;
 use variables::handlers::VariablesHandler;
-
-#[macro_use]
-pub mod dsl;
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -19,80 +18,10 @@ where
     level: usize,
 }
 
-enum SearchState<Variables, Constraints>
-where
-    Variables: VariablesHandler + Debug,
-    Constraints: ConstraintsHandler<Variables>,
-{
-    Node(
-        Space<Variables, Constraints>,
-        Box<Fn(&mut Space<Variables, Constraints>) -> ()>,
-    ),
-    //Finish,
-    BackTrack,
-}
-
-macro_rules! run_space {
-    ($space:expr, $nodes:ident, $solution:expr) => {{
-        let res = $space.run();
-        match res {
-            Ok(SpaceState::Subsumed) => {
-                $solution = Some($space.clone());
-                return true;
-            }
-            Ok(SpaceState::Branches(branches)) => {
-                $nodes.push_back(($space.clone(), branches));
-            }
-            _ => return false,
-        }
-    }};
-}
-
-// maybe test if has next to avoid unecessary clone
-macro_rules! next_search_state {
-    ($nodes:expr) => {{
-        match $nodes.back_mut() {
-            Some(&mut (ref mut space, ref mut branches)) => match branches.next() {
-                Some(branch) => {
-                    depth += 1;
-                    let space = space.clone();
-                    SearchState::Node(space, branch)
-                }
-                None => SearchState::BackTrack,
-            },
-            _ => unreachable!("nodes is empty can't reach this case!"),
-        }
-    }};
-}
-
-macro_rules! run_search_state {
-    ($nodes:expr, $state:expr, $solution:expr) => {
-        match $state {
-            SearchState::Node(mut space, branch) => {
-                branch(&mut space);
-                let res = space.run();
-                match res {
-                    Ok(SpaceState::Subsumed) => {
-                        $solution = Some(space.clone());
-                        return true;
-                    }
-                    Ok(SpaceState::Branches(branches)) => {
-                        $nodes.push_back((space.clone(), branches));
-                    }
-                    _ => (),
-                }
-            }
-            SearchState::BackTrack => {
-                $nodes.pop_back();
-            }
-        }
-    };
-}
-
 impl<Variables, Constraints> ParallelSolver<Variables, Constraints>
 where
-    Variables: VariablesHandler + 'static + Debug,
-    Constraints: ConstraintsHandler<Variables>,
+    Variables: VariablesHandler + Send + Sync + 'static + Debug,
+    Constraints: ConstraintsHandler<Variables> + Send + Sync,
 {
     pub fn new(
         space: Space<Variables, Constraints>,
@@ -105,20 +34,45 @@ where
     }
 
     // replace macros by functions?
+    //pub fn solve(&mut self) -> Option<Space<Variables, Constraints>> {
     pub fn solve(&mut self) -> bool {
-        let mut nodes = VecDeque::new();
-        // propagate => branch => test if search is ended
-        run_space!(self.init, nodes, self.solution);
-
-        let mut depth = 0;
-        while !nodes.is_empty() {
-            if depth == self.level {
-            } else {
-                let state = next_search_state!(nodes);
-                run_search_state!(nodes, state, self.solution);
+        match self.init.run_branch() {
+            Ok(BranchState::Subsumed) => {
+                self.solution = Some(self.init.clone());
+                true
             }
+            Ok(BranchState::Branches(branches)) => self.dfs(branches),
+            _ => false,
         }
-        false
+    }
+
+    fn solve_space(
+        &self,
+        space: Space<Variables, Constraints>,
+    ) -> Option<Space<Variables, Constraints>> {
+        let mut solver = Solver::new(space);
+        solver.solve();
+        solver.solution()
+    }
+
+    fn dfs(
+        &mut self,
+        branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>,
+    ) -> bool {
+        let branches = branches.collect::<Vec<_>>();
+
+        // remove pub variables
+        self.solution = branches
+            .into_par_iter()
+            .map(|branch| {
+                let mut space = self.init.clone();
+                branch(&mut space.variables);
+                self.solve_space(space)
+            })
+            .find_any(Option::is_some)
+            .map(Option::unwrap);
+
+        self.solution.is_some()
     }
 
     pub fn solution(&mut self) -> Option<Space<Variables, Constraints>> {
@@ -127,4 +81,8 @@ where
         mem::swap(&mut sol, &mut self.solution);
         sol
     }
+
+    //fn initialisation() -> SpaceState {
+    //unimplemented!()
+    //}
 }

@@ -24,7 +24,7 @@ where
         &mut self,
         handler: &Handler,
         view: View,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>;
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()>;
 }
 
 pub trait SpecificBrancher<Handler, View>: Brancher<Handler>
@@ -35,7 +35,7 @@ where
     fn specific_branch(
         &mut self,
         variables: &Handler,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>;
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()>;
     // Return None if branch is subsumed
     //fn specific_branch(
     //&mut self,
@@ -47,18 +47,18 @@ pub trait Brancher<Handler> {
     fn branch(
         &mut self,
         variables: &Handler,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()>
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()>
     where
         Handler: VariablesHandler;
 
-    fn mutated_clone(&self) -> Box<Brancher<Handler>>;
+    fn mutated_clone(&self) -> Box<Brancher<Handler> + Send + Sync>;
 }
 
 pub struct BranchersHandler<Handler>
 where
     Handler: VariablesHandler,
 {
-    branchers: Vec<Box<Brancher<Handler>>>,
+    branchers: Vec<Box<Brancher<Handler> + Send + Sync>>,
 }
 
 impl<Handler> Clone for BranchersHandler<Handler>
@@ -86,14 +86,17 @@ where
         }
     }
 
-    pub fn add_specific_brancher(&mut self, branch: Box<Brancher<Handler>>) {
+    pub fn add_specific_brancher(
+        &mut self,
+        branch: Box<Brancher<Handler> + Send + Sync>,
+    ) {
         self.branchers.push(branch);
     }
 
     pub fn branch(
         &mut self,
         variables: &Handler,
-    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> ()>>>, ()> {
+    ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
         self.branchers
             .iter_mut()
             .filter_map(|brancher| brancher.branch(&variables).ok())
