@@ -2,7 +2,7 @@ use constraints::handlers::ConstraintsHandler;
 use rayon::prelude::*;
 use spaces::{BranchState, Space};
 //use std::collections::VecDeque;
-use super::Solver;
+use search::path_recomputing::SolverPathRecomputing;
 use std::fmt::Debug;
 use variables::handlers::VariablesHandler;
 
@@ -50,7 +50,7 @@ where
         &self,
         space: Space<Variables, Constraints>,
     ) -> Option<Space<Variables, Constraints>> {
-        let mut solver = Solver::new(space);
+        let mut solver = SolverPathRecomputing::new(space);
         solver.solve();
         solver.solution()
     }
@@ -59,19 +59,34 @@ where
         &mut self,
         branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>,
     ) -> bool {
-        let branches = branches.collect::<Vec<_>>();
+        let mut branches = branches.collect::<Vec<_>>();
 
-        // remove pub variables
-        self.solution = branches
-            .into_par_iter()
-            .map(|branch| {
-                let mut space = self.init.clone();
-                branch(&mut space.variables);
-                self.solve_space(space)
-            })
-            .find_any(Option::is_some)
-            .map(Option::unwrap);
+        //self.solution = branches
+        //.into_par_iter()
+        //.map(|branch| {
+        //let mut space = self.init.clone();
+        //branch(&mut space.variables);
+        //self.solve_space(space)
+        //})
+        //.find_any(Option::is_some)
+        //.map(Option::unwrap);
+        //self.solution.is_some()
 
+        //remove pub variables
+        for chunk in branches.chunks_mut(4) {
+            self.solution = chunk
+                .par_iter_mut()
+                .map(|branch| {
+                    let mut space = self.init.clone();
+                    branch(&mut space.variables);
+                    self.solve_space(space)
+                })
+                .find_any(Option::is_some)
+                .map(Option::unwrap);
+            if self.solution.is_some() {
+                return true;
+            }
+        }
         self.solution.is_some()
     }
 

@@ -34,7 +34,10 @@ macro_rules! cp_model {
         use $crate::constraints::handlers::*;
         #[allow(unused_imports)]
         use $crate::search::*;
+        #[allow(unused_imports)]
         use $crate::search::parallel::*;
+        #[allow(unused_imports)]
+        use $crate::search::path_recomputing::*;
         #[allow(unused_imports)]
         use $crate::spaces::*;
         #[allow(unused_imports)]
@@ -97,7 +100,10 @@ macro_rules! cp_model {
         use $crate::constraints::handlers::*;
         #[allow(unused_imports)]
         use $crate::search::*;
+        #[allow(unused_imports)]
         use $crate::search::parallel::*;
+        #[allow(unused_imports)]
+        use $crate::search::path_recomputing::*;
         #[allow(unused_imports)]
         use $crate::spaces::*;
         #[allow(unused_imports)]
@@ -123,6 +129,72 @@ macro_rules! cp_model {
 
         let space = Space::new(variables_handler, constraints_handler, branchers_handler);
         let mut solver = ParallelSolver::new(space);
+        if solver.solve() {
+            let solution = solver.solution().unwrap();
+            Some(($(
+                        solution.get_variable(&$out).clone()
+                   ),+,))
+        } else {
+            None
+        }
+    }};
+    (
+        model {
+            $($tail:tt)*
+        }
+        branchers {
+            $($branches: tt)*
+        }
+        no_copy_solve;
+        output (
+            $($out: ident),+
+            );
+    ) => {{
+        #[allow(unused_imports)]
+        use $crate::constraints::handlers::*;
+        #[allow(unused_imports)]
+        use $crate::branchers::*;
+        #[allow(unused_imports)]
+        use $crate::branchers::brancher::*;
+        #[allow(unused_imports)]
+        use $crate::branchers::values_selector::*;
+        #[allow(unused_imports)]
+        use $crate::branchers::variables_selector::*;
+        #[allow(unused_imports)]
+        use $crate::constraints::*;
+        #[allow(unused_imports)]
+        use $crate::constraints::handlers::*;
+        #[allow(unused_imports)]
+        use $crate::search::*;
+        #[allow(unused_imports)]
+        use $crate::search::parallel::*;
+        #[allow(unused_imports)]
+        use $crate::search::path_recomputing::*;
+        #[allow(unused_imports)]
+        use $crate::spaces::*;
+        #[allow(unused_imports)]
+        use $crate::variables::*;
+        #[allow(unused_imports)]
+        use $crate::variables::handlers::*;
+        #[allow(unused_imports)]
+        use $crate::variables::domains::*;
+        #[allow(unused_imports)]
+        use $crate::variables::int_var::*;
+
+        let mut variables_handler = default_handler::Builder::new();
+        let mut constraints_handler = DefaultConstraintsHandlerBuilder::new();
+        let mut branchers_handler = BranchersHandler::new();
+
+        cp_model!(variables = variables_handler; constraints = constraints_handler; $($tail)*);
+
+        cp_model!(variables = variables_handler; branchers = branchers_handler; $($branches)*);
+
+
+        let mut variables_handler = variables_handler.finalize();
+        let constraints_handler = constraints_handler.finalize(&mut variables_handler).unwrap();
+
+        let space = Space::new(variables_handler, constraints_handler, branchers_handler);
+        let mut solver = SolverPathRecomputing::new(space);
         if solver.solve() {
             let solution = solver.solution().unwrap();
             Some(($(
