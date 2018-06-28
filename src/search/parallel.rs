@@ -1,9 +1,12 @@
 use constraints::handlers::ConstraintsHandler;
 use rayon::prelude::*;
+use rayon::ThreadPoolBuilder;
 use spaces::{BranchState, Space};
 //use std::collections::VecDeque;
 use search::path_recomputing::SolverPathRecomputing;
 use std::fmt::Debug;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use variables::handlers::VariablesHandler;
 
 #[allow(dead_code)]
@@ -49,8 +52,9 @@ where
     fn solve_space(
         &self,
         space: Space<Variables, Constraints>,
+        stop: Arc<AtomicBool>,
     ) -> Option<Space<Variables, Constraints>> {
-        let mut solver = SolverPathRecomputing::new(space);
+        let mut solver = SolverPathRecomputing::new_stop(space, stop);
         solver.solve();
         solver.solution()
     }
@@ -59,27 +63,39 @@ where
         &mut self,
         branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>,
     ) -> bool {
+        let _depth = 2usize;
+        self.par_dfs(branches)
+    }
+
+    fn par_dfs(
+        &mut self,
+        branches: Box<Iterator<Item = Box<Fn(&mut Variables) -> () + Send>>>,
+    ) -> bool {
         let mut branches = branches.collect::<Vec<_>>();
+        let stop = Arc::new(AtomicBool::new(false));
 
         //self.solution = branches
         //.into_par_iter()
         //.map(|branch| {
         //let mut space = self.init.clone();
         //branch(&mut space.variables);
-        //self.solve_space(space)
+        //self.solve_space(space, stop.clone())
         //})
         //.find_any(Option::is_some)
         //.map(Option::unwrap);
-        //self.solution.is_some()
 
         //remove pub variables
-        for chunk in branches.chunks_mut(4) {
+        let num_threads = ThreadPoolBuilder::new()
+            .build()
+            .unwrap()
+            .current_num_threads();
+        for chunk in branches.chunks_mut(num_threads) {
             self.solution = chunk
                 .par_iter_mut()
                 .map(|branch| {
                     let mut space = self.init.clone();
                     branch(&mut space.variables);
-                    self.solve_space(space)
+                    self.solve_space(space, stop.clone())
                 })
                 .find_any(Option::is_some)
                 .map(Option::unwrap);

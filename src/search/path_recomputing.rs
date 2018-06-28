@@ -2,6 +2,8 @@ use constraints::handlers::ConstraintsHandler;
 use spaces::{BranchState, Space};
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use variables::handlers::VariablesHandler;
 
 #[allow(dead_code)]
@@ -12,6 +14,7 @@ where
     Constraints: ConstraintsHandler<Variables>,
 {
     init: Space<Variables, Constraints>,
+    stop: Arc<AtomicBool>,
     solution: Option<Space<Variables, Constraints>>,
 }
 
@@ -36,6 +39,18 @@ where
     ) -> SolverPathRecomputing<Variables, Constraints> {
         SolverPathRecomputing {
             init: space,
+            stop: Arc::new(AtomicBool::new(false)),
+            solution: None,
+        }
+    }
+
+    pub fn new_stop(
+        space: Space<Variables, Constraints>,
+        stop: Arc<AtomicBool>,
+    ) -> SolverPathRecomputing<Variables, Constraints> {
+        SolverPathRecomputing {
+            init: space,
+            stop: stop,
             solution: None,
         }
     }
@@ -79,10 +94,14 @@ where
         };
         let mut path = VecDeque::new();
 
-        while let Some(explored_branch) = branch.pop_back() {
+        'dfs: while let Some(explored_branch) = branch.pop_back() {
+            if self.stop.load(Ordering::Relaxed) {
+                break 'dfs;
+            }
             explored_branch(&mut space.variables);
             match space.run_branch() {
                 Ok(BranchState::Subsumed) => {
+                    self.stop.store(true, Ordering::Relaxed);
                     self.solution = Some(space);
                     return true;
                 }
@@ -121,7 +140,6 @@ where
                 }
             }
         }
-        // unreachable
         false
     }
 
