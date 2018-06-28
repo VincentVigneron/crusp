@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["DefaultConstraintsHandler",""],["DefaultConstraintsHandlerBuilder",""]],"trait":[["ConstraintsHandler",""],["ConstraintsHandlerBuilder",""]]});

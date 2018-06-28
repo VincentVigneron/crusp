@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["VarIndexType",""]],"struct":[["ArrayOfRefsView",""],["ArrayOfVarsView",""],["TypeHandler",""],["TypeHandlerBuilder",""],["VarView",""]]});

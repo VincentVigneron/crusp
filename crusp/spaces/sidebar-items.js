@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BranchState",""],["SpaceState",""]],"struct":[["Space",""],["SpaceBuilder",""],["SpaceIterator",""]]});

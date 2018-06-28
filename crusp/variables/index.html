@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `variables` mod in crate `crusp`."><meta name="keywords" content="rust, rustlang, rust-lang, variables"><title>crusp::variables - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><p class='location'>Module variables</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#traits">Traits</a></li></ul></div><p class='location'><a href='../index.html'>crusp</a></p><script>window.sidebarCurrent = {name: 'variables', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><input class="search-input" name="search" autocomplete="off" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='in-band'>Module <a href='../index.html'>crusp</a>::<wbr><a class="mod" href=''>variables</a></span><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/crusp/variables/mod.rs.html#1-252' title='goto source code'>[src]</a></span></h1><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="bool_var/index.html"
+                                  title='mod crusp::variables::bool_var'>bool_var</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="domains/index.html"
+                                  title='mod crusp::variables::domains'>domains</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="handlers/index.html"
+                                  title='mod crusp::variables::handlers'>handlers</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="int_var/index.html"
+                                  title='mod crusp::variables::int_var'>int_var</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="mod" href="macros/index.html"
+                                  title='mod crusp::variables::macros'>macros</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ArrayOfRefs.html"
+                                  title='struct crusp::variables::ArrayOfRefs'>ArrayOfRefs</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents an array of references to <code>Variable</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ArrayOfVars.html"
+                                  title='struct crusp::variables::ArrayOfVars'>ArrayOfVars</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents an array of <code>Variable</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.ArrayOfVarsBuilder.html"
+                                  title='struct crusp::variables::ArrayOfVarsBuilder'>ArrayOfVarsBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents an array of <code>Variable</code> builder.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.VariableId.html"
+                                  title='struct crusp::variables::VariableId'>VariableId</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.VariableError.html"
+                                  title='enum crusp::variables::VariableError'>VariableError</a></td>
+                           <td class='docblock-short'>
+                                <p>Represents an error that occured during variable domain update.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.VariableState.html"
+                                  title='enum crusp::variables::VariableState'>VariableState</a></td>
+                           <td class='docblock-short'>
+                                <p>Describes the state of a variable after its domain is updated.</p>
+
+                           </td>
+                       </tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.Array.html"
+                                  title='trait crusp::variables::Array'>Array</a></td>
+                           <td class='docblock-short'>
+                                <p>This trait describes an array of variables. There is two types of array:
+array of variables and array of references to variables. Both types are manipulated with the
+same trait. When writting constraints over an array of variables, you should use the <code>Array</code>
+trait instead of the specific types <code>ArrayOfVars</code> or <code>ArrayOfRefs</code>.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.ArrayBuilder.html"
+                                  title='trait crusp::variables::ArrayBuilder'>ArrayBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>Trait used to an array of variable;</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.Variable.html"
+                                  title='trait crusp::variables::Variable'>Variable</a></td>
+                           <td class='docblock-short'>
+                                <p>Trait for types that represent decision variables.
+A decision variable is variable along side with its domain of allowed values.
+A variable has to be cloneable because the (tree based) searching process is based on cloning.</p>
+
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="trait" href="trait.VariableBuilder.html"
+                                  title='trait crusp::variables::VariableBuilder'>VariableBuilder</a></td>
+                           <td class='docblock-short'>
+                                <p>Trait used to build a variable. <code>SpecificVariablesHandler</code> requires
+to add VariableBuiler or ArrayBuilder in order to assign them one
+unique id.</p>
+
+                           </td>
+                       </tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g. <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g. <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g. <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "crusp";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

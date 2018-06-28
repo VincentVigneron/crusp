@@ -1,0 +1,1 @@
+initSidebarItems({"macro":[["cp_model",""],["expr",""],["unsafe_from_raw_point",""],["unwrap_first",""],["unwrap_last",""],["unwrap_or_break",""],["value",""],["variables_handler_build",""]],"mod":[["branchers",""],["constraints",""],["graph",""],["search",""],["spaces",""],["variables",""]]});
