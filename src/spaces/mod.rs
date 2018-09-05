@@ -4,10 +4,9 @@ use constraints::PropagationState;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use variables::handlers::{
-    VariableContainerHandler, VariableContainerView, VariablesHandler,
-    VariablesHandlerBuilder,
+    VariableContainerHandler, VariablesHandler, VariablesHandlerBuilder,
 };
-use variables::VariableError;
+use variables::{VariableContainer, VariableError};
 
 #[derive(Clone)]
 pub struct SpaceBuilder<Variables, VariablesBuilder, Constraints, ConstraintsBuilder>
@@ -100,10 +99,10 @@ where
         }
     }
 
-    pub fn get_variable<'a, View>(&'a self, view: &View) -> &'a View::Container
+    pub fn get_variable<'a, Var, VCH>(&'a self, view: &VCH::View) -> &'a Var
     where
-        View: VariableContainerView,
-        Variables: VariableContainerHandler<View>,
+        Var: VariableContainer,
+        VCH: VariableContainerHandler<Var>,
     {
         self.variables.get(view)
     }

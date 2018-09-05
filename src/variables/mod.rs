@@ -67,10 +67,12 @@ pub trait VariableBuilder: Clone {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VariableId(usize);
 
+pub trait VariableContainer {}
+
 /// Trait for types that represent decision variables.
 /// A decision variable is variable along side with its domain of allowed values.
 /// A variable has to be cloneable because the (tree based) searching process is based on cloning.
-pub trait Variable: Clone {
+pub trait Variable: Clone + VariableContainer {
     // Add Send to Type??
     /// The underlying type holded by the `Variable`.
     type Type: Clone;
@@ -93,7 +95,7 @@ pub trait Variable: Clone {
 /// array of variables and array of references to variables. Both types are manipulated with the
 /// same trait. When writting constraints over an array of variables, you should use the `Array`
 /// trait instead of the specific types `ArrayOfVars` or `ArrayOfRefs`.
-pub trait Array {
+pub trait Array: VariableContainer {
     type Variable: Variable;
     /// Returns a mutable reference to the variable at that position or None if out of bounds.
     fn get_mut(&mut self, position: usize) -> Option<&mut Self::Variable>;
@@ -111,7 +113,7 @@ pub trait Array {
     ) -> Box<Iterator<Item = &mut Self::Variable> + 'array>;
     /// Returns the number of variables.
     fn len(&self) -> usize;
-    fn iter_ids<'a>(&'a self) -> Box<Iterator<Item = VariableId> + 'a> {
+    fn iter_ids<'array>(&'array self) -> Box<Iterator<Item = VariableId> + 'array> {
         Box::new(self.iter().map(|var| var.id()))
     }
 }
@@ -148,6 +150,8 @@ pub struct ArrayOfVars<Var: Variable> {
     /// The array of `Variable`.
     variables: Vec<Var>,
 }
+
+impl<Var: Variable> VariableContainer for ArrayOfVars<Var> {}
 
 impl<Var: Variable> ArrayOfVars<Var> {
     /// Creates a new `ArrayOfVars` or None if the number of variables is null.
@@ -206,6 +210,8 @@ pub struct ArrayOfRefs<Var: Variable> {
     /// The array of references to `Variable`.
     variables: Vec<*mut Var>,
 }
+
+impl<Var: Variable> VariableContainer for ArrayOfRefs<Var> {}
 
 // REF ARRAY BUILDER
 impl<Var: Variable> ArrayOfRefs<Var> {

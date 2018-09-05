@@ -16,118 +16,38 @@ enum Type {
     Variable(usize),
 }
 
-macro_rules! constraint_box_clone {
-    ($handler: ident) => {
-        fn box_clone(&self) -> Box<Constraint<$handler>> {
-            let ref_self: &Self = &self;
-            let cloned: Self = <Self as Clone>::clone(ref_self);
-
-            Box::new(cloned) as Box<Constraint<$handler>>
-        }
-    }
-}
-
-macro_rules! views_struct {
-    (
-        Vars = struct $name_var:ident;
-        MutVars = struct $name_mut:ident;
-        Views = struct$name_view: ident<$($type_bound: ident),+> {
-            $($var:ident: $type: ty),+,
-        }
-    ) => {
-        #[derive(Clone)]
-        pub struct $name_view<$($type_bound: VariableContainerView + 'static),+> {
-            $($var: $type),+
-        }
-        #[allow(unused)]
-        pub struct $name_mut<'a, $($type_bound: VariableContainerView + 'static),+> {
-            $($var: &'a mut <$type>::Container),+
-        }
-        #[allow(unused)]
-        pub struct $name_var<'a, $($type_bound: VariableContainerView + 'static),+> {
-            $($var: &'a <$type>::Container),+
-        }
-
-        impl<$($type_bound: VariableContainerView),+> $name_view<$($type_bound),+> {
-            pub fn new($($var:$type),+) -> Self {
-                $name_view {
-                    $($var),+
-                }
-            }
-
-            #[allow(unused)]
-            pub fn retrieve<'a, Handler>(&self, variables_handler: &'a Handler)
-                -> $name_var<'a, $($type_bound),+>
-            where
-                Handler: VariablesHandler
-                    $(+ VariableContainerHandler<$type_bound>)+
-            {
-                $name_var {
-                    $(
-                        $var: variables_handler.get(&self.$var)
-                    ),+
-                }
-            }
-            #[allow(unused)]
-            pub fn retrieve_mut<'a, Handler>(&self, variables_handler: &'a mut Handler)
-                -> $name_mut<'a, $($type_bound),+>
-            where
-                Handler: VariablesHandler
-                    $(+ VariableContainerHandler<$type_bound>)+
-            {
-                $name_mut {
-                    $(
-                        $var: unsafe { unsafe_from_raw_point!(variables_handler.get_mut(&self.$var)) }
-                    ),+
-                }
-            }
-
-        }
-    };
-}
-
-views_struct!(
-Vars = struct Vars;
-MutVars = struct MutVars;
-Views = struct Variables<View, Views> {
-    res: View,
-    array: Views,
-});
-
 #[derive(Clone)]
-pub struct SumConstraint<Var, View, Views>
+pub struct SumConstraint<VarType, View, Views>
 where
     View: VariableContainerView + 'static,
-    View::Container: OrderedDomain<Type = Var>,
     Views: VariableContainerView + 'static,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord + Eq + Clone,
+    VarType: Ord + Eq + Clone,
 {
-    variables: Variables<View, Views>,
-    coefs: Vec<Var>,
+    res: View,
+    array: Views,
+    coefs: Vec<VarType>,
     indexes: Arc<HashMap<VariableId, Type>>,
     input: Option<Vec<VariableId>>,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
-impl<Var, View, Views> SumConstraint<Var, View, Views>
+impl<VarType, View, Views> SumConstraint<VarType, View, Views>
 where
     View: VariableContainerView,
-    View::Container: OrderedDomain<Type = Var>,
     Views: VariableContainerView,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord + Eq + Clone,
+    VarType: Ord + Eq + Clone,
 {
     pub fn new<Coefs>(
         res: View,
         array: Views,
         coefs: Coefs,
-    ) -> SumConstraint<Var, View, Views>
+    ) -> SumConstraint<VarType, View, Views>
     where
-        Coefs: IntoIterator<Item = Var>,
+        Coefs: IntoIterator<Item = VarType>,
     {
         SumConstraint {
-            variables: Variables::new(res, array),
+            res: res,
+            array: array,
             coefs: coefs.into_iter().collect(),
             indexes: Arc::new(HashMap::new()),
             input: None,
@@ -136,27 +56,33 @@ where
     }
 }
 
-impl<Var, View, Views, Handler> Constraint<Handler> for SumConstraint<Var, View, Views>
+impl<Var, VarArray, VarType, View, Views, Handler> Constraint<Handler>
+    for SumConstraint<VarType, View, Views>
 where
     Handler: VariablesHandler
-        + VariableContainerHandler<View>
-        + VariableContainerHandler<Views>,
+        + VariableContainerHandler<Var, View = View>
+        + VariableContainerHandler<VarArray, View = Views>,
     View: VariableContainerView + 'static,
-    View::Container: OrderedDomain<Type = Var>,
     Views: VariableContainerView + 'static,
-    Views::Container: Array<Variable = Views::Variable>,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord
+    Var: OrderedDomain<Type = VarType>,
+    VarArray: Array<Variable = Var>,
+    VarType: Ord
         + Eq
-        + Add<Output = Var>
-        + Sub<Output = Var>
-        + Mul<Output = Var>
-        + Div<Output = Var>
-        + Sum<Var>
+        + Add<Output = VarType>
+        + Sub<Output = VarType>
+        + Mul<Output = VarType>
+        + Div<Output = VarType>
+        + Sum<VarType>
         + Clone
         + 'static,
 {
-    constraint_box_clone!(Handler);
+    //constraint_box_clone!(Handler);
+    fn box_clone(&self) -> Box<Constraint<Handler>> {
+        let ref_self: &Self = &self;
+        let cloned: Self = <Self as Clone>::clone(ref_self);
+
+        Box::new(cloned) as Box<Constraint<Handler>>
+    }
 
     // adding to propagator/constraint information about change view
     // add iter to array and size => len
@@ -191,19 +117,21 @@ where
             }
         }
 
-        let MutVars { res, array } = self.variables.retrieve_mut(variables_handler);
+        let res: &mut Var = variables_handler.get_mut(&self.res);
+        let array: &mut VarArray = variables_handler.get_mut(&self.array);
 
         let _contributions: Vec<_> = array
             .iter()
             .zip(self.coefs.iter().cloned())
             .map(|(var, coef)| coef * (var.unchecked_max() - var.unchecked_min()))
             .collect();
-        let min: Var = array
+        let min: VarType = array
             .iter()
             .zip(self.coefs.iter().cloned())
+            //.map(|(var, coef)| coef * var.unchecked_min())
             .map(|(var, coef)| coef * var.unchecked_min())
             .sum();
-        let max: Var = array
+        let max: VarType = array
             .iter()
             .zip(self.coefs.iter().cloned())
             .map(|(var, coef)| coef * var.unchecked_max())
@@ -258,7 +186,8 @@ where
         //.collect();
         //Box::new(deps.into_iter())
         use std::iter;
-        let Vars { res, array } = self.variables.retrieve(variables_handler);
+        let res: &Var = variables_handler.get(&self.res);
+        let array: &VarArray = variables_handler.get(&self.array);
         let deps: Vec<_> = array
             .iter()
             .map(|var| (var.id(), VariableState::MaxBoundChange))
@@ -272,7 +201,8 @@ where
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError> {
         {
-            let MutVars { res, array } = self.variables.retrieve_mut(variables_handler);
+            let res: &mut Var = variables_handler.get_mut(&self.res);
+            let array: &mut VarArray = variables_handler.get_mut(&self.array);
             let indexes = Arc::get_mut(&mut self.indexes).unwrap();
             indexes.insert(res.id(), Type::Result);
             for (pos, id) in array.iter().map(|var| var.id()).enumerate() {

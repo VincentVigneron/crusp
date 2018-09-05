@@ -1,5 +1,5 @@
-use super::{Constraint, PropagationState};
-use graph::{BipartiteGraph, BipartiteGraphBuilder};
+use super::{Constraint, ConstraintBuilder, PropagationState};
+use graph::BipartiteGraph;
 use std::sync::Arc;
 use variables::handlers::VariablesHandler;
 use variables::{VariableError, VariableId, VariableState};
@@ -9,8 +9,8 @@ pub trait ConstraintsHandlerBuilder<
     Constraints: ConstraintsHandler<Variables>,
 >
 {
-    fn new_builder() -> Self;
-    fn add(&mut self, Box<Constraint<Variables>>);
+    //fn add(&mut self, Box<Constraint<Variables>>);
+    fn add(&mut self, Box<ConstraintBuilder<Variables>>);
     fn finalize(self, variables: &mut Variables) -> Result<Constraints, VariableError>;
 }
 
@@ -22,9 +22,12 @@ pub trait ConstraintsHandler<Variables: VariablesHandler>: Clone {
 }
 
 pub struct DefaultConstraintsHandlerBuilder<Variables: VariablesHandler> {
-    constraints: Vec<Box<Constraint<Variables>>>,
+    //constraints: Vec<Box<Constraint<Variables>>>,
+    //constraints: Vec<Box<ConstraintBuilder<Variables>>>,
+    constraints: Vec<ConstraintBuilder<Variables>>,
 }
 
+/*
 impl<Variables: VariablesHandler> DefaultConstraintsHandlerBuilder<Variables> {
     pub fn new() -> DefaultConstraintsHandlerBuilder<Variables> {
         DefaultConstraintsHandlerBuilder {
@@ -37,10 +40,9 @@ impl<Variables: VariablesHandler>
     ConstraintsHandlerBuilder<Variables, DefaultConstraintsHandler<Variables>>
     for DefaultConstraintsHandlerBuilder<Variables>
 {
-    fn new_builder() -> Self {
-        Self::new()
-    }
-    fn add(&mut self, constraint: Box<Constraint<Variables>>) {
+    //fn add(&mut self, constraint: Box<Constraint<Variables>>) {
+    //fn add(&mut self, constraint: Box<ConstraintBuilder<Variables>>) {
+    fn add(&mut self, constraint: ConstraintBuilder<Variables>) {
         self.constraints.push(constraint);
     }
 
@@ -48,25 +50,34 @@ impl<Variables: VariablesHandler>
         mut self,
         variables: &mut Variables,
     ) -> Result<DefaultConstraintsHandler<Variables>, VariableError> {
-        let mut graph: BipartiteGraphBuilder<VariableId, usize, VariableState> =
-            BipartiteGraphBuilder::new();
-        for (idx, constraint) in self.constraints.iter().enumerate() {
-            for (view, state) in constraint.dependencies(&variables) {
-                graph.insert_node1_to_node2(view, state, idx);
-            }
-        }
+        //let mut graph: BipartiteGraphBuilder<VariableId, usize, VariableState> =
+        //BipartiteGraphBuilder::new();
+        //for (idx, constraint) in self.constraints.iter().enumerate() {
+        //for (view, state) in constraint.dependencies(&variables) {
+        //graph.insert_node1_to_node2(view, state, idx);
+        //}
+        //}
+        let constraints = self.constraints
+            .into_iter()
+            .map(|cons| finalize(cb, variables))
+            //.map(|cons| cons.finalize(variables).map(Box::new))
+            .collect::<Result<Vec<_>, VariableError>>()?;
         // Sort according to complexity?
-        for constraint in self.constraints.iter_mut() {
-            constraint.initialise(variables)?;
-        }
-        let len = self.constraints.len();
+        //for constraint in self.constraints.iter_mut() {
+        //constraint.initialise(variables)?;
+        //}
+        //let len = self.constraints.len();
+        let len = constraints.len();
         Ok(DefaultConstraintsHandler {
-            constraints: self.constraints,
+            //constraints: self.constraints,
+            constraints: constraints,
             subsumeds: vec![false; len],
-            graph: Arc::new(graph.finalize()),
+            //graph: Arc::new(graph.finalize()),
+            graph: Arc::new(BipartiteGraphBuilder::new().finalize()),
         })
     }
 }
+*/
 
 #[derive(Clone)]
 pub struct DefaultConstraintsHandler<H: VariablesHandler> {

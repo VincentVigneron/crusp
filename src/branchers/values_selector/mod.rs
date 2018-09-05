@@ -1,8 +1,7 @@
 use super::ValuesSelector;
 use variables::domains::{AssignableDomain, IterableDomain, OrderedDomain};
 use variables::handlers::{
-    get_from_handler, get_mut_from_handler, VariableContainerHandler,
-    VariableContainerView, VariablesHandler,
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
 };
 use variables::Variable;
 
@@ -17,12 +16,12 @@ impl DomainOrderValueSelector {
 }
 
 // Remove Into<VariableId> Requirement if possible (does not make sense).
-impl<Handler, View> ValuesSelector<Handler, View> for DomainOrderValueSelector
+impl<Var, Handler, View> ValuesSelector<Handler, View> for DomainOrderValueSelector
 where
-    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<Var, View = View> + 'static,
     View: VariableContainerView + Send + 'static,
-    View::Container: Variable + AssignableDomain + IterableDomain + 'static,
-    <View::Container as Variable>::Type: Send,
+    Var: Variable + AssignableDomain + IterableDomain + 'static,
+    <Var as Variable>::Type: Send,
 {
     // Error if no value
     fn select(
@@ -30,14 +29,14 @@ where
         handler: &Handler,
         view: View,
     ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
-        let var = get_from_handler(handler, &view);
+        let var = handler.get(&view);
         let branches: Vec<_> = var.iter()
             .cloned()
             .map(|val| (val, view.clone()))
             .map(move |(value, view)| {
                 let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
-                        let var = get_mut_from_handler(vars, &view);
+                        let var = handler.get_mut(&view);
                         var.set_value(value.clone())
                             .expect("Should not happen DomainOrderValueSelector Fn.");
                     });
@@ -59,17 +58,16 @@ impl MinValueSelector {
 }
 
 // Remove Into<VariableId> Requirement if possible (does not make sense).
-impl<Handler, View, Var> ValuesSelector<Handler, View> for MinValueSelector
+impl<Var, Handler, View, VarType> ValuesSelector<Handler, View> for MinValueSelector
 where
-    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<Var, View = View> + 'static,
     View: VariableContainerView + Send + 'static,
-    View::Container: Variable<Type = Var>
+    Var: Variable<Type = VarType>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain
         + 'static,
-    Var: Ord + Eq + Clone + 'static,
-    <View::Container as Variable>::Type: Send,
+    VarType: Ord + Eq + Clone + Send + 'static,
 {
     // Error if no value
     fn select(
@@ -77,7 +75,7 @@ where
         handler: &Handler,
         view: View,
     ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
-        let var = get_from_handler(handler, &view);
+        let var = handler.get(&view);
         let mut values: Vec<_> = var.iter().cloned().collect();
         values.sort();
         let branches: Vec<_> = values
@@ -86,7 +84,7 @@ where
             .map(move |(value, view)| {
                 let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
-                        let var = get_mut_from_handler(vars, &view);
+                        let var = handler.get_mut(&view);
                         var.set_value(value.clone())
                             .expect("Should not happen DomainOrderValueSelector Fn.");
                     });
@@ -107,17 +105,16 @@ impl MaxValueSelector {
 }
 
 // Remove Into<VariableId> Requirement if possible (does not make sense).
-impl<Handler, View, Var> ValuesSelector<Handler, View> for MaxValueSelector
+impl<Var, Handler, View, VarType> ValuesSelector<Handler, View> for MaxValueSelector
 where
-    Handler: VariablesHandler + VariableContainerHandler<View> + 'static,
+    Handler: VariablesHandler + VariableContainerHandler<Var, View = View> + 'static,
     View: VariableContainerView + Send + 'static,
-    View::Container: Variable<Type = Var>
+    Var: Variable<Type = VarType>
         + AssignableDomain
         + IterableDomain
         + OrderedDomain
         + 'static,
-    <View::Container as Variable>::Type: Send,
-    Var: Ord + Eq + Clone + 'static,
+    VarType: Ord + Eq + Clone + Send + 'static,
 {
     // Error if no value
     fn select(
@@ -125,7 +122,7 @@ where
         handler: &Handler,
         view: View,
     ) -> Result<Box<Iterator<Item = Box<Fn(&mut Handler) -> () + Send>>>, ()> {
-        let var = get_from_handler(handler, &view);
+        let var = handler.get(&view);
         let mut values: Vec<_> = var.iter().cloned().collect();
         values.sort();
         let branches: Vec<_> = values
@@ -135,7 +132,7 @@ where
             .map(move |(value, view)| {
                 let patch: Box<Fn(&mut Handler) -> () + Send> =
                     Box::new(move |vars: &mut Handler| {
-                        let var = get_mut_from_handler(vars, &view);
+                        let var = handler.get_mut(&view);
                         var.set_value(value.clone())
                             .expect("Should not happen DomainOrderValueSelector Fn.");
                     });

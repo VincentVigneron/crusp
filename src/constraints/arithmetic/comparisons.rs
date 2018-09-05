@@ -11,7 +11,7 @@ macro_rules! compare_constraint_impl {
         pub struct $name<Var, View>
         where
             View: VariableContainerView,
-            View::Container: OrderedDomain<Type = Var>,
+            //View::Container: OrderedDomain<Type = Var>,
             Var: Eq + Ord + Clone + 'static,
         {
             lhs: View,
@@ -22,7 +22,7 @@ macro_rules! compare_constraint_impl {
         impl<Var, View> $name<Var, View>
         where
             View: VariableContainerView,
-            View::Container: OrderedDomain<Type = Var>,
+            //View::Container: OrderedDomain<Type = Var>,
             Var: Eq + Ord + Clone + 'static,
         {
             pub fn new(lhs: View, rhs: View) -> $name<Var, View> {
@@ -34,17 +34,17 @@ macro_rules! compare_constraint_impl {
             }
         }
 
-        impl<Var, View, Handler> Constraint<Handler> for $name<Var, View>
+        impl<Var, Handler> Constraint<Handler> for $name<Var, Handler::View>
         where
-            Handler: VariablesHandler + VariableContainerHandler<View> + Clone,
-            View: VariableContainerView + 'static,
-            View::Container: OrderedDomain<Type = Var>,
-            Var: Eq + Ord + Clone + 'static,
+            Handler: VariablesHandler + VariableContainerHandler<Var> + Clone,
+            //View: VariableContainerView + 'static,
+            Var: OrderedDomain<Type = Var>,
+            //Var::Type: Eq + Ord + Clone + 'static,
         {
             fn box_clone(&self) -> Box<Constraint<Handler>> {
-                let ref_self: &$name<Var, View> = &self;
-                let cloned: $name<Var, View> =
-                    <$name<Var, View> as Clone>::clone(ref_self);
+                let ref_self: &$name<Var, Handler::View> = &self;
+                let cloned: $name<Var, Handler::View> =
+                    <$name<Var, Handler::View> as Clone>::clone(ref_self);
 
                 Box::new(cloned) as Box<Constraint<Handler>>
             }
@@ -55,9 +55,9 @@ macro_rules! compare_constraint_impl {
                 let mut output = vec![];
                 self.output = None;
                 unsafe {
-                    let lhs: &mut View::Container =
+                    let lhs: &mut Var =
                         unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
-                    let rhs: &mut View::Container =
+                    let rhs: &mut Var =
                         unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
                     let (lhs_state, rhs_state) = lhs.$method(rhs)?;
                     match lhs_state {

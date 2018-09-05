@@ -1,21 +1,21 @@
 use constraints::Constraint;
 use constraints::PropagationState;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 use variables::domains::PrunableDomain;
-use variables::handlers::{
-    VariableContainerHandler, VariableContainerView, VariablesHandler,
-};
+use variables::handlers::{VariableContainerHandler, VariablesHandler};
 use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Debug, Clone)]
-pub struct AllDifferent<Var, Views>
+pub struct AllDifferent2<Var, Vars>
 where
-    Views: VariableContainerView,
-    Views::Variable: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone,
+    Var: Variable,
+    Var::Type: Eq + Ord + Clone,
+    Vars: Array<Variable = Var>,
 {
-    array: Views,
+    array: Rc<RefCell<Vars>>,
     used: Vec<bool>,
     nb_used: usize,
     output: Option<Vec<(VariableId, VariableState)>>,
@@ -23,13 +23,30 @@ where
     changes: Option<Vec<usize>>,
 }
 
-impl<Var, Views> AllDifferent<Var, Views>
+#[derive(Debug, Clone)]
+pub struct AllDifferent<Var, Vars, VCH>
 where
-    Views: VariableContainerView,
-    Views::Variable: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone,
+    Var: Variable,
+    Var::Type: Eq + Ord + Clone,
+    Vars: Array<Variable = Var>,
+    VCH: VariableContainerHandler<Vars>,
 {
-    pub fn new(array: Views) -> Self {
+    array: VCH::View,
+    used: Vec<bool>,
+    nb_used: usize,
+    output: Option<Vec<(VariableId, VariableState)>>,
+    id_to_pos: Arc<HashMap<VariableId, usize>>,
+    changes: Option<Vec<usize>>,
+}
+
+impl<Var, Vars, VCH> AllDifferent<Var, Vars, VCH>
+where
+    Var: Variable,
+    Var::Type: Eq + Ord + Clone,
+    Vars: Array<Variable = Var>,
+    VCH: VariableContainerHandler<Vars>,
+{
+    pub fn new(array: VCH::View) -> Self {
         AllDifferent {
             array: array,
             used: vec![],
@@ -42,19 +59,19 @@ where
 }
 use std::fmt;
 
-impl<Var, Views> AllDifferent<Var, Views>
+impl<Var, Vars, VCH> AllDifferent<Var, Vars, VCH>
 where
-    Views: VariableContainerView + 'static,
-    Views::Container: Array<Variable = Views::Variable>,
-    Views::Variable: PrunableDomain<Type = Var> + 'static,
-    Var: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
+    Var: Variable + PrunableDomain + 'static,
+    Var::Type: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
+    Vars: Array<Variable = Var>,
+    VCH: VariableContainerHandler<Vars>,
 {
     fn propagate_changes<Handler>(
         &mut self,
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError>
     where
-        Handler: VariablesHandler + VariableContainerHandler<Views> + Clone,
+        Handler: VariablesHandler + VariableContainerHandler<Vars> + Clone,
     {
         use std::collections::BTreeSet;
         use std::mem;
@@ -69,7 +86,7 @@ where
         changes.sort();
 
         {
-            let vars = variables_handler.get_mut(&self.array);
+            let vars: &mut Vars = variables_handler.get_mut(&self.array);
 
             let mut affected = BTreeSet::new();
 
@@ -87,7 +104,8 @@ where
             }
 
             let mut changes = vec![];
-            for (pos, (var, _)) in vars.iter_mut()
+            for (pos, (var, _)) in vars
+                .iter_mut()
                 .zip(self.used.iter())
                 .enumerate()
                 .filter(|&(_, (_, ref used))| !**used)
@@ -125,7 +143,7 @@ where
         variables_handler: &mut Handler,
     ) -> Result<PropagationState, VariableError>
     where
-        Handler: VariablesHandler + VariableContainerHandler<Views> + Clone,
+        Handler: VariablesHandler + VariableContainerHandler<Vars> + Clone,
     {
         use std::collections::BTreeSet;
         use variables::VariableState;
@@ -179,25 +197,25 @@ where
     }
 }
 
-impl<Var, Views, Handler> Constraint<Handler> for AllDifferent<Var, Views>
+impl<Var, Vars, VCH> Constraint<VCH> for AllDifferent<Var, Vars, VCH>
 where
-    Handler: VariablesHandler + VariableContainerHandler<Views> + Clone,
-    Views: VariableContainerView + 'static,
-    Views::Container: Array<Variable = Views::Variable>,
-    Views::Variable: PrunableDomain<Type = Var> + 'static,
-    Var: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
+    VCH: VariablesHandler + VariableContainerHandler<Vars> + Clone,
+    Var: Variable + PrunableDomain + 'static,
+    Var::Type: Eq + Ord + Clone + 'static + fmt::Display + fmt::Debug,
+    Vars: Array<Variable = Var>,
+    VCH: VariableContainerHandler<Vars>,
 {
-    fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &AllDifferent<Var, Views> = &self;
-        let cloned: AllDifferent<Var, Views> =
-            <AllDifferent<Var, Views> as Clone>::clone(ref_self);
+    fn box_clone(&self) -> Box<Constraint<VCH>> {
+        let ref_self: &AllDifferent<Var, Vars, VCH> = &self;
+        let cloned: AllDifferent<Var, Vars, VCH> =
+            <AllDifferent<Var, Vars, VCH> as Clone>::clone(ref_self);
 
-        Box::new(cloned) as Box<Constraint<Handler>>
+        Box::new(cloned) as Box<Constraint<VCH>>
     }
 
     fn propagate(
         &mut self,
-        variables_handler: &mut Handler,
+        variables_handler: &mut VCH,
     ) -> Result<PropagationState, VariableError> {
         match self.changes {
             None => self.propagate_all(variables_handler),
@@ -209,11 +227,11 @@ where
         self.changes = Some(
             states
                 .map(|id| {
-                    *self.id_to_pos
+                    *self
+                        .id_to_pos
                         .get(&id)
                         .expect("Error AllDifferent unknown VariableId.")
-                })
-                .collect::<Vec<_>>(),
+                }).collect::<Vec<_>>(),
         );
     }
     fn result(&mut self) -> Box<Iterator<Item = (VariableId, VariableState)>> {
@@ -227,7 +245,7 @@ where
     }
     fn dependencies(
         &self,
-        variables_handler: &Handler,
+        variables_handler: &VCH,
     ) -> Box<Iterator<Item = (VariableId, VariableState)>> {
         //Box::new({
         //let deps: Vec<_> = self.id_to_pos
@@ -246,7 +264,7 @@ where
     }
     fn initialise(
         &mut self,
-        variables_handler: &mut Handler,
+        variables_handler: &mut VCH,
     ) -> Result<PropagationState, VariableError> {
         let len = variables_handler.get(&self.array).len();
         self.used = vec![false; len];

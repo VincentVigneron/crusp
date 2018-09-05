@@ -7,25 +7,23 @@ use variables::handlers::{
 use variables::{Variable, VariableError, VariableId, VariableState};
 
 #[derive(Clone)]
-pub struct AddConstant<Var, View>
+pub struct AddConstant<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
     res: View,
     var: View,
-    coef: Var,
+    coef: VarType,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
-impl<Var, View> AddConstant<Var, View>
+impl<VarType, View> AddConstant<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
-    pub fn new(res: View, var: View, coef: Var) -> AddConstant<Var, View> {
+    pub fn new(res: View, var: View, coef: VarType) -> AddConstant<VarType, View> {
         AddConstant {
             res: res,
             var: var,
@@ -37,17 +35,23 @@ where
 
 use std::fmt::Debug;
 
-impl<Var, View, Handler> Constraint<Handler> for AddConstant<Var, View>
+impl<Var, VarType, View, Handler> Constraint<Handler> for AddConstant<VarType, View>
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + Clone,
     View: VariableContainerView + 'static,
-    View::Container: PrunableDomain<Type = Var> + IterableDomain + Debug,
-    Var: Eq + Ord + Clone + 'static + Add<Output = Var> + Sub<Output = Var> + Debug,
+    Var: PrunableDomain<Type = VarType> + IterableDomain + Debug,
+    VarType: Eq
+        + Ord
+        + Clone
+        + 'static
+        + Add<Output = VarType>
+        + Sub<Output = VarType>
+        + Debug,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &AddConstant<Var, View> = &self;
-        let cloned: AddConstant<Var, View> =
-            <AddConstant<Var, View> as Clone>::clone(ref_self);
+        let ref_self: &AddConstant<VarType, View> = &self;
+        let cloned: AddConstant<VarType, View> =
+            <AddConstant<VarType, View> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -59,9 +63,9 @@ where
         self.output = None;
 
         unsafe {
-            let res: &mut View::Container =
+            let res: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.res));
-            let var: &mut View::Container =
+            let var: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.var));
             let domain: Vec<_> = var.iter()
                 .cloned()

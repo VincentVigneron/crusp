@@ -12,11 +12,11 @@ pub enum PropagationState {
     NoChange,
 }
 
-pub trait ConstraintBuilder<Handler: VariablesHandler> {
-    //fn finalize(
-    //constraint_builder: Box<Self>,
-    //variables_handler: &mut VariablesHandler,
-    //) -> Box<Constraint<VariablesHandler>>;
+pub trait ConstraintBuilder<Handler: VariablesHandler>: Sized {
+    fn finalize(
+        self,
+        variables_handler: &mut Handler,
+    ) -> Result<Box<Constraint<Handler>>, VariableError>;
 }
 
 /// Trait defining a constraint. The generic type is mandatory for the `Constraint`, even

@@ -5,25 +5,24 @@ use variables::handlers::{
 };
 use variables::{Variable, VariableError, VariableId, VariableState};
 
+// COMME ALLDIFF
 #[derive(Clone)]
-pub struct Equal<Var, View>
+pub struct Equal<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
     lhs: View,
     rhs: View,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
-impl<Var, View> Equal<Var, View>
+impl<VarType, View> Equal<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
-    pub fn new(lhs: View, rhs: View) -> Equal<Var, View> {
+    pub fn new(lhs: View, rhs: View) -> Equal<VarType, View> {
         Equal {
             lhs: lhs,
             rhs: rhs,
@@ -32,16 +31,17 @@ where
     }
 }
 
-impl<Var, View, Handler> Constraint<Handler> for Equal<Var, View>
+impl<Var, VarType, View, Handler> Constraint<Handler> for Equal<VarType, View>
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + Clone,
     View: VariableContainerView + 'static,
-    View::Container: PrunableDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    Var: PrunableDomain<Type = VarType>,
+    Var::Type: Eq + Ord + Clone + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &Equal<Var, View> = &self;
-        let cloned: Equal<Var, View> = <Equal<Var, View> as Clone>::clone(ref_self);
+        let ref_self: &Equal<VarType, View> = &self;
+        let cloned: Equal<VarType, View> =
+            <Equal<VarType, View> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -53,9 +53,9 @@ where
         self.output = None;
 
         unsafe {
-            let lhs: &mut View::Container =
+            let lhs: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
-            let rhs: &mut View::Container =
+            let rhs: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
             let (lhs_state, rhs_state) = lhs.equal(rhs)?;
             match lhs_state {
@@ -114,24 +114,22 @@ where
 }
 
 #[derive(Clone)]
-pub struct EqualBounds<Var, View>
+pub struct EqualBounds<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: OrderedDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
     lhs: View,
     rhs: View,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
-impl<Var, View> EqualBounds<Var, View>
+impl<VarType, View> EqualBounds<VarType, View>
 where
     View: VariableContainerView,
-    View::Container: OrderedDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    VarType: Eq + Ord + Clone + 'static,
 {
-    pub fn new(lhs: View, rhs: View) -> EqualBounds<Var, View> {
+    pub fn new(lhs: View, rhs: View) -> EqualBounds<VarType, View> {
         EqualBounds {
             lhs: lhs,
             rhs: rhs,
@@ -140,17 +138,17 @@ where
     }
 }
 
-impl<Var, View, Handler> Constraint<Handler> for EqualBounds<Var, View>
+impl<Var, VarType, View, Handler> Constraint<Handler> for EqualBounds<VarType, View>
 where
     Handler: VariablesHandler + VariableContainerHandler<View> + Clone,
     View: VariableContainerView + 'static,
-    View::Container: OrderedDomain<Type = Var>,
-    Var: Eq + Ord + Clone + 'static,
+    Var: OrderedDomain<Type = VarType>,
+    VarType: Eq + Ord + Clone + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &EqualBounds<Var, View> = &self;
-        let cloned: EqualBounds<Var, View> =
-            <EqualBounds<Var, View> as Clone>::clone(ref_self);
+        let ref_self: &EqualBounds<VarType, View> = &self;
+        let cloned: EqualBounds<VarType, View> =
+            <EqualBounds<VarType, View> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -161,9 +159,9 @@ where
         let mut output = vec![];
         self.output = None;
         unsafe {
-            let lhs: &mut View::Container =
+            let lhs: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.lhs));
-            let rhs: &mut View::Container =
+            let rhs: &mut Var =
                 unsafe_from_raw_point!(variables_handler.get_mut(&self.rhs));
 
             let state = lhs.weak_upperbound(rhs.unchecked_max())?;

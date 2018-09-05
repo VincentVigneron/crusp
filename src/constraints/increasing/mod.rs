@@ -9,23 +9,21 @@ use variables::handlers::{
 use variables::{Array, Variable, VariableError, VariableId, VariableState};
 
 #[derive(Clone)]
-pub struct Increasing<Var, Views>
+pub struct Increasing<VarType, Views>
 where
     Views: VariableContainerView,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord + Eq + Clone,
+    VarType: Ord + Eq + Clone,
 {
     array: Views,
     output: Option<Vec<(VariableId, VariableState)>>,
 }
 
-impl<Var, Views> Increasing<Var, Views>
+impl<VarType, Views> Increasing<VarType, Views>
 where
     Views: VariableContainerView,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord + Eq + Clone,
+    VarType: Ord + Eq + Clone,
 {
-    pub fn new(array: Views) -> Increasing<Var, Views>
+    pub fn new(array: Views) -> Increasing<VarType, Views>
 where {
         Increasing {
             array: array,
@@ -34,26 +32,27 @@ where {
     }
 }
 
-impl<Var, Views, Handler> Constraint<Handler> for Increasing<Var, Views>
+impl<Var, ArrayVar, VarType, Views, Handler> Constraint<Handler>
+    for Increasing<VarType, Views>
 where
-    Handler: VariablesHandler + VariableContainerHandler<Views>,
+    Handler: VariablesHandler + VariableContainerHandler<ArrayVar>,
     Views: VariableContainerView + 'static,
-    Views::Container: Array<Variable = Views::Variable>,
-    Views::Variable: OrderedDomain<Type = Var>,
-    Var: Ord
+    ArrayVar: Array<Variable = Var>,
+    Var: OrderedDomain<Type = VarType>,
+    VarType: Ord
         + Eq
-        + Add<Output = Var>
-        + Sub<Output = Var>
-        + Mul<Output = Var>
-        + Div<Output = Var>
-        + Sum<Var>
+        + Add<Output = VarType>
+        + Sub<Output = VarType>
+        + Mul<Output = VarType>
+        + Div<Output = VarType>
+        + Sum<VarType>
         + Clone
         + 'static,
 {
     fn box_clone(&self) -> Box<Constraint<Handler>> {
-        let ref_self: &Increasing<Var, Views> = &self;
-        let cloned: Increasing<Var, Views> =
-            <Increasing<Var, Views> as Clone>::clone(ref_self);
+        let ref_self: &Increasing<VarType, Views> = &self;
+        let cloned: Increasing<VarType, Views> =
+            <Increasing<VarType, Views> as Clone>::clone(ref_self);
 
         Box::new(cloned) as Box<Constraint<Handler>>
     }
@@ -71,10 +70,9 @@ where
         let len = { variables_handler.get(&self.array).len() };
         for i in 0..(len - 1) {
             unsafe {
-                let array = variables_handler.get_mut(&self.array);
-                let lhs: &mut Views::Variable =
-                    unsafe_from_raw_point!(array.get_unchecked_mut(i));
-                let rhs: &mut Views::Variable =
+                let array: &mut ArrayVar = variables_handler.get_mut(&self.array);
+                let lhs: &mut Var = unsafe_from_raw_point!(array.get_unchecked_mut(i));
+                let rhs: &mut Var =
                     unsafe_from_raw_point!(array.get_unchecked_mut(i + 1));
                 let (lhs_state, rhs_state) = lhs.less_than(rhs)?;
                 if lhs_state != VariableState::NoChange {
@@ -87,10 +85,10 @@ where
         }
         for i in 0..(len - 1) {
             unsafe {
-                let array = variables_handler.get_mut(&self.array);
-                let lhs: &mut Views::Variable =
+                let array: &mut ArrayVar = variables_handler.get_mut(&self.array);
+                let lhs: &mut Var =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 2 - i));
-                let rhs: &mut Views::Variable =
+                let rhs: &mut Var =
                     unsafe_from_raw_point!(array.get_unchecked_mut(len - 1 - i));
                 let (lhs_state, rhs_state) = lhs.less_than(rhs)?;
                 if lhs_state != VariableState::NoChange {

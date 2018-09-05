@@ -2,7 +2,10 @@ use variables::domains::{
     AssignableDomain, FiniteDomain, FromRangeDomain, FromValuesDomain, IterableDomain,
     OrderedDomain, OrderedPrunableDomain, PrunableDomain,
 };
-use variables::{Variable, VariableBuilder, VariableError, VariableId, VariableState};
+use variables::{
+    Variable, VariableBuilder, VariableContainer, VariableError, VariableId,
+    VariableState,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntVarValuesBuilder {
@@ -37,6 +40,7 @@ pub struct IntVarValues {
     domain: Vec<i32>,
     id: usize,
 }
+impl VariableContainer for IntVarValues {}
 
 unsafe impl Sync for IntVarValues {}
 unsafe impl Send for IntVarValues {}

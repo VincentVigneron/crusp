@@ -1,7 +1,7 @@
 use super::VariableSelector;
 use variables::domains::FiniteDomain;
 use variables::handlers::{
-    get_from_handler, VariableContainerHandler, VariableContainerView, VariablesHandler,
+    VariableContainerHandler, VariableContainerView, VariablesHandler,
 };
 use variables::Variable;
 
@@ -28,17 +28,18 @@ where
     }
 }
 
-impl<Handler, View> VariableSelector<Handler, View> for SequentialVariableSelector<View>
+impl<Var, Handler, View> VariableSelector<Handler, View>
+    for SequentialVariableSelector<View>
 where
-    Handler: VariablesHandler + VariableContainerHandler<View>,
+    Handler: VariablesHandler + VariableContainerHandler<Var, View = View>,
     View: VariableContainerView,
-    View::Container: Variable,
+    Var: Variable,
 {
     fn select(&mut self, handler: &Handler) -> Result<View, ()> {
         self.variables
             .iter()
             .filter(|&view| {
-                let var = get_from_handler(handler, view);
+                let var = handler.get(view);
                 !var.is_affected()
             })
             .cloned()
@@ -70,18 +71,18 @@ where
     }
 }
 
-impl<Handler, View> VariableSelector<Handler, View>
+impl<Var, Handler, View> VariableSelector<Handler, View>
     for SmallestDomainVariableSelector<View>
 where
-    Handler: VariablesHandler + VariableContainerHandler<View>,
+    Handler: VariablesHandler + VariableContainerHandler<Var, View = View>,
     View: VariableContainerView,
-    View::Container: Variable + FiniteDomain,
+    Var: Variable + FiniteDomain,
 {
     fn select(&mut self, handler: &Handler) -> Result<View, ()> {
         let mut variables = self.variables
             .iter()
             .map(|view| {
-                let var = get_from_handler(handler, view);
+                let var = handler.get(&view);
                 (view, var.size())
             })
             .filter(|&(_, dom)| dom > 1)

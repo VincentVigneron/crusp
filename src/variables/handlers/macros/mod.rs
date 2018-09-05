@@ -1,7 +1,6 @@
 use snowflake::ProcessUniqueId;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use variables::handlers::VariableContainerView;
 use variables::{ArrayOfRefs, ArrayOfVars, Variable};
 
 // move Var and ArrayOfVarsView inside macro => find how to handle extern crate ProcessUniqeId
@@ -32,10 +31,10 @@ impl<Var: Variable> Clone for VarView<Var> {
     }
 }
 impl<Var: Variable> Copy for VarView<Var> {}
-impl<Var: Variable> VariableContainerView for VarView<Var> {
-    type Container = Var;
-    type Variable = Var;
-}
+//impl<Var: Variable> VariableContainerView for VarView<Var> {
+//type Container = Var;
+//type Variable = Var;
+//}
 
 impl<Var: Variable> VarView<Var> {
     pub fn new(id: ProcessUniqueId, x: usize) -> VarView<Var> {
@@ -78,10 +77,10 @@ impl<Var: Variable> Clone for ArrayOfVarsView<Var> {
     }
 }
 impl<Var: Variable> Copy for ArrayOfVarsView<Var> {}
-impl<Var: Variable> VariableContainerView for ArrayOfVarsView<Var> {
-    type Container = ArrayOfVars<Var>;
-    type Variable = Var;
-}
+//impl<Var: Variable> VariableContainerView for ArrayOfVarsView<Var> {
+//type Container = ArrayOfVars<Var>;
+//type Variable = Var;
+//}
 
 impl<Var: Variable> ArrayOfVarsView<Var> {
     pub fn new(id: ProcessUniqueId, x: usize) -> ArrayOfVarsView<Var> {
@@ -126,10 +125,10 @@ impl<Var: Variable> Clone for ArrayOfRefsView<Var> {
     }
 }
 impl<Var: Variable> Copy for ArrayOfRefsView<Var> {}
-impl<Var: Variable> VariableContainerView for ArrayOfRefsView<Var> {
-    type Container = ArrayOfRefs<Var>;
-    type Variable = Var;
-}
+//impl<Var: Variable> VariableContainerView for ArrayOfRefsView<Var> {
+//type Container = ArrayOfRefs<Var>;
+//type Variable = Var;
+//}
 
 impl<Var: Variable> ArrayOfRefsView<Var> {
     pub fn new(id: ProcessUniqueId, x: usize) -> ArrayOfRefsView<Var> {
@@ -146,23 +145,23 @@ impl<Var: Variable> ArrayOfRefsView<Var> {
 }
 
 #[derive(Debug, Clone)]
-pub struct TypeHandlerBuilder<Var: Variable> {
+pub struct VariableHandlerBuilder<Var: Variable> {
     pub id: ProcessUniqueId,
     pub variables: Vec<Var>,
     pub variables_array: Vec<ArrayOfVars<Var>>,
     pub variables_ref_view: Vec<Arc<Vec<VarView<Var>>>>,
 }
 
-impl<Var: Variable> TypeHandlerBuilder<Var> {
+impl<Var: Variable> VariableHandlerBuilder<Var> {
     pub fn new() -> Self {
-        TypeHandlerBuilder {
+        VariableHandlerBuilder {
             id: ProcessUniqueId::new(),
             variables: Vec::new(),
             variables_array: Vec::new(),
             variables_ref_view: Vec::new(),
         }
     }
-    pub fn finalize(self) -> TypeHandler<Var> {
+    pub fn finalize(self) -> VariableHandler<Var> {
         let id = self.id;
         let mut variables = self.variables;
         let mut variables_array = self.variables_array;
@@ -184,12 +183,10 @@ impl<Var: Variable> TypeHandlerBuilder<Var> {
                                 .get_unchecked_mut(y)
                                 as *mut _,
                         }
-                    })
-                    .collect::<Vec<_>>();
+                    }).collect::<Vec<_>>();
                 ArrayOfRefs::new(ref_array).unwrap()
-            })
-            .collect();
-        TypeHandler {
+            }).collect();
+        VariableHandler {
             id: id,
             variables: variables,
             variables_array: variables_array,
@@ -200,19 +197,19 @@ impl<Var: Variable> TypeHandlerBuilder<Var> {
 }
 
 #[derive(Debug)]
-pub struct TypeHandler<Var: Variable> {
+pub struct VariableHandler<Var: Variable> {
     pub id: ProcessUniqueId,
     pub variables: Vec<Var>,
     pub variables_array: Vec<ArrayOfVars<Var>>,
     pub variables_ref: Vec<ArrayOfRefs<Var>>,
     pub variables_ref_view: Vec<Arc<Vec<VarView<Var>>>>,
 }
-unsafe impl<Var: Variable> Send for TypeHandler<Var> {}
-unsafe impl<Var: Variable> Sync for TypeHandler<Var> {}
-impl<Var: Variable> TypeHandler<Var> {}
-impl<Var: Variable> Clone for TypeHandler<Var> {
-    fn clone(&self) -> TypeHandler<Var> {
-        let builder = TypeHandlerBuilder {
+unsafe impl<Var: Variable> Send for VariableHandler<Var> {}
+unsafe impl<Var: Variable> Sync for VariableHandler<Var> {}
+impl<Var: Variable> VariableHandler<Var> {}
+impl<Var: Variable> Clone for VariableHandler<Var> {
+    fn clone(&self) -> VariableHandler<Var> {
+        let builder = VariableHandlerBuilder {
             id: self.id,
             variables: self.variables.clone(),
             variables_array: self.variables_array.clone(),
@@ -232,7 +229,7 @@ macro_rules! variables_handler_build {
         };
         use $crate::variables::handlers::macros::{
             ArrayOfVarsView, ArrayOfRefsView, VarView,
-            TypeHandler, TypeHandlerBuilder, VarIndexType
+            VariableHandler, VariableHandlerBuilder, VarIndexType
         };
         use $crate::variables::handlers::{
             VariablesHandlerBuilder,
@@ -245,7 +242,7 @@ macro_rules! variables_handler_build {
         #[allow(non_snake_case)]
         pub struct Builder {
             $(
-                $builder: TypeHandlerBuilder<<$builder as VariableBuilder>::Variable>
+                $builder: VariableHandlerBuilder<<$builder as VariableBuilder>::Variable>
              ),+,
              var_id: usize,
         }
@@ -254,7 +251,7 @@ macro_rules! variables_handler_build {
         #[allow(non_snake_case)]
         pub struct Handler {
             $(
-                $builder: TypeHandler<<$builder as VariableBuilder>::Variable>
+                $builder: VariableHandler<<$builder as VariableBuilder>::Variable>
              ),+
         }
 
@@ -262,7 +259,7 @@ macro_rules! variables_handler_build {
             pub fn new() -> Builder {
                 Builder {
                     $(
-                        $builder: TypeHandlerBuilder::new()
+                        $builder: VariableHandlerBuilder::new()
                      ),+,
                      var_id: 0,
                 }
@@ -294,6 +291,7 @@ macro_rules! variables_handler_build {
 
         $(
             impl VariableContainerHandlerBuilder<
+                <$builder as VariableBuilder>::Variable,
                 VarView<<$builder as VariableBuilder>::Variable>,
                 Handler,
                 $builder
@@ -307,6 +305,7 @@ macro_rules! variables_handler_build {
             }
 
             impl VariableContainerHandlerBuilder<
+                ArrayOfVars<<$builder as VariableBuilder>::Variable>,
                 ArrayOfVarsView<<$builder as VariableBuilder>::Variable>,
                 Handler,
                 ArrayOfVarsBuilder<$builder>
@@ -321,6 +320,7 @@ macro_rules! variables_handler_build {
             }
 
             impl VariableContainerHandlerBuilder<
+                ArrayOfRefs<<$builder as VariableBuilder>::Variable>,
                 ArrayOfRefsView<<$builder as VariableBuilder>::Variable>,
                 Handler,
                 Vec<VarView<<$builder as VariableBuilder>::Variable>>
@@ -335,7 +335,9 @@ macro_rules! variables_handler_build {
             }
 
 
-            impl VariableContainerHandler<VarView<<$builder as VariableBuilder>::Variable>> for Handler {
+            impl VariableContainerHandler<<$builder as VariableBuilder>::Variable> for Handler {
+                type View = VarView<<$builder as VariableBuilder>::Variable>;
+
                 fn get_mut(&mut self, view: &VarView<<$builder as VariableBuilder>::Variable>) -> &mut <$builder as VariableBuilder>::Variable {
                     match *view.get_idx() {
                         VarIndexType::FromVar(x) => {
@@ -368,7 +370,8 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl VariableContainerHandler<ArrayOfVarsView<<$builder as VariableBuilder>::Variable>> for Handler {
+            impl VariableContainerHandler<ArrayOfVars<<$builder as VariableBuilder>::Variable>> for Handler {
+                type View = ArrayOfVarsView<<$builder as VariableBuilder>::Variable>;
                 fn get_mut(&mut self, view: &ArrayOfVarsView<<$builder as VariableBuilder>::Variable>)
                     -> &mut ArrayOfVars<<$builder as VariableBuilder>::Variable>
                 {
@@ -385,7 +388,8 @@ macro_rules! variables_handler_build {
                 }
             }
 
-            impl VariableContainerHandler<ArrayOfRefsView<<$builder as VariableBuilder>::Variable>> for Handler {
+            impl VariableContainerHandler<ArrayOfRefs<<$builder as VariableBuilder>::Variable>> for Handler {
+                type View = ArrayOfRefsView<<$builder as VariableBuilder>::Variable>;
                 fn get_mut(&mut self, view: &ArrayOfRefsView<<$builder as VariableBuilder>::Variable>)
                     -> &mut ArrayOfRefs<<$builder as VariableBuilder>::Variable>
                 {

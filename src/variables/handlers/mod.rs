@@ -1,4 +1,4 @@
-use super::Variable;
+use super::VariableContainer;
 
 /// Represents a variables handler. Variable handlers can manage many type of variables
 /// and give acces to statistics about each variables. A `VariablesHandler` does not
@@ -11,13 +11,21 @@ pub trait VariablesHandlerBuilder<VarHandler: VariablesHandler> {
     fn finalize(self) -> VarHandler;
 }
 
-/// This trait design the view associated to a type of variable
-/// managed by a `SpecificTypeHandler`.
+// Add a new trait VariableContainer
+// Variable is a VariableContainer
+// Array<Variable> is a VariableContainer
+// ...
+///// This trait design the view associated to a type of variable
+///// managed by a `SpecificTypeHandler`.
+
+/// Represents type holdings variables. A Variable is a VariableContainer because
+/// its holds itsefl. An Array of Variables is a VariableContainer because it holds
+/// a list of Variables.
 pub trait VariableContainerView: Clone {
-    /// The `Type` managed by the Handler (Variable or Array of Variable).
-    type Container;
-    /// The type of `Variable` managed by the handler (Type == Variable if the Type is a variable).
-    type Variable: Variable;
+    ///// The `Type` managed by the Handler (Variable or Array of Variable).
+    //type Container;
+    ///// The type of `Variable` managed by the handler (Type == Variable if the Type is a variable).
+    //type Variable: Variable;
 }
 
 /// Gives immutable and mutable acces to owned variables. A `SpecificVariablesHandler`
@@ -30,42 +38,45 @@ pub trait VariableContainerView: Clone {
 ///
 /// * `Var` - The type of variable handled.
 /// * `View` - The associated view for the variable.
-pub trait VariableContainerHandler<View>
+pub trait VariableContainerHandler<Var>
 where
-    View: VariableContainerView,
+    Var: VariableContainer,
 {
-    fn get_mut(&mut self, view: &View) -> &mut View::Container;
-    fn get(&self, view: &View) -> &View::Container;
+    type View: VariableContainerView;
+
+    fn get_mut(&mut self, view: &Self::View) -> &mut Var;
+    fn get(&self, view: &Self::View) -> &Var;
 }
 
-pub trait VariableContainerHandlerBuilder<View, VarHandler, Param>
+pub trait VariableContainerHandlerBuilder<Var, View, SpecificHandler, Param>
 where
+    Var: VariableContainer,
     View: VariableContainerView,
-    VarHandler: VariableContainerHandler<View>,
+    SpecificHandler: VariableContainerHandler<Var, View = View>,
 {
     fn add(&mut self, views: Param) -> View;
 }
 
-pub fn get_mut_from_handler<'a, Handler, View>(
-    vars: &'a mut Handler,
-    view: &View,
-) -> &'a mut View::Container
-where
-    Handler: VariableContainerHandler<View>,
-    View: VariableContainerView,
-{
-    vars.get_mut(&view)
-}
-pub fn get_from_handler<'a, Handler, View>(
-    vars: &'a Handler,
-    view: &View,
-) -> &'a View::Container
-where
-    Handler: VariableContainerHandler<View>,
-    View: VariableContainerView,
-{
-    vars.get(&view)
-}
+//pub fn get_mut_from_handler<'a, Handler, View>(
+//vars: &'a mut Handler,
+//view: &View,
+//) -> &'a mut View::Container
+//where
+//Handler: VariableContainerHandler<View>,
+//View: VariableContainerView,
+//{
+//vars.get_mut(&view)
+//}
+//pub fn get_from_handler<'a, Handler, View>(
+//vars: &'a Handler,
+//view: &View,
+//) -> &'a View::Container
+//where
+//Handler: VariableContainerHandler<View>,
+//View: VariableContainerView,
+//{
+//vars.get(&view)
+//}
 
 #[macro_use]
 pub mod macros;
