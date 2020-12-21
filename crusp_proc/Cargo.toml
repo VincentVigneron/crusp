@@ -1,0 +1,17 @@
+[package]
+name = "crusp-proc"
+version = "0.1.0"
+authors = ["Vincent"]
+edition = "2018"
+
+[[test]]
+name = "tests"
+path = "tests/progress.rs"
+
+[dev-dependencies]
+trybuild = "1.0"
+
+[dependencies]
+syn = { version = "0.15.0", features = ["extra-traits","visit-mut", "full"] }
+quote = { version = "0.6" }
+proc-macro2 = { version = "0.2.3" }

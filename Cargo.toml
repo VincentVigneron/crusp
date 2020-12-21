@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "crusp",
+    "crusp_constraints",
+    "crusp_branchs",
+    "crusp_variables",
+    "crusp_proc_internal",
+]
