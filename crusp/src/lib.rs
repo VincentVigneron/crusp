@@ -1,6 +1,7 @@
 extern crate rand;
 extern crate rayon;
 extern crate snowflake;
+extern crate enumflags2;
 
 #[macro_use]
 mod macros;

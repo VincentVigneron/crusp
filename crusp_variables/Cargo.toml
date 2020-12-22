@@ -1,5 +1,5 @@
 [package]
-name = "crusp-constraints"
+name = "crusp-variables"
 version = "0.1.0"
 authors = ["Vincent"]
 edition = "2018"

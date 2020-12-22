@@ -2,7 +2,7 @@
 members = [
     "crusp",
     "crusp_constraints",
-    "crusp_branchs",
+    "crusp_branches",
     "crusp_variables",
-    "crusp_proc_internal",
+    "crusp_proc",
 ]
