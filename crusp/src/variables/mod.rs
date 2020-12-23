@@ -10,11 +10,32 @@ pub mod handlers;
 #[macro_use]
 pub mod macros;
 
+// wont't work for set.....
+// GeCode doc:
+Set::ME_SET_NONE
+Set::ME_SET_FAILED
+Set::ME_SET_VAL
+Set::ME_SET_CARD
+Set::ME_SET_LUB
+Set::ME_SET_GLB
+Set::ME_SET_BB
+Set::ME_SET_CLUB
+Set::ME_SET_CGLB
+Set::ME_SET_CBB
+
+
+Set::PC_SET_VAL
+Set::PC_SET_CARD
+Set::PC_SET_CLUB
+Set::PC_SET_CGLB
+Set::PC_SET_ANY
+Set::PC_SET_NONE
+
 /// Describes the state of a variable after its domain is updated.
 //#[repr(bitflags)]
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum VariableState {
+pub enum IntVariableState {
     /// If only the maximal bound of the variable has been updated.
     MaxBoundChange = 0b0000_0011,
     /// If only the minimal bound of the variable has been updated.
@@ -30,15 +51,16 @@ pub enum VariableState {
     UniversalError = 0b1110_0001,
 }
 
-impl std::ops::BitOr for VariableState {
+
+impl std::ops::BitOr for IntVariableState {
     type Output = Self;
 
      fn bitor(self, rhs: Self) -> Self::Output {
           unsafe {
               let lhs: u8 = std::mem::transmute(self);
               let rhs: u8 = std::mem::transmute(rhs);
-              let univ: u8 = std::mem::transmute(VariableState::UniversalChange);
-              let value: u8 = std::mem::transmute(VariableState::ValuesChange);
+              let univ: u8 = std::mem::transmute(IntVariableState::UniversalChange);
+              let value: u8 = std::mem::transmute(IntVariableState::ValuesChange);
               let univ_bit = (lhs | rhs) & univ;
               let value_bit = (lhs | rhs) & value;
               let value_mask = (!univ_bit) >> 4;
@@ -54,61 +76,61 @@ mod tests {
     #[test]
     fn test_op_or() {
         // no change is neutral
-        assert_eq!(VariableState::NoChange | VariableState::MaxBoundChange, VariableState::MaxBoundChange);
-        assert_eq!(VariableState::NoChange | VariableState::MinBoundChange, VariableState::MinBoundChange);
-        assert_eq!(VariableState::NoChange | VariableState::BoundsChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::NoChange | VariableState::ValuesChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::NoChange | VariableState::NoChange, VariableState::NoChange);
-        assert_eq!(VariableState::NoChange | VariableState::UniversalChange, VariableState::UniversalChange);
-        assert_eq!(VariableState::NoChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::MaxBoundChange, IntVariableState::MaxBoundChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::MinBoundChange, IntVariableState::MinBoundChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::BoundsChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::ValuesChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::NoChange, IntVariableState::NoChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::UniversalChange, IntVariableState::UniversalChange);
+        assert_eq!(IntVariableState::NoChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // max bounds
-        assert_eq!(VariableState::MaxBoundChange | VariableState::MaxBoundChange, VariableState::MaxBoundChange);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::MinBoundChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::BoundsChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::ValuesChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::NoChange, VariableState::MaxBoundChange);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::UniversalChange, VariableState::UniversalError);
-        assert_eq!(VariableState::MaxBoundChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::MaxBoundChange, IntVariableState::MaxBoundChange);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::MinBoundChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::BoundsChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::ValuesChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::NoChange, IntVariableState::MaxBoundChange);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::UniversalChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::MaxBoundChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // min bounds
-        assert_eq!(VariableState::MinBoundChange | VariableState::MaxBoundChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::MinBoundChange | VariableState::MinBoundChange, VariableState::MinBoundChange);
-        assert_eq!(VariableState::MinBoundChange | VariableState::BoundsChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::MinBoundChange | VariableState::ValuesChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::MinBoundChange | VariableState::NoChange, VariableState::MinBoundChange);
-        assert_eq!(VariableState::MinBoundChange | VariableState::UniversalChange, VariableState::UniversalError);
-        assert_eq!(VariableState::MinBoundChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::MaxBoundChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::MinBoundChange, IntVariableState::MinBoundChange);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::BoundsChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::ValuesChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::NoChange, IntVariableState::MinBoundChange);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::UniversalChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::MinBoundChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // bounds
-        assert_eq!(VariableState::BoundsChange | VariableState::MaxBoundChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::BoundsChange | VariableState::MinBoundChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::BoundsChange | VariableState::BoundsChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::BoundsChange | VariableState::ValuesChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::BoundsChange | VariableState::NoChange, VariableState::BoundsChange);
-        assert_eq!(VariableState::BoundsChange | VariableState::UniversalChange, VariableState::UniversalError);
-        assert_eq!(VariableState::BoundsChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::MaxBoundChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::MinBoundChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::BoundsChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::ValuesChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::NoChange, IntVariableState::BoundsChange);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::UniversalChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::BoundsChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // values
-        assert_eq!(VariableState::ValuesChange | VariableState::MaxBoundChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::ValuesChange | VariableState::MinBoundChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::ValuesChange | VariableState::BoundsChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::ValuesChange | VariableState::ValuesChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::ValuesChange | VariableState::NoChange, VariableState::ValuesChange);
-        assert_eq!(VariableState::ValuesChange | VariableState::UniversalChange, VariableState::UniversalError);
-        assert_eq!(VariableState::ValuesChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::MaxBoundChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::MinBoundChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::BoundsChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::ValuesChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::NoChange, IntVariableState::ValuesChange);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::UniversalChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::ValuesChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // universal
-        assert_eq!(VariableState::UniversalChange | VariableState::MaxBoundChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalChange | VariableState::MinBoundChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalChange | VariableState::BoundsChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalChange | VariableState::ValuesChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalChange | VariableState::NoChange, VariableState::UniversalChange);
-        assert_eq!(VariableState::UniversalChange | VariableState::UniversalChange, VariableState::UniversalChange);
-        assert_eq!(VariableState::UniversalChange | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::MaxBoundChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::MinBoundChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::BoundsChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::ValuesChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::NoChange, IntVariableState::UniversalChange);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::UniversalChange, IntVariableState::UniversalChange);
+        assert_eq!(IntVariableState::UniversalChange | IntVariableState::UniversalError, IntVariableState::UniversalError);
         // universal error
-        assert_eq!(VariableState::UniversalError | VariableState::MaxBoundChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::MinBoundChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::BoundsChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::ValuesChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::NoChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::UniversalChange, VariableState::UniversalError);
-        assert_eq!(VariableState::UniversalError | VariableState::UniversalError, VariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::MaxBoundChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::MinBoundChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::BoundsChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::ValuesChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::NoChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::UniversalChange, IntVariableState::UniversalError);
+        assert_eq!(IntVariableState::UniversalError | IntVariableState::UniversalError, IntVariableState::UniversalError);
 
 
     }
@@ -128,7 +150,7 @@ struct UniversalFailure {
 
 }
 
-impl Subsumed for VariableState {
+impl Subsumed for IntVariableState {
     /// # Subsomption relations
     /// * `MaxBoundChange` subsumed `BoundsChange`
     /// * `MinBoundChange` subsumed `BoundsChange`
@@ -138,13 +160,13 @@ impl Subsumed for VariableState {
         // not correct yet
         // (make_bitflags!(self) & make_bitflags!(val)).contains(make_bitflags!(self))
         match *self {
-            VariableState::MaxBoundChange => *val == VariableState::MaxBoundChange,
-            VariableState::MinBoundChange => *val == VariableState::MinBoundChange,
-            VariableState::BoundsChange => {
-                *val != VariableState::ValuesChange && *val != VariableState::NoChange
+            IntVariableState::MaxBoundChange => *val == IntVariableState::MaxBoundChange,
+            IntVariableState::MinBoundChange => *val == IntVariableState::MinBoundChange,
+            IntVariableState::BoundsChange => {
+                *val != IntVariableState::ValuesChange && *val != IntVariableState::NoChange
             }
-            VariableState::ValuesChange => *val != VariableState::NoChange,
-            VariableState::NoChange => true,
+            IntVariableState::ValuesChange => *val != IntVariableState::NoChange,
+            IntVariableState::NoChange => true,
         }
     }
 }
@@ -162,30 +184,32 @@ pub struct VariableId(usize);
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ConstraintId(usize);
 
-pub trait VariableEvents {
-    fn push(&mut self, vid: VariableId, event: Result<VariableState, VariableError>) -> Result<VariableState, VariableError>;
-    fn push_change(&mut self, vid: VariableId, event: VariableState) -> Result<VariableState, VariableError>;
-    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<VariableState, VariableError>;
+pub trait VariableEvents<State>
+    where State: ToBitMask
+{
+    fn push(&mut self, vid: VariableId, event: Result<State, VariableError>) -> Result<State, VariableError>;
+    fn push_change(&mut self, vid: VariableId, event: State) -> Result<State, VariableError>;
+    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<State, VariableError>;
 }
 
 struct NoOpVariableEvents {}
 
-impl VariableEvents for NoOpVariableEvents {
-    fn push(&mut self, vid: VariableId, event: Result<VariableState, VariableError>) -> {
+impl<State> VariableEvents for NoOpVariableEvents<State> {
+    fn push(&mut self, vid: VariableId, event: Result<State, VariableError>) -> {
         event
     }
-    fn push_change(&mut self, vid: VariableId, event: VariableState) -> Result<VariableState, VariableError> {
+    fn push_change(&mut self, vid: VariableId, event: State) -> Result<State, VariableError> {
         Ok(event)
     }
-    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<VariableState, VariableError> {
+    fn push_error(&mut self, vid: VariableId, event: VariableError) -> Result<State, VariableError> {
         Error(event)
     }
 }
 
-pub trait ConstraintVariableEvents {
-    fn push(&mut self, cid: ConstraintId, vid: VariableId, event: Result<VariableState, VariableError>) -> Result<VariableState, VariableError>;
-    fn push_change(&mut self, cid: ConstraintId, vid: VariableId, event: VariableState) -> Result<VariableState, VariableError>;
-    fn push_error(&mut self, cid: ConstraintId, vid: VariableId, event: VariableError) -> Result<VariableState, VariableError>;
+pub trait ConstraintVariableEvents<State> {
+    fn push(&mut self, cid: ConstraintId, vid: VariableId, event: Result<State, VariableError>) -> Result<State, VariableError>;
+    fn push_change(&mut self, cid: ConstraintId, vid: VariableId, event: State) -> Result<State, VariableError>;
+    fn push_error(&mut self, cid: ConstraintId, vid: VariableId, event: VariableError) -> Result<State, VariableError>;
 }
 
 /// Trait for types that represent decision variables.

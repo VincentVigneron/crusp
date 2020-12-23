@@ -86,36 +86,40 @@ fn main() {
 ```
 
 ## TODO LIST
-- [ ] Add path recomputation to search (prefer recomputation to copy)
-- [ ] Change Space+Searh+Solver methods
+- [ ] Develop all IntVar (bounds, values, intervals, bitset)
+- [ ] Develop BoolVar
+- [ ] Develop SetVar
+- [ ] Develop FloatVar
+- [ ] Develop other kinds of variables (String, Path, etc.)
+- [ ] Finish procedural macro for Constraints
+- [ ] Proc marcro support for multiple propagate method (to distinguish propagation based on variable/consitency lvl)
+- [ ] Proc marcro consitency lvl per variable with custom propagator (i.e. #[var(bound:propagate_bound,val:propagate)] x: IntVar; => will call propagate_bound if only bound change otherwise will call propagate)
+- [ ] Previous one requieres to "dedup" constraint inside events graph (constraint+code inside graph)
+- [ ] Allow constraint mutation during cloning (maybe create multiple constraint or do not copy). Maybe add mutable_clone(&self, constraints: &mut ConstraintsBuilder); Will not return clone but will ask to put the new constraints. Maybe add method register_new and remove to ConstraintsBuilder. The events graph might be requried here?
+- [ ] Unregister variable/constraint from events Graph during propagation stage
+- [ ] Consitency lvl based on variable type. Require the graph to support many types or will ask a conversion to a common type (probably a bitmask type because it allows easy subsomption betweeen different events. And most event will be u32 or u8). Each variable has one type if two types of variables have the same type is not a problem
+because propagation is based on variable + event. The other solution is to have one graph per type of variable. Which is not problematic because everything is staticly dispatched.
+- [ ] Support for nogoods
+- [ ] Support for LNS
+- [ ] Support for QCSP
+- [ ] Collect stats during search (number of failures per var, number of nodes, etc...)
+- [ ] Create a NoState method to remove all of this
+- [ ] Distinguish between VAL and DOM change for IntVarList
 - [ ] Limit the use of Sync and Send
-- [ ] Change constraint output function and pass a reference to a mutable collection in th epropagation method instead.
+- [x] Change constraint output function and pass a reference to a mutable collection in the propagation method instead.
 - [ ] Priority Graph Split Event And Graph.
 - [ ] Event use iterator (avoid unecessary computation).
-- [ ] Priority Constraints add macros?
 - [ ] Priority Documentation
 - [ ] Priority Remove ProcessUniqueId dependency.
 - [ ] Remove Vec and use array if possible.
-- [ ] Change in\_sorted\_values from PrunbalDomain.
 - [ ] Detect identic ArrayOfRefs one refarray for same views (if possible)
-- [ ] Specific Result for ConstraintsHandler (i.e. Error or Ok)
-- [ ] Better imports inside macros (i.e. avoid conflicts with imports).
 - [ ] Prefer where clause to generics list.
 - [ ] Prefer IntoIter to Iterator
 - [ ] Change box\_clone to mutated\_clone or with another (more explicit) name.
 - [ ] Adding Subsumed state to VariableState.
-- [ ] Renaming ViewType.
-- [ ] Refactoring ViewType (maybe some unecessary information).
-- [ ] Refactoring ViewIndex (maybe some unecessary information).
 - [ ] Precise the list of structs which have to be cloneable (Constraint, Propagator, Variable, View, ...) even if the traits do not require Clone because they are used as trait objects somewhere.
 - [ ] Optimise IntVarValues (adding cut, ...)
 - [ ] Misspellings!!!
 - [ ] Add an integer parameter to variable state in order to determine the number of removed values (?).
-- [ ] Refactoring test\_int\_var macro (duplicated code, modularity)
-- [ ] Unit test for equal\_on\_bounds.
-- [ ] IntVarBounds
-- [ ] BoolVar
-- [ ] Refactoring variables\_handler\_builder (remove duplicated code).
-- [ ] Consistance between generic parameters order.
-- [ ] Use expect instead of panic as much as possible.
+- [ ] Use expect instead of pani.
 - [ ] Display trait for Variable, VariableHandler, Constraint, ...

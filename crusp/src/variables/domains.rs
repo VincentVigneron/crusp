@@ -1,6 +1,8 @@
 use super::{Variable, VariableError, VariableState};
 
 
+// TODO(vincent): keep trait methods without events and the ones with events into different traits
+
 
 
 /// Trait that defines variables with finite domains. In other words the number of elements
@@ -17,10 +19,9 @@ pub trait IterableDomain<Type>: FiniteDomain<Type> {
 }
 
 /// Trait that defines variable that can be assigned to a specific value.
-pub trait AssignableDomainEvents<Type, Events>: Variable<Type>
+pub trait AssignableDomainEvents<Type>: Variable<Type>
     // deduced from the space variable events
     // events is required as a type parameter
-    where Events: VariableEvents,
 {
     /// Change the value of the variable.
     /// Returns an error of type `VariableError::DomainWipeout`
@@ -28,7 +29,9 @@ pub trait AssignableDomainEvents<Type, Events>: Variable<Type>
     ///
     /// # Argument
     /// * `value` - The value to assign.
-    fn set_value(&mut self, events: &mut Events, value: Type) -> Result<VariableState, VariableError> {
+    fn set_value<Events>(&mut self, events: &mut Events, value: Type) -> Result<VariableState, VariableError>
+        where Events: VariableEvents
+    {
         let mut events = NoOpVariableEvents{};
         events.push(self.id(), self.set_value_register(&mut events, value))
     }
@@ -46,10 +49,11 @@ pub trait AssignableDomain<Type>
     fn set_value(&mut self, value: Type) -> Result<VariableState, VariableError>;
 }
 
-impl<Type,Events> AssignableDomain<Type> for AssignableDomainEvents<Type, Events>
-    where Events: VariableEvents,
+impl<Type> AssignableDomain<Type> for AssignableDomainEvents<Type>
 {
-    fn set_value(&mut self, value: Type) -> Result<VariableState, VariableError> {
+    fn set_value<Events>(&mut self, value: Type) -> Result<VariableState, VariableError>
+        where Events: VariableEvents
+    {
         let mut events = NoOpVariableEvents{};
         events.push(self.id(), self.set_value_register(&mut events, value))
     }
@@ -57,10 +61,9 @@ impl<Type,Events> AssignableDomain<Type> for AssignableDomainEvents<Type, Events
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
 /// trait (i.e. the underlying type is totally ordered).
-pub trait OrderedDomainEvents<Type, Events>: FiniteDomainEvents<Type, Events>
+pub trait OrderedDomainEvents<Type>: FiniteDomainEvents<Type>
 where
     Type: Ord + Eq,
-    Events: VariableEvents,
 {
     /// Returns the minimal value of the domain.
     fn min(&self) -> Option<Type>;
@@ -87,11 +90,12 @@ where
     ///
     /// # Parameters
     /// * `ub` - The strict upperbound implied to the domain.
-    fn strict_upperbound(
+    fn strict_upperbound<Events>(
         &mut self,
         events: &mut Events,
         ub: Type,
-    ) -> Result<VariableState, VariableError>;
+    ) -> Result<VariableState, VariableError>
+            where Events: VariableEvents;
     /// Forces the upperbound of the variable to be lesser than `ub`.
     /// Returns an error of type `VariableError::DomainWipeout`
     /// if the new upperbound is strictly lesser than the minimal value of the domain, otherwise
@@ -99,11 +103,12 @@ where
     ///
     /// # Parameters
     /// * `ub` - The weak upperbound implied to the domain.
-    fn weak_upperbound(
+    fn weak_upperbound<Events>(
         &mut self,
         events: &mut Events,
         ub: Type,
-    ) -> Result<VariableState, VariableError>;
+    ) -> Result<VariableState, VariableError>
+            where Events: VariableEvents;
     /// Forces the lowerbound of the variable to be strictly greater than `lb`.
     /// Returns an error of type `VariableError::DomainWipeout`
     /// if the new lowerbound is greater than the maximal value of the domain, otherwise
@@ -112,11 +117,12 @@ where
     /// # Parameters
     /// * `lb` - The strict lowerbound implied to the domain.
 
-    fn strict_lowerbound(
+    fn strict_lowerbound<Events>(
         &mut self,
         events: &mut Events,
         lb: Type,
-    ) -> Result<VariableState, VariableError>;
+    ) -> Result<VariableState, VariableError>
+            where Events: VariableEvents;
 
     /// Forces the lowerbound of the variable to be greater than `lb`.
     /// Returns an error of type `VariableError::DomainWipeout`
@@ -125,11 +131,12 @@ where
     ///
     /// # Parameters
     /// * `lb` - The weak lowerbound implied to the domain.
-    fn weak_lowerbound(
+    fn weak_lowerbound<Events>(
         &mut self,
         events: &mut Events,
         lb: Type,
-    ) -> Result<VariableState, VariableError>;
+    ) -> Result<VariableState, VariableError>
+            where Events: VariableEvents;
 }
 
 /// Trait that defines variable which the underlying `Type` implements the `Ord`
@@ -174,10 +181,9 @@ where
     ) -> Result<VariableState, VariableError>;
 }
 
-impl<Type> OrderedDomain<Type, Events> for OrderedDomainEvents<Type,Events>
+impl<Type> OrderedDomain<Type> for OrderedDomainEvents<Type>
 where
     Type: Ord + Eq,
-    Events: VariableEvents,
 {
     /// Returns the minimal value of the domain.
     fn min(&self) -> Option<Type> {
@@ -223,10 +229,9 @@ where
     }
 }
 
-trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, Events> where
+trait BoundedDomainEvents<Type, Other=Self>: OrderedDomainEvents<Type> where
     Type: Ord + Eq,
     Other: OrderedDomain<Type>,
-    Events: VariableEvents,
 {
     /// Forces the domain of `self` to satisfies a precedence relation
     /// with `value`.
@@ -236,11 +241,12 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn less_than(
+    fn less_than<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(), VariableError>
+            where Events: VariableEvents
     {
         let state_self = events.push(self.id(), self.strict_upperbound(value.unchecked_max()))?;
         let state_value = events.push(value.id(), value.strict_lowerbound(self.unchecked_min()))?;
@@ -254,11 +260,12 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn less_or_equal_than(
+    fn less_or_equal_than<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(), VariableError>
+            where Events: VariableEvents
     {
         let state_self = events.push(self.id(), self.strict_upperbound(value.unchecked_max()))?;
         let state_value = events.push(value.id(), value.strict_lowerbound(self.unchecked_min()))?;
@@ -272,11 +279,12 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn greater_than(
+    fn greater_than<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(), VariableError>
+            where Events: VariableEvents
     {
         let state_self = events.push(self.id(), self.strict_lowerbound(value.unchecked_min()))?;
         let state_value = events.push(value.id(), value.strict_upperbound(self.unchecked_max()))?;
@@ -291,11 +299,12 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn greater_or_equal_than(
+    fn greater_or_equal_than<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(), VariableError>
+            where Events: VariableEvents
     {
         let state_self = events.push(self.id(), self.weak_lowerbound(value.unchecked_min()))?;
         let state_value = events.push(value.id(), value.weak_upperbound(self.unchecked_max()))?;
@@ -309,11 +318,12 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn equal_bounds_lazy(
+    fn equal_bounds_lazy<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(VariableState, VariableState), VariableError>
+            where Events: VariableEvents
     {
         let (x1,y1) = self.less_or_equal_than_register(events, value)?;
         let (x2,y2) = self.greater_or_equal_than_register(events, value)?;
@@ -321,30 +331,30 @@ trait BoundedDomainEvents<Type, Events, Other=Self>: OrderedDomainEvents<Type, E
         Ok((x1|x2, y1|y2))
     }
 
-    fn equal_bounds(
+    fn equal_bounds<Events>(
         &mut self,
         events: &mut Events,
         value: &mut Other,
     ) -> Result<(VariableState, VariableState), VariableError>
+            where Events: VariableEvents
     {
-        let mut x = VariableState::NoChange;
-        let mut y = VariableState::NoChange;
-        loop {
-            todo!()
-            // collect error into events here
-            let (x1,y1) = self.less_or_equal_than(value)?;
-            let (x2,y2) = self.greater_or_equal_than(value)?;
-            let new_x = x1 | x2;
-            let new_y = y1 | y2;
-            if (new_x == VariableState::NoChange) && (new_y == VariableState::NoChange) {
-                break;
+        let do_propagate = |lhs: &mut Self, rhs: &mut Other| {
+            let mut x = VariableState::NoChange;
+            let mut y = VariableState::NoChange;
+            loop {
+                let (x1,y1) = lhs.less_or_equal_than(rhs)?;
+                let (x2,y2) = lhs.greater_or_equal_than(rhs)?;
+                let new_x = x1 | x2;
+                let new_y = y1 | y2;
+                if (new_x == VariableState::NoChange) && (new_y == VariableState::NoChange) {
+                    break;
+                }
+                x = x | new_x;
+                y = y | new_y;
             }
-            x = x | new_x;
-            y = y | new_y;
-        }
-        events.push_value(self.id(), x);
-        events.push_value(value.id(), y);
-        Ok((x,y))
+        };
+        let result = do_propagate(self, value);
+        events.push(result)
     }
 }
 
@@ -463,9 +473,9 @@ trait BoundedDomain<Type, Other=Self>: OrderedDomainEvents<Type> where
 
 
 /// Trait that definies variable that allows to remove any values from its domains.
-pub trait PrunableDomain: FiniteDomain<Type>
+pub trait EqualDomainEvents<Type,Other=Self>: FiniteDomain<Type>
 where
-    Type: Eq,
+Type: Eq,
 {
     /// Forces the domain of two variables to be equal.
     ///
@@ -474,56 +484,73 @@ where
     fn equal<Events>(
         &mut self,
         events: &mut Events,
-        value: &mut Self,
-    ) -> Result<(VariableState, VariableState), VariableError>;
+        value: &mut Other,
+    ) -> Result<(VariableState, VariableState), VariableError>
+        where Events: VariableEvents
+    ;
     /// Forces the value of two varaibles to be distinct.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn not_equal(
+    fn not_equal<Events>(
         &mut self,
-        value: &mut Self,
-    ) -> Result<(VariableState, VariableState), VariableError>;
+        events: &mut Events,
+        value: &mut Other,
+    ) -> Result<(VariableState, VariableState), VariableError>
+            where Events: VariableEvents;
+}
+
+/// Trait that definies variable that allows to remove any values from its domains.
+pub trait PrunableDomainEvents<Type>: FiniteDomain<Type>
+where
+    Type: Eq,
+{
     /// Forces the domain of the variables to be in the values past has parameter.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn in_values<Values>(
+    fn in_values<Values,Events>(
         &mut self,
+        events: &mut Events,
         values: Values,
     ) -> Result<VariableState, VariableError>
-    where
+    where Events: VariableEvents,
         Values: IntoIterator<Item = Self::Type>;
     /// Remove the value from the domain of a variable.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn remove_value(&mut self, value: Self::Type)
-        -> Result<VariableState, VariableError>;
+    fn remove_value<Events>(&mut self,
+        events: &mut Events,
+        value: Type)
+    -> Result<VariableState, VariableError>
+    where Events: VariableEvents,;
     /// Remove the values of the domain that satisfies the predicate.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn remove_if<Predicate>(
+    fn remove_if<Predicate,Events>(
         &mut self,
+        events: &mut Events,
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
-    where
+    where Events: VariableEvents,
         Predicate: FnMut(&Self::Type) -> bool;
     /// Remove the values of the domain that does not satisfy the predicate.
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn retains_if<Predicate>(
+    fn retains_if<Predicate, Events>(
         &mut self,
+        events: &mut Events,
         pred: Predicate,
     ) -> Result<VariableState, VariableError>
-    where
+    where Events: VariableEvents,
         Predicate: FnMut(&Self::Type) -> bool;
 }
 
 /// Trait that definies variable that allows to remove any values from its domains.
-pub trait OrderedPrunableDomain: PrunableDomain + OrderedDomain
+pub trait OrderedPrunableDomainEvents<Type>: EqualDomainEvents<Type> + OrderedDomainEvents<Type>
 where
     Self::Type: Eq + Ord,
 {
@@ -531,30 +558,28 @@ where
     ///
     /// # Parameters
     /// * `value` - The variable to compare to.
-    fn in_sorted_values<Values: Iterator<Item = Self::Type>>(
+    fn in_sorted_values<Values: Iterator<Item = Self::Type>, Events>(
         &mut self,
         values: Values,
     ) -> Result<VariableState, VariableError>
-    where
+    where Events: VariableEvents,
         Values: IntoIterator<Item = Self::Type>;
 }
 
 
-
-/*
 /// Trait that defines variableswhich the domain can be deduced from an interval.
-pub trait FromRangeDomain: FiniteDomain {
+pub trait FromRangeDomain<Type>: FiniteDomain<Type> {
     /// Returns a new variable from an interval or return `None` if the interval is not valid (max <
     /// min). The domain of the new created variable contains `min` and `max`.
     ///
     /// # Parameters
     /// * `min` - The minimal value of the interval.
     /// * `max` - The maximal value of the interval.
-    fn new_from_range(min: Self::Type, max: Self::Type) -> Option<Self>;
+    fn new_from_range(min: Type, max: Type) -> Option<Self>;
 }
 
 /// Trait that defines variable which the domain can be deduced from a list of values.
-pub trait FromValuesDomain: FiniteDomain + Sized {
+pub trait FromValuesDomain<Type>: FiniteDomain<Type> + Sized {
     /// Returns a new variable from an `Iterator` of values or `None` if the list
     /// of values is empty.
     ///
@@ -562,6 +587,5 @@ pub trait FromValuesDomain: FiniteDomain + Sized {
     /// * `values` - The values of the domain.
     fn new_from_values<Values>(values: Values) -> Option<Self>
     where
-        Values: IntoIterator<Item = Self::Type>;
+        Values: IntoIterator<Item = Type>;
 }
-*/

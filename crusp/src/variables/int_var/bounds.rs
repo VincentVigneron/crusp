@@ -1,1 +1,1 @@
-pub struct IntVarBounds {}
+pub struct IntVarBounds<T> {}

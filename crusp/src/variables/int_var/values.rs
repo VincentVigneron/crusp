@@ -7,6 +7,9 @@ use variables::{
     VariableState,
 };
 
+pub struct IntVarValues<T> {}
+
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IntVarValuesBuilder {
     domain: Vec<i32>,
