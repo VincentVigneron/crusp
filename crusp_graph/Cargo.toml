@@ -1,0 +1,12 @@
+[package]
+name = "crusp-graph"
+version = "0.1.0"
+authors = ["Vincent"]
+edition = "2018"
+
+
+[dev-dependencies]
+trybuild = "1.0"
+
+[dependencies]
+priority-queue = "1.0.5"

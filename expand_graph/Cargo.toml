@@ -1,0 +1,11 @@
+[package]
+name = "expand_graph"
+version = "0.1.0"
+authors = ["Vincent Vigneron <vigneron.vincent.49@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crusp-graph = { path="../crusp_graph" }
+crusp-derive-graph = { path="../crusp_derive_graph" }

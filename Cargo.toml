@@ -5,4 +5,7 @@ members = [
     "crusp_branches",
     "crusp_variables",
     "crusp_proc",
+    "crusp_derive_graph",
+    "crusp_graph",
+    "expand_graph",
 ]
